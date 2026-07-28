@@ -33,5 +33,13 @@ export const registerSchema = z
     path: ["confirmPassword"],
   });
 
+export const verifyRegisterSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "კოდი უნდა იყოს 6 ციფრი"),
+});
+
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type RegisterFormValues = z.infer<typeof registerSchema>;
+export type VerifyRegisterFormValues = z.infer<typeof verifyRegisterSchema>;

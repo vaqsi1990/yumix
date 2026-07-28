@@ -3,8 +3,10 @@ import { AuthService } from './auth.service';
 import {
   loginSchema,
   registerSchema,
+  verifyRegisterSchema,
   type LoginDto,
   type RegisterDto,
+  type VerifyRegisterDto,
 } from './dto/auth.schemas';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -18,10 +20,17 @@ export class AuthController {
   constructor(private auth: AuthService) {}
 
   @Post('register')
-  register(
+  requestRegistration(
     @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
   ) {
-    return this.auth.register(dto);
+    return this.auth.requestRegistration(dto);
+  }
+
+  @Post('register/verify')
+  verifyAndRegister(
+    @Body(new ZodValidationPipe(verifyRegisterSchema)) dto: VerifyRegisterDto,
+  ) {
+    return this.auth.verifyAndRegister(dto);
   }
 
   @Post('login')

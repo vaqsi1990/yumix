@@ -21,20 +21,18 @@ export default function PanelShell({
           <div>
             <Link
               href={backHref}
-              className="text-sm font-medium text-[#FF0050] hover:underline"
+              className="text-[16px] font-medium text-[#FF0050] hover:underline"
             >
               ← უკან
             </Link>
             <h1 className="mt-1 font-[family-name:var(--font-inter)] text-2xl font-bold text-neutral-900">
               {title}
             </h1>
-            {subtitle && (
-              <p className="mt-0.5 text-sm text-neutral-500">{subtitle}</p>
-            )}
+          
           </div>
           <Link
             href="/"
-            className="rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700 transition hover:bg-neutral-50"
+            className="rounded-lg border border-neutral-200 px-3 py-2 text-[16px] text-neutral-700 transition hover:bg-neutral-50"
           >
             საიტზე დაბრუნება
           </Link>

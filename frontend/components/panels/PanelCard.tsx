@@ -46,9 +46,7 @@ export default function PanelCard({
         <h3 className="font-[family-name:var(--font-inter)] text-[16px] font-bold text-neutral-900 md:text-[18px]">
           {title}
         </h3>
-        {subtitle && (
-          <p className="mt-0.5 text-sm text-neutral-500">{subtitle}</p>
-        )}
+      
       </div>
     </Link>
   );

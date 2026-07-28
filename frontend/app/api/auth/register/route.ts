@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE, getApiBaseUrl } from "@/lib/api";
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: 60 * 60 * 24 * 7,
-};
+import { getApiBaseUrl } from "@/lib/api";
 
 export async function POST(request: Request) {
   try {
@@ -25,12 +17,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = NextResponse.json({
-      user: data.user,
+    return NextResponse.json({
       message: data.message,
+      email: data.email,
     });
-    response.cookies.set(AUTH_COOKIE, data.accessToken, cookieOptions);
-    return response;
   } catch {
     return NextResponse.json({ error: "Register failed" }, { status: 500 });
   }

@@ -79,6 +79,18 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+/// Pending signup until 6-digit email code is verified
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  codeHash  String
+  payload   Json
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Address {
   id           String  @id @default(cuid())
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)

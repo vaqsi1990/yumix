@@ -32,13 +32,13 @@ export default function AuthNav({ mobile = false }: { mobile?: boolean }) {
       <>
         <Link
           href="/login"
-          className="hidden rounded-md border border-white px-4 py-1.5 text-sm transition hover:bg-white/10 lg:inline-flex"
+          className="hidden rounded-md border border-white px-4 py-1.5 text-[16px] transition hover:bg-white/10 lg:inline-flex"
         >
           შესვლა
         </Link>
         <Link
           href="/reg"
-          className="hidden rounded-md bg-white px-4 py-1.5 text-sm font-medium text-[#FF0050] transition hover:bg-white/95 lg:inline-flex"
+          className="hidden rounded-md bg-white px-4 py-1.5 text-[16px] font-medium text-[#FF0050] transition hover:bg-white/95 lg:inline-flex"
         >
           რეგისტრაცია
         </Link>
@@ -71,7 +71,7 @@ export default function AuthNav({ mobile = false }: { mobile?: boolean }) {
         {panelHref && panelLabel && (
           <Link
             href={panelHref}
-            className="inline-flex items-center justify-center rounded-md border border-white px-4 py-2.5 text-sm"
+            className="inline-flex items-center justify-center rounded-md border border-white px-4 py-2.5 text-[16px]"
           >
             {panelLabel}
           </Link>
@@ -92,7 +92,7 @@ export default function AuthNav({ mobile = false }: { mobile?: boolean }) {
       {panelHref && panelLabel && (
         <Link
           href={panelHref}
-          className="hidden rounded-md border border-white px-4 py-1.5 text-sm transition hover:bg-white/10 lg:inline-flex"
+          className="hidden rounded-md border border-white px-4 py-1.5 text-[16px] transition hover:bg-white/10 lg:inline-flex"
         >
           {panelLabel}
         </Link>
@@ -100,7 +100,7 @@ export default function AuthNav({ mobile = false }: { mobile?: boolean }) {
       <button
         type="button"
         onClick={() => void logout()}
-        className="hidden rounded-md bg-white px-4 py-1.5 text-sm font-medium text-[#FF0050] transition hover:bg-white/95 lg:inline-flex"
+        className="hidden rounded-md bg-white px-4 py-1.5 text-[16px] font-medium text-[#FF0050] transition hover:bg-white/95 lg:inline-flex"
       >
         გამოსვლა
       </button>

@@ -9,7 +9,9 @@ import { useAuth } from "@/components/auth-context";
 import type { ApiUser } from "@/lib/api";
 import {
   registerSchema,
+  verifyRegisterSchema,
   type RegisterFormValues,
+  type VerifyRegisterFormValues,
 } from "@/lib/validation/auth";
 
 const inputClassName =
@@ -22,8 +24,14 @@ export default function RegisterForm() {
   const router = useRouter();
   const { setUser } = useAuth();
   const [formError, setFormError] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState<"form" | "verify" | "done">("form");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingPayload, setPendingPayload] = useState<Omit<
+    RegisterFormValues,
+    "confirmPassword"
+  > | null>(null);
   const [submittedName, setSubmittedName] = useState("");
+  const [resending, setResending] = useState(false);
 
   const {
     register,
@@ -43,20 +51,78 @@ export default function RegisterForm() {
     },
   });
 
+  const {
+    register: registerCode,
+    handleSubmit: handleVerifySubmit,
+    formState: { errors: verifyErrors, isSubmitting: isVerifying },
+    setValue: setCodeValue,
+  } = useForm<VerifyRegisterFormValues>({
+    resolver: zodResolver(verifyRegisterSchema),
+    defaultValues: { code: "" },
+  });
+
+  async function sendCode(
+    values: Omit<RegisterFormValues, "confirmPassword">,
+  ) {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        phone: values.phone.trim(),
+        address: values.address.trim(),
+        birthDate: values.birthDate,
+        email: values.email.trim(),
+        password: values.password,
+      }),
+    });
+
+    const data = (await res.json()) as { error?: string; email?: string };
+
+    if (!res.ok) {
+      throw new Error(
+        typeof data.error === "string"
+          ? data.error
+          : "რეგისტრაცია ვერ მოხერხდა",
+      );
+    }
+
+    return data.email ?? values.email.trim().toLowerCase();
+  }
+
   async function onSubmit(values: RegisterFormValues) {
     setFormError("");
     try {
-      const res = await fetch("/api/auth/register", {
+      const payload = {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        phone: values.phone,
+        address: values.address,
+        birthDate: values.birthDate,
+        email: values.email,
+        password: values.password,
+      };
+      const email = await sendCode(payload);
+      setPendingPayload(payload);
+      setPendingEmail(email);
+      setStep("verify");
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : "ქსელის შეცდომა. სცადე თავიდან.",
+      );
+    }
+  }
+
+  async function onVerify(values: VerifyRegisterFormValues) {
+    setFormError("");
+    try {
+      const res = await fetch("/api/auth/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          firstName: values.firstName.trim(),
-          lastName: values.lastName.trim(),
-          phone: values.phone.trim(),
-          address: values.address.trim(),
-          birthDate: values.birthDate,
-          email: values.email.trim(),
-          password: values.password,
+          email: pendingEmail,
+          code: values.code.trim(),
         }),
       });
 
@@ -66,14 +132,14 @@ export default function RegisterForm() {
         setFormError(
           typeof data.error === "string"
             ? data.error
-            : "რეგისტრაცია ვერ მოხერხდა",
+            : "ვერიფიკაცია ვერ მოხერხდა",
         );
         return;
       }
 
       if (data.user) setUser(data.user);
-      setSubmittedName(values.firstName.trim());
-      setSubmitted(true);
+      setSubmittedName(data.user?.firstName ?? pendingPayload?.firstName ?? "");
+      setStep("done");
       router.push("/");
       router.refresh();
     } catch {
@@ -81,7 +147,24 @@ export default function RegisterForm() {
     }
   }
 
-  if (submitted) {
+  async function onResend() {
+    if (!pendingPayload || resending) return;
+    setFormError("");
+    setResending(true);
+    try {
+      const email = await sendCode(pendingPayload);
+      setPendingEmail(email);
+      setCodeValue("code", "");
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : "კოდის ხელახლა გაგზავნა ვერ მოხერხდა",
+      );
+    } finally {
+      setResending(false);
+    }
+  }
+
+  if (step === "done") {
     return (
       <div className="rounded-2xl bg-white p-8 text-center shadow-[0_0_4px_0_rgba(0,0,0,0.12)] sm:p-10">
         <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[#FF0050]/10 text-2xl text-[#FF0050]">
@@ -99,6 +182,88 @@ export default function RegisterForm() {
         >
           მთავარზე გადასვლა
         </Link>
+      </div>
+    );
+  }
+
+  if (step === "verify") {
+    return (
+      <div className="rounded-2xl bg-white p-6 shadow-[0_0_4px_0_rgba(0,0,0,0.12)] sm:p-8">
+        <div className="mb-6 text-center">
+          <h1 className="font-[family-name:var(--font-inter)] text-2xl font-semibold text-neutral-900">
+            ელფოსტის ვერიფიკაცია
+          </h1>
+          <p className="mt-2 text-sm text-neutral-500">
+            6-ციფრიანი კოდი გამოგიგზავნეთ{" "}
+            <span className="font-medium text-neutral-800">{pendingEmail}</span>
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleVerifySubmit(onVerify)}
+          className="space-y-4"
+          noValidate
+        >
+          <div>
+            <label htmlFor="code" className={labelClassName}>
+              ვერიფიკაციის კოდი
+            </label>
+            <input
+              id="code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              className={`${inputClassName} tracking-[0.35em] text-center text-lg font-semibold`}
+              placeholder="000000"
+              {...registerCode("code", {
+                onChange: (e) => {
+                  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                },
+              })}
+            />
+            {verifyErrors.code && (
+              <p className="mt-1 text-xs text-red-500">
+                {verifyErrors.code.message}
+              </p>
+            )}
+          </div>
+
+          {formError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {formError}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isVerifying}
+            className="mt-2 w-full cursor-pointer rounded-lg bg-[#FF0050] py-3 font-[family-name:var(--font-inter)] text-[18px] font-medium text-white transition hover:bg-[#e60048] disabled:cursor-not-allowed disabled:opacity-60 md:text-[20px]"
+          >
+            {isVerifying ? "მოწმდება..." : "დადასტურება და რეგისტრაცია"}
+          </button>
+        </form>
+
+        <div className="mt-4 flex flex-col items-center gap-2 text-sm text-neutral-500">
+          <button
+            type="button"
+            onClick={onResend}
+            disabled={resending}
+            className="font-medium text-[#FF0050] hover:underline disabled:opacity-60"
+          >
+            {resending ? "იგზავნება..." : "კოდის ხელახლა გაგზავნა"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStep("form");
+              setFormError("");
+            }}
+            className="hover:underline"
+          >
+            უკან დაბრუნება
+          </button>
+        </div>
       </div>
     );
   }
@@ -279,7 +444,7 @@ export default function RegisterForm() {
           disabled={isSubmitting}
           className="mt-2 w-full cursor-pointer rounded-lg bg-[#FF0050] py-3 font-[family-name:var(--font-inter)] text-[18px] font-medium text-white transition hover:bg-[#e60048] disabled:cursor-not-allowed disabled:opacity-60 md:text-[20px]"
         >
-          {isSubmitting ? "იტვირთება..." : "რეგისტრაცია"}
+          {isSubmitting ? "იგზავნება..." : "კოდის გაგზავნა"}
         </button>
       </form>
 

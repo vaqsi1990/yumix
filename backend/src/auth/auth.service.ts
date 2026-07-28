@@ -1,18 +1,40 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, randomInt } from 'crypto';
 import { compare, hash } from 'bcryptjs';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto, RegisterDto } from './dto/auth.schemas';
+import { EmailService } from './email.service';
+import {
+  LoginDto,
+  RegisterDto,
+  VerifyRegisterDto,
+} from './dto/auth.schemas';
+
+type PendingPayload = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+  birthDate: string;
+  email: string;
+  passwordHash: string;
+};
+
+const CODE_TTL_MS = 10 * 60 * 1000;
+const MAX_ATTEMPTS = 5;
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private email: EmailService,
   ) {}
 
   private signToken(user: {
@@ -42,57 +64,155 @@ export class AuthService {
     };
   }
 
-  async register(dto: RegisterDto) {
-    const firstName = dto.firstName.trim();
-    const lastName = dto.lastName.trim();
-    const phone = dto.phone.trim();
-    const address = dto.address.trim();
-    const birthDate = dto.birthDate.trim();
-    const email = dto.email.trim().toLowerCase();
-    const password = dto.password;
+  private hashCode(code: string) {
+    return createHash('sha256').update(code).digest('hex');
+  }
+
+  private generateCode() {
+    return String(randomInt(0, 1_000_000)).padStart(6, '0');
+  }
+
+  private normalizeRegister(dto: RegisterDto) {
+    return {
+      firstName: dto.firstName.trim(),
+      lastName: dto.lastName.trim(),
+      phone: dto.phone.trim(),
+      address: dto.address.trim(),
+      birthDate: dto.birthDate.trim(),
+      email: dto.email.trim().toLowerCase(),
+      password: dto.password,
+    };
+  }
+
+  async requestRegistration(dto: RegisterDto) {
+    const data = this.normalizeRegister(dto);
 
     const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ email }, { phone }] },
+      where: { OR: [{ email: data.email }, { phone: data.phone }] },
     });
 
     if (existing) {
-      const field = existing.email === email ? 'ელფოსტა' : 'ტელეფონის ნომერი';
+      const field = existing.email === data.email ? 'ელფოსტა' : 'ტელეფონის ნომერი';
       throw new ConflictException(`ეს ${field} უკვე გამოყენებულია`);
     }
 
-    const hashedPassword = await hash(password, 12);
-    const parts = address
+    const code = this.generateCode();
+    const passwordHash = await hash(data.password, 12);
+    const payload: PendingPayload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      address: data.address,
+      birthDate: data.birthDate,
+      email: data.email,
+      passwordHash,
+    };
+
+    await this.prisma.emailVerification.upsert({
+      where: { email: data.email },
+      create: {
+        email: data.email,
+        codeHash: this.hashCode(code),
+        payload: payload as unknown as Prisma.InputJsonValue,
+        expiresAt: new Date(Date.now() + CODE_TTL_MS),
+        attempts: 0,
+      },
+      update: {
+        codeHash: this.hashCode(code),
+        payload: payload as unknown as Prisma.InputJsonValue,
+        expiresAt: new Date(Date.now() + CODE_TTL_MS),
+        attempts: 0,
+      },
+    });
+
+    await this.email.sendVerificationCode(data.email, code);
+
+    return {
+      message: 'ვერიფიკაციის კოდი გაიგზავნა ელფოსტაზე',
+      email: data.email,
+    };
+  }
+
+  async verifyAndRegister(dto: VerifyRegisterDto) {
+    const email = dto.email.trim().toLowerCase();
+    const code = dto.code.trim();
+
+    const pending = await this.prisma.emailVerification.findUnique({
+      where: { email },
+    });
+
+    if (!pending) {
+      throw new BadRequestException('ვერიფიკაციის მოთხოვნა არ მოიძებნა');
+    }
+
+    if (pending.expiresAt.getTime() < Date.now()) {
+      await this.prisma.emailVerification.delete({ where: { email } });
+      throw new BadRequestException('კოდის ვადა ამოიწურა. მოითხოვე ახალი კოდი');
+    }
+
+    if (pending.attempts >= MAX_ATTEMPTS) {
+      await this.prisma.emailVerification.delete({ where: { email } });
+      throw new BadRequestException(
+        'მცდელობების ლიმიტი ამოიწურა. მოითხოვე ახალი კოდი',
+      );
+    }
+
+    if (pending.codeHash !== this.hashCode(code)) {
+      await this.prisma.emailVerification.update({
+        where: { email },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new BadRequestException('კოდი არასწორია');
+    }
+
+    const payload = pending.payload as PendingPayload;
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: payload.email }, { phone: payload.phone }],
+      },
+    });
+    if (existing) {
+      await this.prisma.emailVerification.delete({ where: { email } });
+      throw new ConflictException('ეს ანგარიში უკვე არსებობს');
+    }
+
+    const parts = payload.address
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean);
     const city = parts[0] || 'თბილისი';
-    const street = parts.slice(1).join(', ') || address;
+    const street = parts.slice(1).join(', ') || payload.address;
 
-    const user = await this.prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        phone,
-        email,
-        password: hashedPassword,
-        birthDate: new Date(birthDate),
-        role: 'USER',
-        addresses: {
-          create: {
-            title: 'მთავარი',
-            city,
-            street,
-            isDefault: true,
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          phone: payload.phone,
+          email: payload.email,
+          password: payload.passwordHash,
+          birthDate: new Date(payload.birthDate),
+          role: 'USER',
+          emailVerified: true,
+          addresses: {
+            create: {
+              title: 'მთავარი',
+              city,
+              street,
+              isDefault: true,
+            },
           },
         },
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-      },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+        },
+      });
+      await tx.emailVerification.delete({ where: { email } });
+      return created;
     });
 
     return {
@@ -128,6 +248,7 @@ export class AuthService {
         phone: true,
         avatar: true,
         isActive: true,
+        emailVerified: true,
       },
     });
     if (!user || !user.isActive) {
