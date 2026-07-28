@@ -64,11 +64,7 @@ export default function CategoryCard({
       <span className="font-[family-name:var(--font-inter)] text-[16px] font-normal not-italic leading-snug text-neutral-900 md:text-[18px]">
         {label}
       </span>
-      {description && !compact && (
-        <span className="line-clamp-2 text-sm text-neutral-400">
-          {description}
-        </span>
-      )}
+     
     </Link>
   );
 }
