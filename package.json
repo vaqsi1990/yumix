@@ -1,0 +1,11 @@
+{
+  "name": "yumix",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:api": "npm --prefix backend run start:dev",
+    "build": "npm --prefix frontend run build",
+    "build:api": "npm --prefix backend run build",
+    "lint": "npm --prefix frontend run lint"
+  }
+}
