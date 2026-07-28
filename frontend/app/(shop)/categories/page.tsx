@@ -1,5 +1,5 @@
 import Link from "next/link";
-import CategoryCard from "@/components/CategoryCard";
+import CategoriesList from "@/components/CategoriesList";
 import SearchBox from "@/components/SearchBox";
 import { getPublicCategories } from "@/lib/categories";
 
@@ -46,18 +46,7 @@ export default async function CategoriesPage({ searchParams }: Props) {
           </Link>
         </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
-          {categories.map((category) => (
-            <li key={category.slug}>
-              <CategoryCard
-                href={category.href}
-                label={category.label}
-                image={category.image}
-                description={category.description}
-              />
-            </li>
-          ))}
-        </ul>
+        <CategoriesList categories={categories} />
       )}
     </section>
   );

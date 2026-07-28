@@ -1,3 +1,8 @@
+import {
+  RESTAURANT_CATEGORY_DEFS,
+  getCategoryKeywords as getDefCategoryKeywords,
+} from "./restaurant-categories";
+
 export type PublicCategory = {
   slug: string;
   href: string;
@@ -6,7 +11,8 @@ export type PublicCategory = {
   description: string;
 };
 
-export const PUBLIC_CATEGORIES: PublicCategory[] = [
+/** Featured categories on the home screen (original set) */
+export const HOME_CATEGORIES: PublicCategory[] = [
   {
     slug: "pizza",
     href: "/categories/pizza",
@@ -63,17 +69,31 @@ export const PUBLIC_CATEGORIES: PublicCategory[] = [
     image: "/cat/8.png",
     description: "ცივი და ცხელი სასმელები",
   },
-  {
-    slug: "other",
-    href: "/categories/other",
-    label: "სხვა",
-    image: null,
-    description: "სხვა კატეგორიები",
-  },
+];
+
+/** All categories on /categories page */
+export const PUBLIC_CATEGORIES: PublicCategory[] =
+  RESTAURANT_CATEGORY_DEFS.map((category) => ({
+    slug: category.slug,
+    href: `/categories/${category.slug}`,
+    label: category.label,
+    image: category.image,
+    description: category.description,
+  }));
+
+const HOME_ONLY_SLUGS = new Set(
+  HOME_CATEGORIES.map((c) => c.slug).filter(
+    (slug) => !PUBLIC_CATEGORIES.some((c) => c.slug === slug),
+  ),
+);
+
+const ALL_CATEGORIES: PublicCategory[] = [
+  ...HOME_CATEGORIES.filter((c) => HOME_ONLY_SLUGS.has(c.slug)),
+  ...PUBLIC_CATEGORIES,
 ];
 
 export function getCategoryBySlug(slug: string) {
-  return PUBLIC_CATEGORIES.find((c) => c.slug === slug) ?? null;
+  return ALL_CATEGORIES.find((c) => c.slug === slug) ?? null;
 }
 
 export function getPublicCategories(query?: string) {
@@ -86,4 +106,22 @@ export function getPublicCategories(query?: string) {
       c.description.toLowerCase().includes(q) ||
       c.slug.toLowerCase().includes(q),
   );
+}
+
+const LEGACY_CATEGORY_KEYWORDS: Record<string, string[]> = {
+  salads: ["სალათ"],
+  soups: ["სუპ"],
+  desserts: ["დესერტ", "ტკბილ"],
+  drinks: ["სასმელ", "ყავ", "ჩაი"],
+  georgian: ["ქართულ", "ტრადიციულ"],
+};
+
+export function getCategoryKeywords(slug: string): string[] {
+  if (slug in LEGACY_CATEGORY_KEYWORDS) {
+    const legacy = LEGACY_CATEGORY_KEYWORDS[slug];
+    if (legacy.length > 0) return legacy;
+    return [];
+  }
+
+  return getDefCategoryKeywords(slug);
 }

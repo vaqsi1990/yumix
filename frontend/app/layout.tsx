@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   title: "Yumix",
   description: "საკვების მიწოდება",
   icons: {
-    icon: "/yumix-logo.png",
-    apple: "/yumix-logo.png",
+    icon: "/yumix-logo.svg",
+    apple: "/yumix-logo.svg",
   },
 };
 

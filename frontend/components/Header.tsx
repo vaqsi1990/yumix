@@ -8,7 +8,7 @@ import Logo from "@/components/Logo";
 const navLinks = [
   { href: "/", label: "მთავარი" },
   { href: "/restaurants", label: "რესტორნები" },
-  { href: "/categories", label: "კატეგორიები" },
+ 
   { href: "/offers", label: "აქციები" },
   { href: "/contact", label: "კონტაქტი" },
 ];

@@ -1,23 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import RestaurantCard from "@/components/RestaurantCard";
-import { getCategoryBySlug } from "@/lib/categories";
+import { getCategoryBySlug, getCategoryKeywords } from "@/lib/categories";
 import { getPublicRestaurants } from "@/lib/restaurants";
 
 type Props = {
   params: Promise<{ slug: string }>;
-};
-
-const SLUG_KEYWORDS: Record<string, string[]> = {
-  pizza: ["პიცა", "იტალიურ"],
-  burger: ["ბურგერ", "ამერიკულ"],
-  sushi: ["სუში", "აზიურ"],
-  georgian: ["ქართულ", "ტრადიციულ"],
-  salads: ["სალათ"],
-  soups: ["სუპ"],
-  desserts: ["დესერტ", "ტკბილ"],
-  drinks: ["სასმელ"],
-  other: [],
 };
 
 export default async function CategoryDetailPage({ params }: Props) {
@@ -36,23 +24,19 @@ export default async function CategoryDetailPage({ params }: Props) {
     restaurants = [];
   }
 
-  const keywords = SLUG_KEYWORDS[slug] ?? [category.label];
+  const keywords = getCategoryKeywords(slug);
 
-  const filtered =
-    slug === "other"
-      ? restaurants
-      : restaurants.filter((restaurant) => {
-          const haystack =
-            `${restaurant.name} ${restaurant.categories}`.toLowerCase();
-          return keywords.some((keyword) =>
-            haystack.includes(keyword.toLowerCase()),
-          );
-        });
+  const filtered = restaurants.filter((restaurant) => {
+    const haystack =
+      `${restaurant.name} ${restaurant.categories}`.toLowerCase();
+    return keywords.some((keyword) =>
+      haystack.includes(keyword.toLowerCase()),
+    );
+  });
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-5 lg:px-8">
       <div className="mb-6 sm:mb-8">
-       
         <h1 className="mt-1 font-[family-name:var(--font-inter)] text-[22px] font-bold text-neutral-900 md:text-[28px]">
           {category.label}
         </h1>

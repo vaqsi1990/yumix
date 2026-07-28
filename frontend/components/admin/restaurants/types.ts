@@ -134,13 +134,4 @@ export const CITIES = [
   "რუსთავი",
 ] as const;
 
-export const RESTAURANT_CATEGORIES = [
-  "პიცა",
-  "ბურგერი",
-  "სუში",
-  "ქართული",
-  "სალათები",
-  "დესერტი",
-  "აზიური",
-  "კაფე",
-] as const;
+export { RESTAURANT_CATEGORIES } from "@/lib/restaurant-categories";

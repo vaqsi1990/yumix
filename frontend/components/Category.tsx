@@ -1,7 +1,7 @@
 import Link from "next/link";
 import CategoryCard from "@/components/CategoryCard";
 import HorizontalScroll from "@/components/HorizontalScroll";
-import { PUBLIC_CATEGORIES } from "@/lib/categories";
+import { HOME_CATEGORIES } from "@/lib/categories";
 
 export default function Category() {
   return (
@@ -22,7 +22,7 @@ export default function Category() {
         </div>
 
         <HorizontalScroll className="-mx-4 flex touch-pan-x gap-3 px-4 md:hidden">
-          {PUBLIC_CATEGORIES.map((category) => (
+          {HOME_CATEGORIES.map((category) => (
             <li key={category.slug} className="w-[112px] shrink-0">
               <CategoryCard
                 href={category.href}
@@ -34,8 +34,8 @@ export default function Category() {
           ))}
         </HorizontalScroll>
 
-        <ul className="hidden gap-3 md:grid md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-9">
-          {PUBLIC_CATEGORIES.map((category) => (
+        <ul className="hidden gap-3 md:grid md:grid-cols-4 md:gap-4 lg:grid-cols-4 xl:grid-cols-8">
+          {HOME_CATEGORIES.map((category) => (
             <li key={category.slug}>
               <CategoryCard
                 href={category.href}
