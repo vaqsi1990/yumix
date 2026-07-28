@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AuthNav from "@/components/AuthNav";
+import Logo from "@/components/Logo";
 
 const navLinks = [
   { href: "/", label: "მთავარი" },
@@ -145,13 +146,11 @@ export default function Header() {
     <header className="relative w-full overflow-x-clip bg-[#FF0050] text-white">
       <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-5 sm:py-4 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4 lg:gap-6">
-          <Link
-            href="/"
-            className="shrink-0 text-xl font-bold tracking-tight sm:text-2xl md:text-[1.75rem]"
+          <Logo
+            priority
+            onDark
             onClick={() => setMenuOpen(false)}
-          >
-            Yumix
-          </Link>
+          />
 
           <button
             type="button"

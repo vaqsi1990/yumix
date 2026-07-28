@@ -24,7 +24,7 @@ yumix/
 
 - Use [`backend/render.yaml`](backend/render.yaml)
 - Set **Root Directory** to `backend`
-- Set `CORS_ORIGIN` to your Vercel URL (e.g. `https://your-app.vercel.app`)
+- Set `CORS_ORIGIN` to `https://www.yumix.ge` (comma-separated if you add more origins)
 
 ### Option B — Manual
 
@@ -39,7 +39,7 @@ yumix/
 | `DATABASE_URL` | Render Postgres connection string (Internal URL preferred) |
 | `JWT_SECRET` | long random string |
 | `JWT_EXPIRES_IN` | `7d` |
-| `CORS_ORIGIN` | your Vercel origin(s), comma-separated |
+| `CORS_ORIGIN` | `https://www.yumix.ge` (add `http://localhost:3000` for local frontend → prod API tests) |
 | `NODE_ENV` | `production` |
 
 6. After first deploy, open `https://<your-api>.onrender.com/health` — expect `{ "ok": true }`
@@ -47,7 +47,8 @@ yumix/
 ## 3. Vercel (frontend)
 
 1. Import the same repo; **Root Directory** = `frontend`
-2. Env vars:
+2. Add custom domain **`www.yumix.ge`** in Vercel → Project → Settings → Domains
+3. Env vars:
 
 | Key | Value |
 |-----|--------|
@@ -64,7 +65,7 @@ yumix/
 ```bash
 # Terminal 1 — API (port 3001)
 cd backend
-cp .env.example .env   # set DATABASE_URL to Render external URL (or local Postgres)
+cp .env.example .env   # set DATABASE_URL; CORS_ORIGIN = localhost + https://www.yumix.ge
 npm install
 npx prisma generate
 npx prisma db push
