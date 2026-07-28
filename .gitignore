@@ -41,6 +41,14 @@ yarn-error.log*
 !frontend/.env.example
 !backend/.env.example
 
+# local AI agent tooling (not needed on GitHub)
+.agents/
+.claude/
+.windsurf/
+AGENTS.md
+CLAUDE.md
+skills-lock.json
+
 # vercel
 .vercel
 /frontend/.vercel
