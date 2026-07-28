@@ -1,11 +1,15 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resetPasswordSchema,
   verifyRegisterSchema,
+  type ForgotPasswordDto,
   type LoginDto,
   type RegisterDto,
+  type ResetPasswordDto,
   type VerifyRegisterDto,
 } from './dto/auth.schemas';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -36,6 +40,20 @@ export class AuthController {
   @Post('login')
   login(@Body(new ZodValidationPipe(loginSchema)) dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Post('forgot-password')
+  forgotPassword(
+    @Body(new ZodValidationPipe(forgotPasswordSchema)) dto: ForgotPasswordDto,
+  ) {
+    return this.auth.requestPasswordReset(dto);
+  }
+
+  @Post('reset-password')
+  resetPassword(
+    @Body(new ZodValidationPipe(resetPasswordSchema)) dto: ResetPasswordDto,
+  ) {
+    return this.auth.resetPassword(dto);
   }
 
   @UseGuards(JwtAuthGuard)

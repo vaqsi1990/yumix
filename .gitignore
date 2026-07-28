@@ -21,6 +21,7 @@
 /frontend/.next/
 /frontend/out/
 .env
+.env.example
 # production
 /build
 /backend/dist

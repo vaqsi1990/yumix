@@ -119,10 +119,10 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-neutral-500">
-        არ გაქვს ანგარიში?{" "}
-        <Link href="/reg" className="font-medium text-[#FF0050] hover:underline">
-          რეგისტრაცია
+      <p className="mt-6 text-center text-base text-neutral-500">
+        დაგავიწყდა პაროლი?{" "}
+        <Link href="/forgot-password" className="font-medium text-[#FF0050] hover:underline">
+          აღადგინე
         </Link>
       </p>
     </div>

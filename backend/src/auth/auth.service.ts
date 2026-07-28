@@ -11,8 +11,10 @@ import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
 import {
+  ForgotPasswordDto,
   LoginDto,
   RegisterDto,
+  ResetPasswordDto,
   VerifyRegisterDto,
 } from './dto/auth.schemas';
 
@@ -218,6 +220,95 @@ export class AuthService {
     return {
       ...this.signToken(user),
       message: 'რეგისტრაცია წარმატებით გაიარე',
+    };
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDto) {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user || !user.isActive) {
+      return {
+        message: 'თუ ეს ელფოსტა არსებობს, აღდგენის კოდი გაიგზავნა',
+        email,
+      };
+    }
+
+    const code = this.generateCode();
+
+    await this.prisma.passwordReset.upsert({
+      where: { email },
+      create: {
+        email,
+        codeHash: this.hashCode(code),
+        expiresAt: new Date(Date.now() + CODE_TTL_MS),
+        attempts: 0,
+      },
+      update: {
+        codeHash: this.hashCode(code),
+        expiresAt: new Date(Date.now() + CODE_TTL_MS),
+        attempts: 0,
+      },
+    });
+
+    await this.email.sendPasswordResetCode(email, code);
+
+    return {
+      message: 'თუ ეს ელფოსტა არსებობს, აღდგენის კოდი გაიგზავნა',
+      email,
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const email = dto.email.trim().toLowerCase();
+    const code = dto.code.trim();
+
+    const pending = await this.prisma.passwordReset.findUnique({
+      where: { email },
+    });
+
+    if (!pending) {
+      throw new BadRequestException('აღდგენის მოთხოვნა არ მოიძებნა');
+    }
+
+    if (pending.expiresAt.getTime() < Date.now()) {
+      await this.prisma.passwordReset.delete({ where: { email } });
+      throw new BadRequestException('კოდის ვადა ამოიწურა. მოითხოვე ახალი კოდი');
+    }
+
+    if (pending.attempts >= MAX_ATTEMPTS) {
+      await this.prisma.passwordReset.delete({ where: { email } });
+      throw new BadRequestException(
+        'მცდელობების ლიმიტი ამოიწურა. მოითხოვე ახალი კოდი',
+      );
+    }
+
+    if (pending.codeHash !== this.hashCode(code)) {
+      await this.prisma.passwordReset.update({
+        where: { email },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new BadRequestException('კოდი არასწორია');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.isActive) {
+      await this.prisma.passwordReset.delete({ where: { email } });
+      throw new BadRequestException('ანგარიში ვერ მოიძებნა');
+    }
+
+    const passwordHash = await hash(dto.password, 12);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { email },
+        data: { password: passwordHash },
+      });
+      await tx.passwordReset.delete({ where: { email } });
+    });
+
+    return {
+      message: 'პაროლი წარმატებით შეიცვალა',
     };
   }
 

@@ -27,6 +27,27 @@ export const registerSchema = z.object({
   password: z.string().min(6, 'პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'ელფოსტა სავალდებულოა')
+    .email('შეიყვანე სწორი ელფოსტა'),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'ელფოსტა სავალდებულოა')
+    .email('შეიყვანე სწორი ელფოსტა'),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'კოდი უნდა იყოს 6 ციფრი'),
+  password: z.string().min(6, 'პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო'),
+});
+
 export const verifyRegisterSchema = z.object({
   email: z
     .string()
@@ -42,3 +63,5 @@ export const verifyRegisterSchema = z.object({
 export type LoginDto = z.infer<typeof loginSchema>;
 export type RegisterDto = z.infer<typeof registerSchema>;
 export type VerifyRegisterDto = z.infer<typeof verifyRegisterSchema>;
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;

@@ -448,7 +448,7 @@ export default function RegisterForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-neutral-500">
+      <p className="mt-6 text-center text-base text-neutral-500">
         უკვე გაქვს ანგარიში?{" "}
         <Link
           href="/login"
