@@ -1,29 +1,50 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
-import { getSession } from "@/lib/session";
+import { getAccessToken, serverApiFetch } from "@/lib/session";
+import type { ApiUser } from "@/lib/api";
 
 const f = createUploadthing();
 
-async function requireAdminUpload() {
-  const session = await getSession();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
-    throw new UploadThingError("Unauthorized");
+const UPLOAD_ROLES = new Set(["ADMIN", "RESTAURANT_OWNER"]);
+
+async function requireUploadAuth() {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new UploadThingError(
+      "ავტორიზაცია საჭიროა — გაიარე შესვლა ადმინ პანელში.",
+    );
   }
-  return { userId: session.user.id };
+
+  let user: ApiUser;
+  try {
+    const data = await serverApiFetch<{ user: ApiUser }>("/auth/me", { token });
+    user = data.user;
+  } catch {
+    throw new UploadThingError(
+      "სერვერი მიუწვდომელია — გაუშვი backend (localhost:3001) და სცადე თავიდან.",
+    );
+  }
+
+  if (!UPLOAD_ROLES.has(user.role)) {
+    throw new UploadThingError("სურათის ატვირთვის უფლება არ გაქვს.");
+  }
+
+  return { userId: user.id, role: user.role };
 }
 
 export const ourFileRouter = {
   productPhotos: f({
     image: { maxFileSize: "4MB", maxFileCount: 8 },
   })
-    .middleware(async () => requireAdminUpload())
+    .middleware(async () => requireUploadAuth())
     .onUploadComplete(async ({ file }) => {
       return { url: file.ufsUrl };
     }),
+
   restaurantLogo: f({
     image: { maxFileSize: "4MB", maxFileCount: 1 },
   })
-    .middleware(async () => requireAdminUpload())
+    .middleware(async () => requireUploadAuth())
     .onUploadComplete(async ({ file }) => {
       return { url: file.ufsUrl };
     }),
@@ -31,7 +52,7 @@ export const ourFileRouter = {
   restaurantCover: f({
     image: { maxFileSize: "4MB", maxFileCount: 1 },
   })
-    .middleware(async () => requireAdminUpload())
+    .middleware(async () => requireUploadAuth())
     .onUploadComplete(async ({ file }) => {
       return { url: file.ufsUrl };
     }),

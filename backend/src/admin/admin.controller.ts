@@ -55,6 +55,11 @@ export class AdminController {
     return this.admin.patchRestaurant(body.id, body);
   }
 
+  @Delete('restaurants/:id')
+  deleteRestaurant(@Param('id') id: string) {
+    return this.admin.deleteRestaurant(id);
+  }
+
   @Get('users')
   users() {
     return this.admin.getUsers();

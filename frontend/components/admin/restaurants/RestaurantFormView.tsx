@@ -143,7 +143,6 @@ export default function RestaurantFormView({
                 <div className="grid gap-6 lg:grid-cols-2">
                   <ImageUploadField
                     label="ლოგო"
-                    endpoint="restaurantLogo"
                     aspect="square"
                     value={watch("logo")}
                     onChange={(url) => setValue("logo", url)}
@@ -151,7 +150,6 @@ export default function RestaurantFormView({
                   />
                   <ImageUploadField
                     label="Cover ფოტო"
-                    endpoint="restaurantCover"
                     aspect="wide"
                     value={watch("coverImage")}
                     onChange={(url) => setValue("coverImage", url)}

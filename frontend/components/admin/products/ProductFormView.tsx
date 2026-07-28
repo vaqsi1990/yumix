@@ -1,11 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Lightbulb, Plus, Trash2 } from "lucide-react";
-import "@uploadthing/react/styles.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ProductPhotosUpload from "./ProductPhotosUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadDropzone } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import type {
   AdminCategory,
@@ -133,14 +131,6 @@ export default function ProductFormView({
       image: limited[0] ?? null,
       gallery: limited.slice(1),
     }));
-  }
-
-  function removePhoto(url: string) {
-    applyPhotos(allPhotos.filter((p) => p !== url));
-  }
-
-  function setMainPhoto(url: string) {
-    applyPhotos([url, ...allPhotos.filter((p) => p !== url)]);
   }
 
   return (
@@ -427,68 +417,11 @@ export default function ProductFormView({
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <UploadDropzone
-              endpoint="productPhotos"
-              onClientUploadComplete={(res) => {
-                const urls = res
-                  .map((f) => f.ufsUrl ?? f.url)
-                  .filter(Boolean) as string[];
-                applyPhotos([...allPhotos, ...urls]);
-              }}
-              onUploadError={(err) => setError(err.message)}
+            <ProductPhotosUpload
+              photos={allPhotos}
+              onPhotosChange={applyPhotos}
+              onError={(msg) => setError(msg)}
             />
-
-            {allPhotos.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {allPhotos.map((url, index) => (
-                  <div
-                    key={url}
-                    className={cn(
-                      "group relative aspect-square overflow-hidden rounded-lg border",
-                      index === 0
-                        ? "border-primary ring-1 ring-primary/30"
-                        : "border-neutral-200",
-                    )}
-                  >
-                    <Image
-                      src={url}
-                      alt={index === 0 ? "მთავარი ფოტო" : "გალერეა"}
-                      fill
-                      sizes="160px"
-                      className="object-cover"
-                    />
-                    {index === 0 && (
-                      <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-white">
-                        მთავარი
-                      </span>
-                    )}
-                    <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
-                      {index !== 0 && (
-                        <button
-                          type="button"
-                          className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white"
-                          onClick={() => setMainPhoto(url)}
-                        >
-                          მთავარი
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="rounded bg-black/60 p-1 text-white"
-                        onClick={() => removePhoto(url)}
-                        aria-label="წაშლა"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-xs text-muted-foreground">
-                ფოტო ჯერ არ არის ატვირთული
-              </p>
-            )}
           </CardContent>
         </Card>
 

@@ -22,9 +22,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Burger House",
     slug: "burger-house",
     description: "პრემიუმ ბურგერები და კარტოფილი ფრი.",
-    logo: "https://images.unsplash.com/photo-1568901347635-c89aa710600?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1571091718767-18b5b1457cd8?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u1",
       firstName: "გიორგი",
@@ -77,9 +76,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Sushi Master",
     slug: "sushi-master",
     description: "ავთენტური იაპონური სუში.",
-    logo: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1579871494447-0211dd945d9b?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u2",
       firstName: "ანა",
@@ -124,9 +122,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Pizza Roma",
     slug: "pizza-roma",
     description: "იტალიური პიცა ხის ღუმით.",
-    logo: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u3",
       firstName: "Luka",
@@ -171,9 +168,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Khinkali Corner",
     slug: "khinkali-corner",
     description: "ტრადიციული ქართული ხინკალი.",
-    logo: "https://images.unsplash.com/photo-1606491956689-2ea8660f9a67?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1544025162-d76694265947?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u4",
       firstName: "Mariam",
@@ -218,9 +214,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Green Bowl",
     slug: "green-bowl",
     description: "ჯანსაღი სალათები და სმუზები.",
-    logo: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u5",
       firstName: "Elene",
@@ -265,9 +260,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Taco Fiesta",
     slug: "taco-fiesta",
     description: "მექსიკური სამზარეულო.",
-    logo: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1551504734-5ee1ffd4d0da?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u6",
       firstName: "David",
@@ -312,9 +306,8 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     name: "Sweet Dreams",
     slug: "sweet-dreams",
     description: "დესერტები და tortebi.",
-    logo: "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=80&h=80&fit=crop",
-    coverImage:
-      "https://images.unsplash.com/photo-1464349095432-e9a21285b5f3?w=800&h=300&fit=crop",
+    logo: null,
+    coverImage: null,
     owner: {
       id: "u7",
       firstName: "Sofio",

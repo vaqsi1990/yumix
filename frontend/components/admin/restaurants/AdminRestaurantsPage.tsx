@@ -1,20 +1,22 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import RestaurantsStats from "./RestaurantsStats";
 import RestaurantsTable from "./RestaurantsTable";
 import RestaurantsToolbar from "./RestaurantsToolbar";
-import { MOCK_RESTAURANTS } from "./mock-data";
 import type { AdminRestaurant, RestaurantFilters } from "./types";
 import {
   computeRestaurantStats,
   filterAndSortRestaurants,
+  mapApiRestaurant,
   paginateRestaurants,
+  parseApiError,
   patchRestaurantApproval,
   patchRestaurantSuspended,
+  type ApiRestaurantRow,
 } from "./utils";
 
 const DEFAULT_FILTERS: RestaurantFilters = {
@@ -32,10 +34,35 @@ const DEFAULT_FILTERS: RestaurantFilters = {
 
 export default function AdminRestaurantsPage() {
   const router = useRouter();
-  const [restaurants, setRestaurants] =
-    useState<AdminRestaurant[]>(MOCK_RESTAURANTS);
+  const pathname = usePathname();
+  const [restaurants, setRestaurants] = useState<AdminRestaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filters, setFilters] = useState<RestaurantFilters>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const loadRestaurants = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/backend/admin/restaurants");
+      if (!res.ok) throw new Error("load failed");
+      const data = (await res.json()) as { restaurants: unknown[] };
+      setRestaurants(
+        data.restaurants.map((row) =>
+          mapApiRestaurant(row as ApiRestaurantRow),
+        ),
+      );
+    } catch {
+      setError("რესტორნების ჩატვირთვა ვერ მოხერხდა");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRestaurants();
+  }, [pathname, loadRestaurants]);
 
   const stats = useMemo(
     () => computeRestaurantStats(restaurants),
@@ -77,8 +104,20 @@ export default function AdminRestaurantsPage() {
     updateRestaurant(r.id, (x) => patchRestaurantSuspended(x, true));
   }
 
-  function handleDelete(r: AdminRestaurant) {
+  async function handleDelete(r: AdminRestaurant) {
     if (!window.confirm(`"${r.name}" წავშალოთ?`)) return;
+
+    const res = await fetch(`/api/backend/admin/restaurants/${r.id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      window.alert(
+        await parseApiError(res, "წაშლა ვერ მოხერხდა"),
+      );
+      return;
+    }
+
     setRestaurants((prev) => prev.filter((x) => x.id !== r.id));
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -110,11 +149,32 @@ export default function AdminRestaurantsPage() {
     bulkUpdate([...selectedIds], (r) => patchRestaurantSuspended(r, true));
   }
 
-  function handleBulkDelete() {
+  async function handleBulkDelete() {
     if (!window.confirm(`${selectedIds.size} რესტორნის წაშლა?`)) return;
-    const idSet = selectedIds;
-    setRestaurants((prev) => prev.filter((r) => !idSet.has(r.id)));
+
+    const ids = [...selectedIds];
+    const failed: string[] = [];
+    const succeeded = new Set<string>();
+
+    for (const id of ids) {
+      const res = await fetch(`/api/backend/admin/restaurants/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const name = restaurants.find((r) => r.id === id)?.name ?? id;
+        const message = await parseApiError(res, "წაშლა ვერ მოხერხდა");
+        failed.push(`${name}: ${message}`);
+      } else {
+        succeeded.add(id);
+      }
+    }
+
+    setRestaurants((prev) => prev.filter((r) => !succeeded.has(r.id)));
     setSelectedIds(new Set());
+
+    if (failed.length > 0) {
+      window.alert(failed.join("\n"));
+    }
   }
 
   function handleExport() {
@@ -146,17 +206,29 @@ export default function AdminRestaurantsPage() {
         onBulkDelete={handleBulkDelete}
       />
 
+      {error && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
       <Card>
         <CardContent className="overflow-x-auto p-0">
-          <RestaurantsTable
-            restaurants={pageItems}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            onApprove={handleApprove}
-            onReject={handleReject}
-            onSuspend={handleSuspend}
-            onDelete={handleDelete}
-          />
+          {loading ? (
+            <div className="py-16 text-center text-muted-foreground">
+              იტვირთება...
+            </div>
+          ) : (
+            <RestaurantsTable
+              restaurants={pageItems}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onSuspend={handleSuspend}
+              onDelete={handleDelete}
+            />
+          )}
         </CardContent>
       </Card>
 

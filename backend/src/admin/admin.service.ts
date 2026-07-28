@@ -182,11 +182,15 @@ export class AdminService {
       include: {
         owner: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             email: true,
             phone: true,
           },
+        },
+        categories: {
+          include: { category: { select: { name: true } } },
         },
         _count: { select: { products: true, orders: true } },
       },
@@ -208,6 +212,29 @@ export class AdminService {
       },
     });
     return { restaurant };
+  }
+
+  async deleteRestaurant(id: string) {
+    const existing = await this.prisma.restaurant.findUnique({
+      where: { id },
+      include: { _count: { select: { orders: true } } },
+    });
+    if (!existing) {
+      throw new NotFoundException('რესტორანი არ მოიძებნა');
+    }
+
+    if (existing._count.orders > 0) {
+      throw new BadRequestException(
+        'რესტორნს აქვს შეკვეთები — წაშლა შეუძლებელია',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.cart.deleteMany({ where: { restaurantId: id } }),
+      this.prisma.restaurant.delete({ where: { id } }),
+    ]);
+
+    return { deleted: true };
   }
 
   // ─── Users ───────────────────────────────────────────────────

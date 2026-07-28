@@ -171,3 +171,90 @@ export function openStatusVariant(
   if (restaurant.isSuspended) return "warning";
   return restaurant.isOpen ? "success" : "destructive";
 }
+
+/** API row from GET /admin/restaurants */
+export type ApiRestaurantRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  logo: string | null;
+  coverImage: string | null;
+  city: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  deliveryRadius: number | null;
+  deliveryFee: number | null;
+  minimumOrder: number | null;
+  phone: string;
+  email: string | null;
+  isOpen: boolean;
+  isApproved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  owner: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  categories?: { category: { name: string } }[];
+  _count: { products: number; orders: number };
+};
+
+export function mapApiRestaurant(row: ApiRestaurantRow): AdminRestaurant {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    logo: row.logo,
+    coverImage: row.coverImage,
+    owner: row.owner,
+    country: "საქართველო",
+    city: row.city,
+    address: row.address,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    categories: row.categories?.map((c) => c.category.name) ?? [],
+    deliveryRadius: row.deliveryRadius,
+    deliveryFee: row.deliveryFee ?? 0,
+    minimumOrder: row.minimumOrder ?? 0,
+    estimatedDeliveryMinutes: 35,
+    phone: row.phone,
+    email: row.email,
+    website: null,
+    rating: 0,
+    reviewCount: 0,
+    isOpen: row.isOpen,
+    isSuspended: false,
+    approvalStatus: row.isApproved ? "approved" : "pending",
+    totalProducts: row._count.products,
+    totalOrders: row._count.orders,
+    revenue: 0,
+    workingHours: [],
+    settings: {
+      acceptingOrders: row.isOpen,
+      featured: false,
+      visible: row.isApproved,
+      approved: row.isApproved,
+    },
+    reviews: [],
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+export async function parseApiError(res: Response, fallback: string) {
+  try {
+    const data = (await res.json()) as { message?: string | string[] };
+    const message = data.message;
+    if (typeof message === "string") return message;
+    if (Array.isArray(message)) return message.join(", ");
+  } catch {
+    // ignore
+  }
+  return fallback;
+}

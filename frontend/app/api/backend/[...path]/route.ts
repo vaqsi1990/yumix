@@ -11,7 +11,11 @@ async function proxy(request: NextRequest, path: string[]) {
   if (token) headers.set("authorization", `Bearer ${token}`);
 
   const hasBody = !["GET", "HEAD"].includes(request.method);
-  const body = hasBody ? await request.text() : undefined;
+  const isMultipart = contentType?.includes("multipart/form-data");
+  let body: BodyInit | undefined;
+  if (hasBody) {
+    body = isMultipart ? await request.arrayBuffer() : await request.text();
+  }
 
   const res = await fetch(target, {
     method: request.method,
