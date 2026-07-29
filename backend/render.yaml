@@ -3,7 +3,7 @@ services:
     name: yumix-api
     runtime: node
     rootDir: backend
-    buildCommand: npm ci && npm run build && npm prune --omit=dev
+    buildCommand: npm ci --omit=optional && npm run build && npm prune --omit=dev
     startCommand: npx prisma db push && npm run start:prod
     healthCheckPath: /health
     envVars:
