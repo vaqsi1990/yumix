@@ -96,27 +96,31 @@ export class ShopService {
   async getPublicRestaurants(query?: string) {
     const q = query?.trim();
 
-    const db = await this.prisma.restaurant.findMany({
-      where: {
-        isApproved: true,
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: 'insensitive' as const } },
-                { city: { contains: q, mode: 'insensitive' as const } },
-                { address: { contains: q, mode: 'insensitive' as const } },
-              ],
-            }
-          : {}),
-      },
-      include: {
-        categories: {
-          include: { category: { select: { name: true } } },
+    const [db, totalInDb, pendingCount] = await Promise.all([
+      this.prisma.restaurant.findMany({
+        where: {
+          isApproved: true,
+          ...(q
+            ? {
+                OR: [
+                  { name: { contains: q, mode: 'insensitive' as const } },
+                  { city: { contains: q, mode: 'insensitive' as const } },
+                  { address: { contains: q, mode: 'insensitive' as const } },
+                ],
+              }
+            : {}),
         },
-        reviews: { select: { rating: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        include: {
+          categories: {
+            include: { category: { select: { name: true } } },
+          },
+          reviews: { select: { rating: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.restaurant.count(),
+      this.prisma.restaurant.count({ where: { isApproved: false } }),
+    ]);
 
     if (db.length > 0) {
       const restaurants = db.map((restaurant, index) => {
@@ -147,7 +151,11 @@ export class ShopService {
         } satisfies PublicRestaurant;
       });
 
-      return { restaurants, fromDatabase: true };
+      return { restaurants, fromDatabase: true, pendingCount };
+    }
+
+    if (totalInDb > 0) {
+      return { restaurants: [], fromDatabase: true, pendingCount };
     }
 
     const filtered = q
@@ -159,12 +167,15 @@ export class ShopService {
         )
       : DEMO_RESTAURANTS;
 
-    return { restaurants: filtered, fromDatabase: false };
+    return { restaurants: filtered, fromDatabase: false, pendingCount: 0 };
   }
 
-  async getRestaurantMenu(slug: string) {
+  async getRestaurantMenu(slug: string, options?: { includeUnapproved?: boolean }) {
     const restaurant = await this.prisma.restaurant.findFirst({
-      where: { slug, isApproved: true },
+      where: {
+        slug,
+        ...(options?.includeUnapproved ? {} : { isApproved: true }),
+      },
       include: {
         categories: {
           include: { category: { select: { name: true } } },

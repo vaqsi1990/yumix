@@ -36,7 +36,7 @@ export default async function AdminCouriersPage() {
       backHref="/admin"
     >
       <div className="overflow-x-auto rounded-2xl border border-neutral-200">
-        <table className="min-w-full text-left text-[16px] md:text-[18px]">
+        <table className="min-w-full text-left text-[16px] ">
           <thead className="bg-[#F3F4F6] text-neutral-600">
             <tr>
               <th className="px-4 py-3 font-medium">{"\u10e1\u10d0\u10ee\u10d4\u10da\u10d8"}</th>

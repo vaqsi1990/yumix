@@ -15,10 +15,14 @@ export default async function RestaurantsPage({ searchParams }: Props) {
   let restaurants: Awaited<
     ReturnType<typeof getPublicRestaurants>
   >["restaurants"] = [];
+  let fromDatabase = false;
+  let pendingCount = 0;
 
   try {
     const data = await getPublicRestaurants(q);
     restaurants = data.restaurants;
+    fromDatabase = data.fromDatabase;
+    pendingCount = data.pendingCount ?? 0;
   } catch {
     restaurants = [];
   }
@@ -45,17 +49,32 @@ export default async function RestaurantsPage({ searchParams }: Props) {
       {restaurants.length === 0 ? (
         <div className="rounded-2xl bg-[#F5F5F5] px-6 py-16 text-center">
           <h2 className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 md:text-[20px]">
-            რესტორანი ვერ მოიძებნა
+            {pendingCount > 0
+              ? "დამტკიცებული რესტორნები ჯერ არ არის"
+              : "რესტორანი ვერ მოიძებნა"}
           </h2>
           <p className="mt-2 text-[16px] text-neutral-500 md:text-[18px]">
-            სცადე სხვა საძიებო სიტყვა
+            {pendingCount > 0
+              ? `${pendingCount} რესტორანი დამტკიცების მოლოდინშია. ადმინისტრატორი დაამტკიცებს და გამოჩნდება აქ.`
+              : fromDatabase
+                ? "სცადე სხვა საძიებო სიტყვა"
+                : "ჯერ არ არის დამატებული რესტორნები"}
           </p>
-          <Link
-            href="/restaurants"
-            className="mt-6 inline-flex rounded-lg bg-[#FF0050] px-5 py-2.5 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px]"
-          >
-            ყველას ნახვა
-          </Link>
+          {pendingCount > 0 ? (
+            <Link
+              href="/restaurant/dashboard"
+              className="mt-6 inline-flex rounded-lg bg-[#FF0050] px-5 py-2.5 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px]"
+            >
+              მფლობელის პანელი
+            </Link>
+          ) : (
+            <Link
+              href="/restaurants"
+              className="mt-6 inline-flex rounded-lg bg-[#FF0050] px-5 py-2.5 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px]"
+            >
+              ყველას ნახვა
+            </Link>
+          )}
         </div>
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

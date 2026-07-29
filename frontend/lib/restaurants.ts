@@ -117,6 +117,7 @@ function filterDemo(query?: string) {
 export async function getPublicRestaurants(query?: string): Promise<{
   restaurants: PublicRestaurant[];
   fromDatabase: boolean;
+  pendingCount?: number;
 }> {
   const q = query?.trim();
   const path = q
@@ -127,9 +128,10 @@ export async function getPublicRestaurants(query?: string): Promise<{
     return await serverApiFetch<{
       restaurants: PublicRestaurant[];
       fromDatabase: boolean;
+      pendingCount?: number;
     }>(path);
   } catch {
-    return { restaurants: filterDemo(q), fromDatabase: false };
+    return { restaurants: filterDemo(q), fromDatabase: false, pendingCount: 0 };
   }
 }
 

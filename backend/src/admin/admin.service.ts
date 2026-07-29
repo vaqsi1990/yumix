@@ -296,7 +296,8 @@ export class AdminService {
     const deliveryRadius = this.parseOptionalFloat(body.deliveryRadius);
     const isOpen =
       typeof body.acceptingOrders === 'boolean' ? body.acceptingOrders : true;
-    const isApproved = typeof body.approved === 'boolean' ? body.approved : false;
+    const isApproved =
+      typeof body.approved === 'boolean' ? body.approved : false;
 
     const workingHours = Array.isArray(body.workingHours)
       ? body.workingHours

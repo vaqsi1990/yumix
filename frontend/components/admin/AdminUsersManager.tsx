@@ -221,7 +221,7 @@ export default function AdminUsersManager({
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-neutral-200">
+      <div className="overflow-x-auto text-[16px] rounded-2xl border border-neutral-200">
         <table className={`min-w-full text-left ${textClass}`}>
           <thead className="bg-[#F3F4F6] text-neutral-600">
             <tr>
@@ -290,7 +290,7 @@ export default function AdminUsersManager({
                         className="inline-flex size-9 items-center justify-center rounded-md text-[#FF0050] transition hover:bg-[#FF0050]/10 disabled:opacity-40"
                       >
                         {deletingId === user.id ? (
-                          <span className="text-[16px] md:text-[18px]">...</span>
+                          <span className="text-[16px] ">...</span>
                         ) : (
                           <svg
                             className="size-5"
@@ -430,7 +430,7 @@ export default function AdminUsersManager({
               </label>
 
               {error && (
-                <p className={`sm:col-span-2 ${textClass} text-[#FF0050]`}>{error}</p>
+                <p className={`sm:col-span-2 text-[16px] ${textClass} text-[#FF0050]`}>{error}</p>
               )}
 
               <div className="sm:col-span-2 mt-1 flex justify-end gap-2">

@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LocationMapView from "@/components/maps/LocationMapView";
 import { formatDateTime, formatGel } from "@/lib/admin/format";
 import type { AdminRestaurant } from "./types";
 import {
@@ -61,11 +62,6 @@ export default function RestaurantDetailView({
   function setTab(value: string) {
     router.push(`${pathname}?tab=${value}`);
   }
-
-  const mapUrl =
-    restaurant.latitude != null && restaurant.longitude != null
-      ? `https://www.openstreetmap.org/export/embed.html?bbox=${restaurant.longitude - 0.02}%2C${restaurant.latitude - 0.02}%2C${restaurant.longitude + 0.02}%2C${restaurant.latitude + 0.02}&layer=mapnik&marker=${restaurant.latitude}%2C${restaurant.longitude}`
-      : null;
 
   return (
     <div className="space-y-6">
@@ -267,14 +263,12 @@ export default function RestaurantDetailView({
                   }
                 />
               </div>
-              {mapUrl && (
-                <iframe
-                  title="რუკა"
-                  src={mapUrl}
-                  className="h-64 w-full rounded-xl border border-neutral-200"
-                  loading="lazy"
+              {restaurant.latitude != null && restaurant.longitude != null ? (
+                <LocationMapView
+                  latitude={restaurant.latitude}
+                  longitude={restaurant.longitude}
                 />
-              )}
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

@@ -133,7 +133,7 @@ function UserSearchPicker({
       {open && query.trim() && (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-neutral-200 bg-white shadow-lg">
           {results.length === 0 ? (
-            <li className="px-3 py-2.5 text-[16px] md:text-[18px] text-neutral-500">
+            <li className="px-3 py-2.5 text-[16px]  text-neutral-500">
               ვერ მოიძებნა
             </li>
           ) : (
@@ -152,7 +152,7 @@ function UserSearchPicker({
                   <span className="font-medium text-neutral-900">
                     {user.firstName} {user.lastName}
                   </span>
-                  <span className="text-[16px] md:text-[18px] text-neutral-500">
+                  <span className="text-[16px]  text-neutral-500">
                     {user.email} · {ROLE_KA[user.role]}
                   </span>
                 </button>
@@ -316,7 +316,7 @@ export default function AdminCouponsManager({
                   </td>
                   <td className="px-4 py-3">
                     <div>{formatGel(coupon.remainingBalance)}</div>
-                    <div className="text-[16px] md:text-[18px] text-neutral-400">
+                    <div className="text-[16px]  text-neutral-400">
                       საწყისი: {formatGel(coupon.value)}
                     </div>
                   </td>
@@ -337,7 +337,7 @@ export default function AdminCouponsManager({
                       onClick={() =>
                         toggleActive(coupon.id, coupon.isActive)
                       }
-                      className="rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[16px] md:text-[18px] hover:bg-neutral-50"
+                      className="rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-[16px]  hover:bg-neutral-50"
                     >
                       {coupon.isActive ? "გათიშვა" : "ჩართვა"}
                     </button>
@@ -433,7 +433,7 @@ export default function AdminCouponsManager({
                 />
               </label>
 
-              <p className="text-[16px] md:text-[18px] text-neutral-500">
+              <p className="text-[16px]  text-neutral-500">
                 კუპონი მრავალჯერ გამოიყენება, სანამ ბალანსი არ ამოიწურება ან
                 ვადა არ გავა. ფარავს კერძებსა და მიწოდების საფასურს.
               </p>

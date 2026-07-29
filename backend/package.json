@@ -25,7 +25,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "make-admin": "ts-node -r tsconfig-paths/register scripts/make-admin.ts"
+    "make-admin": "ts-node -r tsconfig-paths/register scripts/make-admin.ts",
+    "approve-restaurants": "ts-node -r tsconfig-paths/register scripts/approve-restaurants.ts --approve",
+    "list-restaurants": "ts-node -r tsconfig-paths/register scripts/approve-restaurants.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

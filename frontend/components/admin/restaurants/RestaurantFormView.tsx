@@ -40,7 +40,7 @@ import DeliveryZonesEditor from "./form/DeliveryZonesEditor";
 import FormField from "./form/FormField";
 import FormSectionCard from "./form/FormSectionCard";
 import ImageUploadField from "./form/ImageUploadField";
-import MapPickerPlaceholder from "./form/MapPickerPlaceholder";
+import LocationMapPicker from "@/components/maps/LocationMapPicker";
 import OwnerUserPicker, {
   type RestaurantOwnerCandidate,
 } from "./form/OwnerUserPicker";
@@ -145,9 +145,9 @@ export default function RestaurantFormView({
     };
   }, []);
 
-  function handlePickOnMap() {
-    setValue("latitude", "41.7151");
-    setValue("longitude", "44.8271");
+  function handleLocationChange(lat: string, lng: string) {
+    setValue("latitude", lat);
+    setValue("longitude", lng);
   }
 
   function submit(saveMode: "save" | "save-and-add") {
@@ -403,10 +403,10 @@ export default function RestaurantFormView({
 
         <Separator className="my-6" />
 
-        <MapPickerPlaceholder
+        <LocationMapPicker
           latitude={latitude}
           longitude={longitude}
-          onPick={handlePickOnMap}
+          onChange={handleLocationChange}
         />
       </FormSectionCard>
 

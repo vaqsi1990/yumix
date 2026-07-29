@@ -121,7 +121,7 @@ export default function AdminSettingsForm({
     <form onSubmit={onSubmit} className={`mx-auto max-w-2xl space-y-6 ${textClass}`}>
       <section className="rounded-2xl border border-neutral-200 bg-white p-5">
         <h2 className="font-bold text-neutral-900">პირადი მონაცემები</h2>
-        <p className="mt-1 text-[16px] md:text-[18px] text-neutral-500">
+        <p className="mt-1 text-[16px]  text-neutral-500">
           როლი: {ROLE_KA[profile.role]} · რეგისტრაცია:{" "}
           {formatDateTime(profile.createdAt)}
         </p>
