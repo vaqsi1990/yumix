@@ -78,6 +78,11 @@ export class AdminController {
     return this.admin.getRestaurant(id);
   }
 
+  @Get('restaurants/:id/menu')
+  getRestaurantMenu(@Param('id') id: string) {
+    return this.admin.getRestaurantMenu(id);
+  }
+
   @Post('restaurants')
   createRestaurant(@Body() body: Record<string, unknown>) {
     return this.admin.createRestaurant(body);

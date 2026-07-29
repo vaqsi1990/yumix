@@ -38,7 +38,7 @@ import {
   openStatusVariant,
   ownerFullName,
 } from "./utils";
-import RestaurantMenuCategoriesPanel from "./RestaurantMenuCategoriesPanel";
+import RestaurantMenuPanel from "./RestaurantMenuPanel";
 import RestaurantOrdersPanel from "./RestaurantOrdersPanel";
 import RestaurantSettingsPanel from "./RestaurantSettingsPanel";
 
@@ -55,6 +55,8 @@ export default function RestaurantDetailView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "general";
+  const activeTab =
+    tab === "products" || tab === "categories" ? "menu" : tab;
 
   function setTab(value: string) {
     router.push(`${pathname}?tab=${value}`);
@@ -156,12 +158,11 @@ export default function RestaurantDetailView({
         </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setTab} className="space-y-4">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1 bg-transparent p-0">
           {[
             { id: "general", label: "ზოგადი" },
-            { id: "products", label: "პროდუქტები" },
-            { id: "categories", label: "კატეგორიები" },
+            { id: "menu", label: "მენიუ" },
             { id: "orders", label: "შეკვეთები" },
             { id: "reviews", label: "მიმოხილვები" },
             { id: "hours", label: "საათები" },
@@ -278,61 +279,12 @@ export default function RestaurantDetailView({
           </Card>
         </TabsContent>
 
-        <TabsContent value="products">
-          <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-              {restaurant.approvalStatus !== "approved" && (
-                <div className="w-full max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-[16px] md:text-[18px] text-amber-900">
-                  <p className="font-semibold">რესტორანი ჯერ არ არის დამტკიცებული</p>
-                  <p className="mt-1 text-[16px] md:text-[18px] text-amber-800/90">
-                    მენიუ შეგიძლია შექმნა, მაგრამ მომხმარებლებს მაღაზიაში არ
-                    გამოჩნდება, სანამ დამტკიცებას არ მიიღებს.
-                  </p>
-                </div>
-              )}
-              <p className="text-muted-foreground">
-                {restaurant.totalProducts} პროდუქტი
-              </p>
-              <div className="flex flex-wrap justify-center gap-3">
-                <Link
-                  href={`/admin/products/new?restaurantId=${restaurant.id}`}
-                  className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-[16px] md:text-[18px] font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  პროდუქტის დამატება
-                </Link>
-                <Link
-                  href={`/admin/products?restaurantId=${restaurant.id}`}
-                  className="text-[16px] md:text-[18px] font-medium text-primary hover:underline"
-                >
-                  ამ რესტორნის პროდუქტები →
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="py-6">
-                <p className="mb-3 text-[16px] md:text-[18px] font-medium text-neutral-900">
-                  საკვები ტიპები (კუზინა)
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {restaurant.categories.length === 0 ? (
-                    <p className="text-[16px] md:text-[18px] text-muted-foreground">—</p>
-                  ) : (
-                    restaurant.categories.map((cat) => (
-                      <Badge key={cat} variant="secondary">
-                        {cat}
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            <RestaurantMenuCategoriesPanel restaurantId={restaurant.id} />
-          </div>
+        <TabsContent value="menu">
+          <RestaurantMenuPanel
+            restaurantId={restaurant.id}
+            restaurantName={restaurant.name}
+            isApproved={restaurant.approvalStatus === "approved"}
+          />
         </TabsContent>
 
         <TabsContent value="orders">

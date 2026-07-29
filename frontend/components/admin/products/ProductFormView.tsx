@@ -39,6 +39,7 @@ type ProductFormViewProps = {
   restaurants: AdminRestaurant[];
   categories: AdminCategory[];
   initialRestaurantId?: string;
+  initialCategoryId?: string;
   saving?: boolean;
   onSave: (data: ProductFormData) => Promise<string | null>;
   onCancel: () => void;
@@ -54,6 +55,7 @@ export default function ProductFormView({
   restaurants,
   categories,
   initialRestaurantId = "",
+  initialCategoryId = "",
   saving = false,
   onSave,
   onCancel,
@@ -62,7 +64,7 @@ export default function ProductFormView({
   const [form, setForm] = useState<ProductFormData>(() =>
     product
       ? productToFormData(product)
-      : createEmptyProductForm(initialRestaurantId),
+      : createEmptyProductForm(initialRestaurantId, initialCategoryId),
   );
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -79,11 +81,11 @@ export default function ProductFormView({
     setForm(
       product
         ? productToFormData(product)
-        : createEmptyProductForm(initialRestaurantId),
+        : createEmptyProductForm(initialRestaurantId, initialCategoryId),
     );
     setError("");
     setFieldErrors({});
-  }, [product, initialRestaurantId]);
+  }, [product, initialRestaurantId, initialCategoryId]);
 
   const scopedCategories = getCategoriesForRestaurant(
     form.restaurantId,

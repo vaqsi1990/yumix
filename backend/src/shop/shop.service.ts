@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type PublicRestaurant = {
@@ -160,5 +160,98 @@ export class ShopService {
       : DEMO_RESTAURANTS;
 
     return { restaurants: filtered, fromDatabase: false };
+  }
+
+  async getRestaurantMenu(slug: string) {
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { slug, isApproved: true },
+      include: {
+        categories: {
+          include: { category: { select: { name: true } } },
+        },
+        reviews: { select: { rating: true } },
+        productCategories: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            products: {
+              where: { isHidden: false },
+              orderBy: { name: 'asc' },
+              include: {
+                variants: { orderBy: { name: 'asc' } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!restaurant) {
+      const demo = DEMO_RESTAURANTS.find((r) => r.slug === slug);
+      if (!demo) {
+        throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+      }
+      return {
+        restaurant: demo,
+        menu: [],
+        fromDatabase: false,
+      };
+    }
+
+    const reviewCount = restaurant.reviews.length;
+    const rating =
+      reviewCount > 0
+        ? restaurant.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+        : 0;
+    const categoryNames = restaurant.categories
+      .map((c) => c.category.name)
+      .join(', ');
+    const fallbackImage = DEMO_IMAGES[0];
+
+    const publicRestaurant = {
+      id: restaurant.id,
+      slug: restaurant.slug,
+      name: restaurant.name,
+      description: restaurant.description,
+      categories: categoryNames || restaurant.city,
+      rating: Number(rating.toFixed(1)),
+      reviews: reviewCount,
+      time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
+      deliveryFeeLabel: this.formatFee(restaurant.deliveryFee),
+      minimumOrderLabel: this.formatFee(restaurant.minimumOrder),
+      image: restaurant.coverImage || restaurant.logo || fallbackImage,
+      logo: restaurant.logo || restaurant.coverImage || fallbackImage,
+      city: restaurant.city,
+      isOpen: restaurant.isOpen,
+    };
+
+    const menu = restaurant.productCategories
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        sortOrder: category.sortOrder,
+        products: category.products
+          .filter((product) => product.isAvailable)
+          .map((product) => ({
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            image: product.image,
+            price: product.price,
+            discountPrice: product.discountPrice,
+            outOfStock: product.outOfStock,
+            variants: product.variants.map((variant) => ({
+              id: variant.id,
+              name: variant.name,
+              price: variant.price,
+            })),
+          })),
+      }))
+      .filter((category) => category.products.length > 0);
+
+    return {
+      restaurant: publicRestaurant,
+      menu,
+      fromDatabase: true,
+    };
   }
 }

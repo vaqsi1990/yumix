@@ -72,11 +72,14 @@ export default function RestaurantCard({
         </div>
       </div>
 
-      <div className="px-4 pb-4 pt-8">
+      <div className="relative z-10 px-4 pb-4 pt-8">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-[family-name:var(--font-inter)] text-[18px] font-bold leading-tight text-neutral-900 md:text-[20px]">
+          <Link
+            href={href}
+            className="font-[family-name:var(--font-inter)] text-[18px] font-bold leading-tight text-neutral-900 transition hover:text-[#FF0050] md:text-[20px]"
+          >
             {restaurant.name}
-          </h3>
+          </Link>
           <div className="flex shrink-0 items-center gap-1 pt-0.5 text-sm">
             <StarIcon className="size-4 text-[#F5C518]" />
             <span className="font-semibold text-neutral-900">
@@ -96,7 +99,7 @@ export default function RestaurantCard({
           </div>
           <Link
             href={href}
-            className="rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] md:text-[18px]"
+            className="relative z-10 inline-flex shrink-0 rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] md:text-[18px]"
           >
             მენიუ
           </Link>

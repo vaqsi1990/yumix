@@ -273,7 +273,7 @@ function RestaurantActions({
         <DropdownMenuItem
           onClick={() =>
             router.push(
-              `/admin/restaurants/${restaurant.id}?tab=categories`,
+                          `/admin/restaurants/${restaurant.id}?tab=menu`,
             )
           }
         >

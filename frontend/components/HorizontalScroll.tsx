@@ -7,6 +7,15 @@ type HorizontalScrollProps = {
   className?: string;
 };
 
+function isInteractiveTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      'a, button, input, textarea, select, label, [role="button"]',
+    ),
+  );
+}
+
 export default function HorizontalScroll({
   children,
   className = "",
@@ -25,6 +34,7 @@ export default function HorizontalScroll({
 
     function onPointerDown(e: PointerEvent) {
       if (e.pointerType === "touch") return;
+      if (isInteractiveTarget(e.target)) return;
       drag.current.active = true;
       drag.current.moved = false;
       drag.current.startX = e.clientX;
@@ -50,6 +60,7 @@ export default function HorizontalScroll({
     }
 
     function onClickCapture(e: MouseEvent) {
+      if (isInteractiveTarget(e.target)) return;
       if (drag.current.moved) {
         e.preventDefault();
         e.stopPropagation();

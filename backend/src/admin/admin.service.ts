@@ -1188,6 +1188,37 @@ export class AdminService {
     return { ok: true };
   }
 
+  async getRestaurantMenu(restaurantId: string) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { id: true, name: true, slug: true, isApproved: true },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+    }
+
+    const categories = await this.prisma.productCategory.findMany({
+      where: { restaurantId },
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        products: {
+          orderBy: { name: 'asc' },
+          include: productInclude,
+        },
+      },
+    });
+
+    return {
+      restaurant,
+      menu: categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        sortOrder: category.sortOrder,
+        products: category.products.map((product) => this.mapProduct(product)),
+      })),
+    };
+  }
+
   // ─── Products ────────────────────────────────────────────────
 
   private parseAllergens(value: unknown) {

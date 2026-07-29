@@ -20,6 +20,8 @@ export default function AdminProductFormPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialRestaurantId = searchParams.get("restaurantId") ?? "";
+  const initialCategoryId = searchParams.get("categoryId") ?? "";
+  const returnTo = searchParams.get("returnTo") ?? "";
   const [product, setProduct] = useState<AdminProduct | null | undefined>(
     undefined,
   );
@@ -88,7 +90,7 @@ export default function AdminProductFormPage({
           "შენახვა ვერ მოხერხდა"
         );
       }
-      router.push("/admin/products");
+      router.push(returnTo || "/admin/products");
       router.refresh();
       return null;
     } catch {
@@ -99,7 +101,7 @@ export default function AdminProductFormPage({
   }
 
   function handleCancel() {
-    router.push("/admin/products");
+    router.push(returnTo || "/admin/products");
   }
 
   if (loadError) {
@@ -122,6 +124,7 @@ export default function AdminProductFormPage({
       restaurants={restaurants}
       categories={categories}
       initialRestaurantId={initialRestaurantId}
+      initialCategoryId={initialCategoryId}
       saving={saving}
       onSave={handleSave}
       onCancel={handleCancel}

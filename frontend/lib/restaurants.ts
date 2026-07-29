@@ -15,6 +15,35 @@ export type PublicRestaurant = {
   isOpen: boolean;
 };
 
+export type PublicRestaurantDetail = PublicRestaurant & {
+  description?: string | null;
+  minimumOrderLabel?: string;
+};
+
+export type PublicMenuProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  image: string | null;
+  price: number;
+  discountPrice: number | null;
+  outOfStock: boolean;
+  variants: { id: string; name: string; price: number }[];
+};
+
+export type PublicMenuCategory = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  products: PublicMenuProduct[];
+};
+
+export type RestaurantMenuResponse = {
+  restaurant: PublicRestaurantDetail;
+  menu: PublicMenuCategory[];
+  fromDatabase: boolean;
+};
+
 export const DEMO_RESTAURANTS: PublicRestaurant[] = [
   {
     id: "demo-pizza-room",
@@ -101,5 +130,19 @@ export async function getPublicRestaurants(query?: string): Promise<{
     }>(path);
   } catch {
     return { restaurants: filterDemo(q), fromDatabase: false };
+  }
+}
+
+export async function getRestaurantMenu(
+  slug: string,
+): Promise<RestaurantMenuResponse | null> {
+  try {
+    return await serverApiFetch<RestaurantMenuResponse>(
+      `/shop/restaurants/${encodeURIComponent(slug)}`,
+    );
+  } catch {
+    const demo = DEMO_RESTAURANTS.find((r) => r.slug === slug);
+    if (!demo) return null;
+    return { restaurant: demo, menu: [], fromDatabase: false };
   }
 }
