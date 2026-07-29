@@ -2,14 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   DollarSign,
   MapPin,
   Package,
+  Pencil,
   ShoppingBag,
   Star,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,16 +38,27 @@ import {
   openStatusVariant,
   ownerFullName,
 } from "./utils";
+import RestaurantMenuCategoriesPanel from "./RestaurantMenuCategoriesPanel";
+import RestaurantOrdersPanel from "./RestaurantOrdersPanel";
+import RestaurantSettingsPanel from "./RestaurantSettingsPanel";
 
 type RestaurantDetailViewProps = {
   restaurant: AdminRestaurant;
+  onRestaurantUpdated?: (restaurant: AdminRestaurant) => void;
 };
 
 export default function RestaurantDetailView({
   restaurant,
+  onRestaurantUpdated,
 }: RestaurantDetailViewProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const defaultTab = searchParams.get("tab") ?? "general";
+  const tab = searchParams.get("tab") ?? "general";
+
+  function setTab(value: string) {
+    router.push(`${pathname}?tab=${value}`);
+  }
 
   const mapUrl =
     restaurant.latitude != null && restaurant.longitude != null
@@ -123,19 +136,27 @@ export default function RestaurantDetailView({
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Badge variant={openStatusVariant(restaurant)}>
-          {openStatusLabel(restaurant)}
-        </Badge>
-        <Badge variant={APPROVAL_BADGE[restaurant.approvalStatus]}>
-          {APPROVAL_LABELS[restaurant.approvalStatus]}
-        </Badge>
-        {restaurant.settings.featured && (
-          <Badge variant="default">Featured</Badge>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant={openStatusVariant(restaurant)}>
+            {openStatusLabel(restaurant)}
+          </Badge>
+          <Badge variant={APPROVAL_BADGE[restaurant.approvalStatus]}>
+            {APPROVAL_LABELS[restaurant.approvalStatus]}
+          </Badge>
+          {restaurant.settings.featured && (
+            <Badge variant="default">Featured</Badge>
+          )}
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/admin/restaurants/${restaurant.id}/edit`}>
+            <Pencil className="size-4" />
+            რედაქტირება
+          </Link>
+        </Button>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1 bg-transparent p-0">
           {[
             { id: "general", label: "ზოგადი" },
@@ -280,10 +301,10 @@ export default function RestaurantDetailView({
                   პროდუქტის დამატება
                 </Link>
                 <Link
-                  href="/admin/products"
+                  href={`/admin/products?restaurantId=${restaurant.id}`}
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  ყველა პროდუქტი →
+                  ამ რესტორნის პროდუქტები →
                 </Link>
               </div>
             </CardContent>
@@ -291,25 +312,31 @@ export default function RestaurantDetailView({
         </TabsContent>
 
         <TabsContent value="categories">
-          <Card>
-            <CardContent className="py-6">
-              <div className="flex flex-wrap gap-2">
-                {restaurant.categories.map((cat) => (
-                  <Badge key={cat} variant="secondary">
-                    {cat}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="py-6">
+                <p className="mb-3 text-sm font-medium text-neutral-900">
+                  საკვები ტიპები (კუზინა)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {restaurant.categories.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">—</p>
+                  ) : (
+                    restaurant.categories.map((cat) => (
+                      <Badge key={cat} variant="secondary">
+                        {cat}
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <RestaurantMenuCategoriesPanel restaurantId={restaurant.id} />
+          </div>
         </TabsContent>
 
         <TabsContent value="orders">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              {restaurant.totalOrders} შეკვეთა · mock
-            </CardContent>
-          </Card>
+          <RestaurantOrdersPanel restaurantId={restaurant.id} />
         </TabsContent>
 
         <TabsContent value="reviews">
@@ -350,7 +377,12 @@ export default function RestaurantDetailView({
         <TabsContent value="hours">
           <Card>
             <CardContent className="p-0">
-              <Table>
+              {restaurant.workingHours.length === 0 ? (
+                <p className="py-12 text-center text-muted-foreground">
+                  სამუშაო საათები არ არის დამატებული
+                </p>
+              ) : (
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>დღე</TableHead>
@@ -378,41 +410,16 @@ export default function RestaurantDetailView({
                   ))}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="settings">
-          <Card>
-            <CardContent className="space-y-4 py-6">
-              {[
-                {
-                  label: "შეკვეთების მიღება",
-                  checked: restaurant.settings.acceptingOrders,
-                },
-                {
-                  label: "Featured რესტორანი",
-                  checked: restaurant.settings.featured,
-                },
-                {
-                  label: "ხილვადობა",
-                  checked: restaurant.settings.visible,
-                },
-                {
-                  label: "დამტკიცებული",
-                  checked: restaurant.settings.approved,
-                },
-              ].map((item) => (
-                <label
-                  key={item.label}
-                  className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3"
-                >
-                  <span className="text-sm font-medium">{item.label}</span>
-                  <Switch checked={item.checked} disabled />
-                </label>
-              ))}
-            </CardContent>
-          </Card>
+          <RestaurantSettingsPanel
+            restaurant={restaurant}
+            onUpdated={(updated) => onRestaurantUpdated?.(updated)}
+          />
         </TabsContent>
       </Tabs>
     </div>

@@ -98,7 +98,7 @@ export default function RestaurantCard({
             href={href}
             className="rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] md:text-[18px]"
           >
-            შეძენა
+            მენიუ
           </Link>
         </div>
       </div>

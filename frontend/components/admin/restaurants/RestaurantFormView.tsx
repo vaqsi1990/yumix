@@ -48,6 +48,8 @@ import WorkingHoursEditor from "./form/WorkingHoursEditor";
 
 type RestaurantFormViewProps = {
   users: RestaurantOwnerCandidate[];
+  initialValues?: RestaurantFormValues;
+  mode?: "create" | "edit";
   saving?: boolean;
   onSubmit: (data: RestaurantFormValues, mode: "save" | "save-and-add") => void;
   onCancel: () => void;
@@ -88,6 +90,8 @@ const PAYMENT_CHECKS: {
 
 export default function RestaurantFormView({
   users,
+  initialValues,
+  mode = "create",
   saving = false,
   onSubmit,
   onCancel,
@@ -97,7 +101,7 @@ export default function RestaurantFormView({
 
   const form = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantFormSchema),
-    defaultValues: createDefaultRestaurantForm(),
+    defaultValues: initialValues ?? createDefaultRestaurantForm(),
     mode: "onBlur",
   });
 
@@ -108,8 +112,13 @@ export default function RestaurantFormView({
     setValue,
     setError,
     clearErrors,
+    reset,
     formState: { errors },
   } = form;
+
+  useEffect(() => {
+    reset(initialValues ?? createDefaultRestaurantForm());
+  }, [initialValues, reset]);
 
   const latitude = watch("latitude");
   const longitude = watch("longitude");
@@ -141,26 +150,41 @@ export default function RestaurantFormView({
     setValue("longitude", "44.8271");
   }
 
-  function submit(mode: "save" | "save-and-add") {
+  function submit(saveMode: "save" | "save-and-add") {
     return handleSubmit((data) =>
-      onSubmit({ ...data, slug: slugifyName(data.name) }, mode),
+      onSubmit(
+        {
+          ...data,
+          slug:
+            mode === "edit"
+              ? data.slug?.trim() || initialValues?.slug || slugifyName(data.name)
+              : slugifyName(data.name),
+        },
+        saveMode,
+      ),
     )();
   }
 
   const actionButtons = (
     <>
       <Button type="submit" className="w-full" disabled={saving}>
-        {saving ? "ინახება..." : "რესტორნის შენახვა"}
+        {saving
+          ? "ინახება..."
+          : mode === "edit"
+            ? "ცვლილებების შენახვა"
+            : "რესტორნის შენახვა"}
       </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-full"
-        disabled={saving}
-        onClick={() => void submit("save-and-add")}
-      >
-        შენახვა და ახალი
-      </Button>
+      {mode === "create" && (
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          disabled={saving}
+          onClick={() => void submit("save-and-add")}
+        >
+          შენახვა და ახალი
+        </Button>
+      )}
       <Button
         type="button"
         variant="outline"

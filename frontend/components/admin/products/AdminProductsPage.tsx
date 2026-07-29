@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import ProductsTable from "./ProductsTable";
@@ -32,12 +32,17 @@ const DEFAULT_FILTERS: ProductFilters = {
 export default function AdminProductsPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialRestaurantId = searchParams.get("restaurantId") ?? "";
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [restaurants, setRestaurants] = useState<AdminRestaurant[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filters, setFilters] = useState<ProductFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<ProductFilters>(() => ({
+    ...DEFAULT_FILTERS,
+    restaurantId: initialRestaurantId,
+  }));
   const [viewProduct, setViewProduct] = useState<AdminProduct | null>(null);
 
   const loadProducts = useCallback(async () => {
@@ -62,6 +67,14 @@ export default function AdminProductsPage() {
   }, []);
 
   useEffect(() => {
+    setFilters((f) =>
+      f.restaurantId === initialRestaurantId
+        ? f
+        : { ...f, restaurantId: initialRestaurantId, categoryId: "", page: 1 },
+    );
+  }, [initialRestaurantId]);
+
+  useEffect(() => {
     void loadProducts();
   }, [pathname, loadProducts]);
 
@@ -80,7 +93,11 @@ export default function AdminProductsPage() {
   }, []);
 
   function handleAddProduct() {
-    router.push("/admin/products/new");
+    router.push(
+      filters.restaurantId
+        ? `/admin/products/new?restaurantId=${filters.restaurantId}`
+        : "/admin/products/new",
+    );
   }
 
   function handleEdit(product: AdminProduct) {

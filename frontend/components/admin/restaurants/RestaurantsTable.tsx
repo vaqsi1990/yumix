@@ -50,6 +50,7 @@ type RestaurantsTableProps = {
   onApprove: (r: AdminRestaurant) => void;
   onReject: (r: AdminRestaurant) => void;
   onSuspend: (r: AdminRestaurant) => void;
+  onUnsuspend: (r: AdminRestaurant) => void;
   onDelete: (r: AdminRestaurant) => void;
 };
 
@@ -60,6 +61,7 @@ export default function RestaurantsTable({
   onApprove,
   onReject,
   onSuspend,
+  onUnsuspend,
   onDelete,
 }: RestaurantsTableProps) {
   const router = useRouter();
@@ -215,16 +217,18 @@ export default function RestaurantsTable({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
-                        router.push(
-                          `/admin/restaurants/${restaurant.id}?tab=general`,
-                        )
+                        router.push(`/admin/restaurants/${restaurant.id}/edit`)
                       }
                     >
                       <Pencil className="size-4" />
                       რედაქტირება
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => router.push("/admin/products")}
+                      onClick={() =>
+                        router.push(
+                          `/admin/products?restaurantId=${restaurant.id}`,
+                        )
+                      }
                     >
                       <Package className="size-4" />
                       პროდუქტები
@@ -272,10 +276,15 @@ export default function RestaurantsTable({
                         უარყოფა
                       </DropdownMenuItem>
                     )}
-                    {!restaurant.isSuspended && (
+                    {!restaurant.isSuspended ? (
                       <DropdownMenuItem onClick={() => onSuspend(restaurant)}>
                         <Ban className="size-4" />
                         შეჩერება
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => onUnsuspend(restaurant)}>
+                        <Check className="size-4" />
+                        გააქტიურება
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getRestaurantById } from "./mock-data";
 import RestaurantDetailView from "./RestaurantDetailView";
 import type { AdminRestaurant } from "./types";
+import { mapApiRestaurant, type ApiRestaurantRow } from "./utils";
 
 type AdminRestaurantDetailPageProps = {
   restaurantId: string;
@@ -17,16 +17,32 @@ export default function AdminRestaurantDetailPage({
   const [restaurant, setRestaurant] = useState<AdminRestaurant | null | undefined>(
     undefined,
   );
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setRestaurant(getRestaurantById(restaurantId) ?? null);
+    async function load() {
+      setError("");
+      try {
+        const res = await fetch(`/api/backend/admin/restaurants/${restaurantId}`);
+        if (!res.ok) {
+          setRestaurant(null);
+          return;
+        }
+        const data = (await res.json()) as { restaurant: ApiRestaurantRow };
+        setRestaurant(mapApiRestaurant(data.restaurant));
+      } catch {
+        setError("რესტორნის ჩატვირთვა ვერ მოხერხდა");
+        setRestaurant(null);
+      }
+    }
+    void load();
   }, [restaurantId]);
 
   useEffect(() => {
-    if (restaurant === null) {
+    if (restaurant === null && !error) {
       router.replace("/admin/restaurants");
     }
-  }, [restaurant, router]);
+  }, [restaurant, error, router]);
 
   if (restaurant === undefined) {
     return (
@@ -34,7 +50,16 @@ export default function AdminRestaurantDetailPage({
     );
   }
 
+  if (error) {
+    return <p className="text-sm text-destructive">{error}</p>;
+  }
+
   if (restaurant === null) return null;
 
-  return <RestaurantDetailView restaurant={restaurant} />;
+  return (
+    <RestaurantDetailView
+      restaurant={restaurant}
+      onRestaurantUpdated={setRestaurant}
+    />
+  );
 }

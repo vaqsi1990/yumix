@@ -14,8 +14,7 @@ import {
   mapApiRestaurant,
   paginateRestaurants,
   parseApiError,
-  patchRestaurantApproval,
-  patchRestaurantSuspended,
+  patchRestaurantRemote,
   type ApiRestaurantRow,
 } from "./utils";
 
@@ -92,16 +91,56 @@ export default function AdminRestaurantsPage() {
     );
   }
 
-  function handleApprove(r: AdminRestaurant) {
-    updateRestaurant(r.id, (x) => patchRestaurantApproval(x, "approved"));
+  async function handleApprove(r: AdminRestaurant) {
+    try {
+      const updated = await patchRestaurantRemote(r.id, {
+        isApproved: true,
+        isOpen: true,
+      });
+      updateRestaurant(r.id, () => updated);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "დამტკიცება ვერ მოხერხდა",
+      );
+    }
   }
 
-  function handleReject(r: AdminRestaurant) {
-    updateRestaurant(r.id, (x) => patchRestaurantApproval(x, "rejected"));
+  async function handleReject(r: AdminRestaurant) {
+    if (!window.confirm(`"${r.name}" უარყოფა?`)) return;
+    try {
+      const updated = await patchRestaurantRemote(r.id, {
+        isApproved: false,
+        isOpen: false,
+      });
+      updateRestaurant(r.id, () => updated);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "უარყოფა ვერ მოხერხდა",
+      );
+    }
   }
 
-  function handleSuspend(r: AdminRestaurant) {
-    updateRestaurant(r.id, (x) => patchRestaurantSuspended(x, true));
+  async function handleSuspend(r: AdminRestaurant) {
+    if (!window.confirm(`"${r.name}" შეჩერება?`)) return;
+    try {
+      const updated = await patchRestaurantRemote(r.id, { isOpen: false });
+      updateRestaurant(r.id, () => updated);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "შეჩერება ვერ მოხერხდა",
+      );
+    }
+  }
+
+  async function handleUnsuspend(r: AdminRestaurant) {
+    try {
+      const updated = await patchRestaurantRemote(r.id, { isOpen: true });
+      updateRestaurant(r.id, () => updated);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "გააქტიურება ვერ მოხერხდა",
+      );
+    }
   }
 
   async function handleDelete(r: AdminRestaurant) {
@@ -126,27 +165,48 @@ export default function AdminRestaurantsPage() {
     });
   }
 
-  function bulkUpdate(
+  async function bulkPatch(
     ids: string[],
-    updater: (r: AdminRestaurant) => AdminRestaurant,
+    data: { isApproved?: boolean; isOpen?: boolean },
   ) {
-    const idSet = new Set(ids);
-    setRestaurants((prev) =>
-      prev.map((r) => (idSet.has(r.id) ? updater(r) : r)),
-    );
+    const failed: string[] = [];
+    const updates = new Map<string, AdminRestaurant>();
+
+    for (const id of ids) {
+      try {
+        updates.set(id, await patchRestaurantRemote(id, data));
+      } catch (err) {
+        const name = restaurants.find((r) => r.id === id)?.name ?? id;
+        failed.push(
+          `${name}: ${err instanceof Error ? err.message : "შეცდომა"}`,
+        );
+      }
+    }
+
+    if (updates.size > 0) {
+      setRestaurants((prev) =>
+        prev.map((r) => updates.get(r.id) ?? r),
+      );
+    }
     setSelectedIds(new Set());
+
+    if (failed.length > 0) {
+      window.alert(failed.join("\n"));
+    }
   }
 
   function handleBulkApprove() {
-    bulkUpdate([...selectedIds], (r) => patchRestaurantApproval(r, "approved"));
+    void bulkPatch([...selectedIds], { isApproved: true, isOpen: true });
   }
 
   function handleBulkReject() {
-    bulkUpdate([...selectedIds], (r) => patchRestaurantApproval(r, "rejected"));
+    if (!window.confirm(`${selectedIds.size} რესტორნის უარყოფა?`)) return;
+    void bulkPatch([...selectedIds], { isApproved: false, isOpen: false });
   }
 
   function handleBulkSuspend() {
-    bulkUpdate([...selectedIds], (r) => patchRestaurantSuspended(r, true));
+    if (!window.confirm(`${selectedIds.size} რესტორნის შეჩერება?`)) return;
+    void bulkPatch([...selectedIds], { isOpen: false });
   }
 
   async function handleBulkDelete() {
@@ -226,6 +286,7 @@ export default function AdminRestaurantsPage() {
               onApprove={handleApprove}
               onReject={handleReject}
               onSuspend={handleSuspend}
+              onUnsuspend={handleUnsuspend}
               onDelete={handleDelete}
             />
           )}

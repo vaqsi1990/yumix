@@ -4,6 +4,10 @@ import type {
   RestaurantFilters,
   RestaurantSortOption,
 } from "./types";
+import {
+  createDefaultWorkingHours,
+  type RestaurantFormValues,
+} from "./form-schema";
 
 export type RestaurantStats = {
   total: number;
@@ -201,10 +205,54 @@ export type ApiRestaurantRow = {
     phone: string;
   };
   categories?: { category: { name: string } }[];
+  workingHours?: {
+    day: number;
+    openTime: string;
+    closeTime: string;
+    isClosed: boolean;
+  }[];
+  reviews?: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    createdAt: string;
+    user: { firstName: string; lastName: string };
+  }[];
   _count: { products: number; orders: number };
 };
 
+const DAY_BY_INDEX = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+function deriveApprovalStatus(row: Pick<ApiRestaurantRow, "isApproved" | "isOpen">) {
+  if (row.isApproved) return "approved" as const;
+  if (!row.isOpen) return "rejected" as const;
+  return "pending" as const;
+}
+
 export function mapApiRestaurant(row: ApiRestaurantRow): AdminRestaurant {
+  const approvalStatus = deriveApprovalStatus(row);
+  const reviews =
+    row.reviews?.map((review) => ({
+      id: review.id,
+      authorName: `${review.user.firstName} ${review.user.lastName}`.trim(),
+      rating: review.rating,
+      comment: review.comment ?? "",
+      createdAt: review.createdAt,
+    })) ?? [];
+
+  const rating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : 0;
+
   return {
     id: row.id,
     name: row.name,
@@ -226,24 +274,93 @@ export function mapApiRestaurant(row: ApiRestaurantRow): AdminRestaurant {
     phone: row.phone,
     email: row.email,
     website: null,
-    rating: 0,
-    reviewCount: 0,
+    rating,
+    reviewCount: reviews.length,
     isOpen: row.isOpen,
-    isSuspended: false,
-    approvalStatus: row.isApproved ? "approved" : "pending",
+    isSuspended: row.isApproved && !row.isOpen,
+    approvalStatus,
     totalProducts: row._count.products,
     totalOrders: row._count.orders,
     revenue: 0,
-    workingHours: [],
+    workingHours:
+      row.workingHours?.map((wh) => ({
+        day: DAY_BY_INDEX[wh.day] ?? "monday",
+        openTime: wh.openTime,
+        closeTime: wh.closeTime,
+        isClosed: wh.isClosed,
+      })) ?? [],
     settings: {
       acceptingOrders: row.isOpen,
       featured: false,
       visible: row.isApproved,
       approved: row.isApproved,
     },
-    reviews: [],
+    reviews,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+  };
+}
+
+export async function patchRestaurantRemote(
+  id: string,
+  data: { isApproved?: boolean; isOpen?: boolean },
+) {
+  const res = await fetch("/api/backend/admin/restaurants", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) {
+    throw new Error(await parseApiError(res, "განახლება ვერ მოხერხდა"));
+  }
+  const payload = (await res.json()) as { restaurant: ApiRestaurantRow };
+  return mapApiRestaurant(payload.restaurant);
+}
+
+export function restaurantToFormValues(
+  restaurant: AdminRestaurant,
+): RestaurantFormValues {
+  return {
+    logo: restaurant.logo,
+    coverImage: restaurant.coverImage,
+    name: restaurant.name,
+    slug: restaurant.slug,
+    description: restaurant.description ?? "",
+    categories: restaurant.categories,
+    ownerId: restaurant.owner.id,
+    country: restaurant.country,
+    city: restaurant.city,
+    street: restaurant.address.split(",")[0]?.trim() ?? restaurant.address,
+    building: "",
+    floor: "",
+    apartment: "",
+    postalCode: "",
+    latitude: restaurant.latitude?.toString() ?? "",
+    longitude: restaurant.longitude?.toString() ?? "",
+    deliveryFee: restaurant.deliveryFee,
+    minimumOrder: restaurant.minimumOrder,
+    deliveryRadius: restaurant.deliveryRadius ?? 5,
+    estimatedDeliveryMinutes: restaurant.estimatedDeliveryMinutes,
+    phone: restaurant.phone,
+    email: restaurant.email ?? "",
+    website: restaurant.website ?? "",
+    facebook: "",
+    instagram: "",
+    workingHours:
+      restaurant.workingHours.length > 0
+        ? restaurant.workingHours
+        : createDefaultWorkingHours(),
+    acceptingOrders: restaurant.isOpen,
+    approved: restaurant.settings.approved,
+    featured: restaurant.settings.featured,
+    visible: restaurant.settings.visible,
+    supportsPickup: true,
+    supportsDelivery: true,
+    paymentCash: true,
+    paymentCard: true,
+    paymentApplePay: false,
+    paymentGooglePay: false,
+    deliveryZones: [],
   };
 }
 

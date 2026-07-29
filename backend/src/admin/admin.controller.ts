@@ -73,15 +73,43 @@ export class AdminController {
     return this.admin.getRestaurants();
   }
 
+  @Get('restaurants/:id')
+  getRestaurant(@Param('id') id: string) {
+    return this.admin.getRestaurant(id);
+  }
+
   @Post('restaurants')
   createRestaurant(@Body() body: Record<string, unknown>) {
     return this.admin.createRestaurant(body);
   }
 
+  @Patch('restaurants/:id')
+  updateRestaurant(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.admin.updateRestaurant(id, body);
+  }
+
   @Patch('restaurants')
   patchRestaurant(
-    @Body() body: { id: string; isApproved?: boolean; isOpen?: boolean },
+    @Body()
+    body: {
+      id: string;
+      isApproved?: boolean;
+      isOpen?: boolean;
+      [key: string]: unknown;
+    },
   ) {
+    const isFullUpdate =
+      typeof body.name === 'string' ||
+      Array.isArray(body.categories) ||
+      typeof body.street === 'string';
+
+    if (isFullUpdate) {
+      return this.admin.updateRestaurant(body.id, body);
+    }
+
     return this.admin.patchRestaurant(body.id, body);
   }
 
