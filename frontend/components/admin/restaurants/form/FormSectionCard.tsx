@@ -26,8 +26,8 @@ export default function FormSectionCard({
   className,
 }: FormSectionCardProps) {
   return (
-    <Card className={cn("border-neutral-200 shadow-sm", className)}>
-      <CardHeader className="pb-4">
+    <Card className={cn("min-w-0 border-neutral-200 shadow-sm", className)}>
+      <CardHeader className="space-y-1.5 p-4 pb-4 sm:p-6">
         <div className="flex items-start gap-3">
           {icon && (
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
@@ -42,7 +42,7 @@ export default function FormSectionCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="min-w-0 p-4 pt-0 sm:p-6 sm:pt-0">{children}</CardContent>
     </Card>
   );
 }

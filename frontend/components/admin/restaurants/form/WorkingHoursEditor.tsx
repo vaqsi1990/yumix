@@ -22,22 +22,94 @@ export default function WorkingHoursEditor() {
   });
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-neutral-200">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="min-w-[120px]">დღე</TableHead>
-            <TableHead>გახსნა</TableHead>
-            <TableHead>დაკეტვა</TableHead>
-            <TableHead className="w-[100px]">დაკეტილი</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {fields.map((field, index) => (
-            <WorkingHoursRow key={field.id} index={index} day={field.day} />
-          ))}
-        </TableBody>
-      </Table>
+    <>
+      <div className="space-y-3 sm:hidden">
+        {fields.map((field, index) => (
+          <WorkingHoursCard key={field.id} index={index} day={field.day} />
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-neutral-200 sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="min-w-[120px]">დღე</TableHead>
+              <TableHead>გახსნა</TableHead>
+              <TableHead>დაკეტვა</TableHead>
+              <TableHead className="w-[100px]">დაკეტილი</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {fields.map((field, index) => (
+              <WorkingHoursRow key={field.id} index={index} day={field.day} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+}
+
+function WorkingHoursCard({
+  index,
+  day,
+}: {
+  index: number;
+  day: RestaurantFormValues["workingHours"][number]["day"];
+}) {
+  const { control } = useFormContext<RestaurantFormValues>();
+  const isClosed = useWatch({
+    control,
+    name: `workingHours.${index}.isClosed`,
+  });
+
+  return (
+    <div className="rounded-xl border border-neutral-200 p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-neutral-900">
+          {DAY_LABELS[day]}
+        </span>
+        <label className="flex items-center gap-2 text-xs text-neutral-600">
+          დაკეტილი
+          <Controller
+            control={control}
+            name={`workingHours.${index}.isClosed`}
+            render={({ field: f }) => (
+              <Switch checked={f.value} onCheckedChange={f.onChange} />
+            )}
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <p className="text-xs text-neutral-500">გახსნა</p>
+          <Controller
+            control={control}
+            name={`workingHours.${index}.openTime`}
+            render={({ field: f }) => (
+              <TimePickerInput
+                value={f.value}
+                onChange={f.onChange}
+                disabled={isClosed}
+              />
+            )}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xs text-neutral-500">დაკეტვა</p>
+          <Controller
+            control={control}
+            name={`workingHours.${index}.closeTime`}
+            render={({ field: f }) => (
+              <TimePickerInput
+                value={f.value}
+                onChange={f.onChange}
+                disabled={isClosed}
+              />
+            )}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -57,9 +129,7 @@ function WorkingHoursRow({
 
   return (
     <TableRow>
-      <TableCell className="font-medium">
-        {DAY_LABELS[day]}
-      </TableCell>
+      <TableCell className="font-medium">{DAY_LABELS[day]}</TableCell>
       <TableCell>
         <Controller
           control={control}

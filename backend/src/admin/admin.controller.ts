@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AdminService, type ProductWriteInput } from './admin.service';
@@ -21,7 +22,7 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class AdminController {
-  constructor(private admin: AdminService) {}
+  constructor(private admin: AdminService) { }
 
   @Get('stats')
   stats() {
@@ -38,6 +39,30 @@ export class AdminController {
     return this.admin.getActiveOrders();
   }
 
+  @Get('product-categories')
+  listProductCategories(@Query('restaurantId') restaurantId?: string) {
+    return this.admin.listProductCategories(restaurantId);
+  }
+
+  @Post('product-categories')
+  createProductCategory(
+    @Body() body: { restaurantId: string; name: string; sortOrder?: number },
+  ) {
+    return this.admin.createProductCategory(body);
+  }
+
+  @Patch('product-categories/:id')
+  updateProductCategory(
+    @Param('id') id: string,
+    @Body() body: { name?: string; sortOrder?: number },
+  ) {
+    return this.admin.updateProductCategory(id, body);
+  }
+  @Delete('product-categories/:id')
+  deleteProductCategory(@Param('id') id: string) {
+    return this.admin.deleteProductCategory(id);
+  }
+
   @Get('couriers')
   couriers() {
     return this.admin.getCouriers();
@@ -46,6 +71,11 @@ export class AdminController {
   @Get('restaurants')
   restaurants() {
     return this.admin.getRestaurants();
+  }
+
+  @Post('restaurants')
+  createRestaurant(@Body() body: Record<string, unknown>) {
+    return this.admin.createRestaurant(body);
   }
 
   @Patch('restaurants')

@@ -7,7 +7,7 @@ export default function AdminRestaurantsRoutePage() {
   return (
     <PanelShell
       title="რესტორნები"
-      subtitle="მენეჯმენტი · mock მონაცემები"
+      subtitle="მენეჯმენტი"
       backHref="/admin"
     >
       <AdminRestaurantsPage />

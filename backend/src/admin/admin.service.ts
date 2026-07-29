@@ -44,6 +44,11 @@ const productInclude = {
 } satisfies Prisma.ProductInclude;
 
 type DbProduct = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
+export type ProductCategoryWriteInput = {
+  restaurantId: string;
+  name: string;
+  sortOrder?: number;
+};
 
 export type ProductWriteInput = {
   restaurantId: string;
@@ -196,6 +201,169 @@ export class AdminService {
       },
     });
     return { restaurants };
+  }
+
+  async createRestaurant(body: Record<string, unknown>) {
+    const ownerId = String(body.ownerId ?? '').trim();
+    const name = String(body.name ?? '').trim();
+    const slug = String(body.slug ?? '').trim();
+    const city = String(body.city ?? '').trim();
+    const street = String(body.street ?? '').trim();
+    const emailRaw = String(body.email ?? '').trim();
+    const email = emailRaw || null;
+    const categories = Array.isArray(body.categories)
+      ? body.categories.map((c) => String(c).trim()).filter(Boolean)
+      : [];
+
+    if (!ownerId || !name || !slug || !city || !street) {
+      throw new BadRequestException('ownerId, name, slug, city და street სავალდებულოა');
+    }
+    if (categories.length === 0) {
+      throw new BadRequestException('აირჩიეთ მინიმუმ ერთი კატეგორია');
+    }
+
+    const owner = await this.prisma.user.findUnique({ where: { id: ownerId } });
+    if (!owner) {
+      throw new NotFoundException('მფლობელი არ მოიძებნა');
+    }
+
+    const phone = String(body.phone ?? '').trim() || owner.phone;
+    if (phone.replace(/\s/g, '').length < 9) {
+      throw new BadRequestException('ტელეფონი სავალდებულოა');
+    }
+
+    const slugTaken = await this.prisma.restaurant.findUnique({ where: { slug } });
+    if (slugTaken) {
+      throw new ConflictException('slug უკვე გამოყენებულია');
+    }
+
+    if (email) {
+      const emailTaken = await this.prisma.restaurant.findUnique({ where: { email } });
+      if (emailTaken) {
+        throw new ConflictException('email უკვე გამოყენებულია');
+      }
+    }
+
+    const addressParts = [
+      street,
+      String(body.building ?? '').trim(),
+      String(body.floor ?? '').trim()
+        ? `სართ. ${String(body.floor ?? '').trim()}`
+        : '',
+      String(body.apartment ?? '').trim()
+        ? `ბ. ${String(body.apartment ?? '').trim()}`
+        : '',
+      String(body.postalCode ?? '').trim(),
+    ].filter(Boolean);
+
+    const latitude = this.parseOptionalFloat(body.latitude);
+    const longitude = this.parseOptionalFloat(body.longitude);
+    const deliveryFee = this.parseOptionalFloat(body.deliveryFee);
+    const minimumOrder = this.parseOptionalFloat(body.minimumOrder);
+    const deliveryRadius = this.parseOptionalFloat(body.deliveryRadius);
+    const isOpen =
+      typeof body.acceptingOrders === 'boolean' ? body.acceptingOrders : true;
+    const isApproved = typeof body.approved === 'boolean' ? body.approved : false;
+
+    const workingHours = Array.isArray(body.workingHours)
+      ? body.workingHours
+      : [];
+    const dayIndex: Record<string, number> = {
+      monday: 0,
+      tuesday: 1,
+      wednesday: 2,
+      thursday: 3,
+      friday: 4,
+      saturday: 5,
+      sunday: 6,
+    };
+
+    const restaurant = await this.prisma.$transaction(async (tx) => {
+      if (owner.role === 'USER') {
+        await tx.user.update({
+          where: { id: ownerId },
+          data: { role: 'RESTAURANT_OWNER' },
+        });
+      }
+
+      const categoryIds: string[] = [];
+      for (const categoryName of categories) {
+        const existing = await tx.restaurantCategory.findFirst({
+          where: { name: categoryName },
+        });
+        const category =
+          existing ??
+          (await tx.restaurantCategory.create({
+            data: { name: categoryName },
+          }));
+        categoryIds.push(category.id);
+      }
+
+      const created = await tx.restaurant.create({
+        data: {
+          ownerId,
+          name,
+          slug,
+          description: String(body.description ?? '').trim() || null,
+          logo: (body.logo as string | null) ?? null,
+          coverImage: (body.coverImage as string | null) ?? null,
+          phone,
+          email,
+          city,
+          address: addressParts.join(', '),
+          latitude,
+          longitude,
+          deliveryRadius,
+          minimumOrder,
+          deliveryFee,
+          isOpen,
+          isApproved,
+          categories: {
+            create: categoryIds.map((categoryId) => ({ categoryId })),
+          },
+          workingHours: {
+            create: workingHours
+              .map((row) => {
+                const day = String((row as { day?: string }).day ?? '');
+                const idx = dayIndex[day];
+                if (idx === undefined) return null;
+                return {
+                  day: idx,
+                  openTime: String((row as { openTime?: string }).openTime ?? '10:00'),
+                  closeTime: String((row as { closeTime?: string }).closeTime ?? '22:00'),
+                  isClosed: Boolean((row as { isClosed?: boolean }).isClosed),
+                };
+              })
+              .filter((row): row is NonNullable<typeof row> => row !== null),
+          },
+        },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
+          },
+          categories: {
+            include: { category: { select: { name: true } } },
+          },
+          _count: { select: { products: true, orders: true } },
+        },
+      });
+
+      return created;
+    });
+
+    return { restaurant };
+  }
+
+  private parseOptionalFloat(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
   }
 
   async patchRestaurant(
@@ -740,6 +908,91 @@ export class AdminService {
     return { deactivated: true };
   }
 
+  // ─── Product Categories (menu sections) ──────────────────────
+
+  async listProductCategories(restaurantId?: string) {
+    const categories = await this.prisma.productCategory.findMany({
+      where: restaurantId ? { restaurantId } : undefined,
+      select: {
+        id: true,
+        restaurantId: true,
+        name: true,
+        sortOrder: true,
+        _count: { select: { products: true } },
+      },
+      orderBy: [{ restaurantId: 'asc' }, { sortOrder: 'asc' }],
+    });
+    return { categories };
+  }
+
+
+
+  async createProductCategory(input: ProductCategoryWriteInput) {
+    if (!input.restaurantId) {
+      throw new BadRequestException('აირჩიე რესტორანი');
+    }
+    if (!input.name?.trim()) {
+      throw new BadRequestException('კატეგორიის სახელი სავალდებულოა');
+    }
+
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: input.restaurantId },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+    }
+
+    const category = await this.prisma.productCategory.create({
+      data: {
+        restaurantId: input.restaurantId,
+        name: input.name.trim(),
+        sortOrder: input.sortOrder ?? 0,
+      },
+    });
+
+    return { category };
+  }
+
+  async updateProductCategory(
+    id: string,
+    input: Partial<ProductCategoryWriteInput>,
+  ) {
+    const existing = await this.prisma.productCategory.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('კატეგორია ვერ მოიძებნა');
+    }
+
+    const category = await this.prisma.productCategory.update({
+      where: { id },
+      data: {
+        ...(input.name != null ? { name: input.name.trim() } : {}),
+        ...(input.sortOrder != null ? { sortOrder: input.sortOrder } : {}),
+      },
+    });
+
+    return { category };
+  }
+
+  async deleteProductCategory(id: string) {
+    const existing = await this.prisma.productCategory.findUnique({
+      where: { id },
+      include: { _count: { select: { products: true } } },
+    });
+    if (!existing) {
+      throw new NotFoundException('კატეგორია ვერ მოიძებნა');
+    }
+    if (existing._count.products > 0) {
+      throw new BadRequestException(
+        'კატეგორიაში პროდუქტებია — ჯერ წაშალე ან გადაიტანე ისინი',
+      );
+    }
+
+    await this.prisma.productCategory.delete({ where: { id } });
+    return { ok: true };
+  }
+
   // ─── Products ────────────────────────────────────────────────
 
   private parseAllergens(value: unknown) {
@@ -838,7 +1091,11 @@ export class AdminService {
     const category = await this.prisma.productCategory.findFirst({
       where: { id: categoryId, restaurantId },
     });
-    if (!category) throw new BadRequestException('INVALID_CATEGORY');
+    if (!category) {
+      throw new BadRequestException(
+        'კატეგორია არ ეკუთვნის არჩეულ რესტორანს — აირჩიე სწორი კატეგორია',
+      );
+    }
   }
 
   private buildProductData(input: ProductWriteInput) {
@@ -869,7 +1126,7 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.restaurant.findMany({
-        select: { id: true, name: true, slug: true },
+        select: { id: true, name: true, slug: true, isApproved: true },
         orderBy: { name: 'asc' },
       }),
       this.prisma.productCategory.findMany({

@@ -13,6 +13,7 @@ type ImageUploadFieldProps = {
   onChange: (url: string | null) => void;
   aspect?: "square" | "wide";
   onError?: (message: string) => void;
+  className?: string;
 };
 
 export default function ImageUploadField({
@@ -21,6 +22,7 @@ export default function ImageUploadField({
   onChange,
   aspect = "square",
   onError,
+  className,
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState("");
@@ -47,14 +49,16 @@ export default function ImageUploadField({
   }
 
   return (
-    <div className="space-y-3">
+    <div className={cn("flex h-full flex-col space-y-3", className)}>
       <p className="text-sm font-medium text-neutral-800">{label}</p>
 
       {value ? (
         <div
           className={cn(
-            "group relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50",
-            aspect === "square" ? "aspect-square max-w-[200px]" : "aspect-[3/1]",
+            "group relative min-h-0 flex-1 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50",
+            aspect === "square"
+              ? "mx-auto aspect-square h-full w-full max-w-[200px] md:mx-0"
+              : "h-full w-full min-h-[160px] sm:min-h-[180px]",
           )}
         >
           <Image
@@ -79,8 +83,10 @@ export default function ImageUploadField({
       ) : (
         <div
           className={cn(
-            "flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50/80 p-4 text-center",
-            aspect === "square" ? "aspect-square max-w-[200px]" : "min-h-[120px]",
+            "flex min-h-0 flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50/80 p-4 text-center",
+            aspect === "square"
+              ? "mx-auto aspect-square h-full w-full max-w-[200px] md:mx-0"
+              : "h-full w-full min-h-[160px] sm:min-h-[180px]",
           )}
         >
           <ImageIcon className="mb-2 size-8 text-neutral-400" />

@@ -148,6 +148,20 @@ export default function ProductsToolbar({
         </Select>
       </div>
 
+      {filters.restaurantId && scopedCategories.length === 0 && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          ამ რესტორნის მენიუს კატეგორიები ჯერ არ არის. დაამატე პროდუქტისას ან
+          გახსენი{" "}
+          <a
+            href={`/admin/products/new?restaurantId=${filters.restaurantId}`}
+            className="font-medium underline"
+          >
+            ახალი პროდუქტი
+          </a>{" "}
+          და შექმენი კატეგორია იქ.
+        </p>
+      )}
+
       <div className="flex justify-end">
         <Select
           value={filters.sort}

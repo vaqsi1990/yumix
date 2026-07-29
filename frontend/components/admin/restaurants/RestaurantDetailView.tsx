@@ -259,16 +259,33 @@ export default function RestaurantDetailView({
 
         <TabsContent value="products">
           <Card>
-            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+              {restaurant.approvalStatus !== "approved" && (
+                <div className="w-full max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+                  <p className="font-semibold">რესტორანი ჯერ არ არის დამტკიცებული</p>
+                  <p className="mt-1 text-xs text-amber-800/90">
+                    მენიუ შეგიძლია შექმნა, მაგრამ მომხმარებლებს მაღაზიაში არ
+                    გამოჩნდება, სანამ დამტკიცებას არ მიიღებს.
+                  </p>
+                </div>
+              )}
               <p className="text-muted-foreground">
-                {restaurant.totalProducts} პროდუქტი · mock მონაცემები
+                {restaurant.totalProducts} პროდუქტი
               </p>
-              <Link
-                href="/admin/products"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                პროდუქტების მართვა →
-              </Link>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link
+                  href={`/admin/products/new?restaurantId=${restaurant.id}`}
+                  className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  პროდუქტის დამატება
+                </Link>
+                <Link
+                  href="/admin/products"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  ყველა პროდუქტი →
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -40,6 +40,7 @@ export type AdminRestaurant = {
   id: string;
   name: string;
   slug: string;
+  isApproved?: boolean;
 };
 
 export type AdminCategory = {

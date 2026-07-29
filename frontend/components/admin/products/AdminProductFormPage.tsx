@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProductFormView from "./ProductFormView";
 import type {
   AdminCategory,
@@ -18,6 +18,8 @@ export default function AdminProductFormPage({
   productId,
 }: AdminProductFormPageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialRestaurantId = searchParams.get("restaurantId") ?? "";
   const [product, setProduct] = useState<AdminProduct | null | undefined>(
     undefined,
   );
@@ -78,9 +80,13 @@ export default function AdminProductFormPage({
           body: JSON.stringify(data),
         },
       );
-      const payload = (await res.json()) as { error?: string };
+      const payload = (await res.json()) as { error?: string; message?: string };
       if (!res.ok) {
-        return payload.error ?? "შენახვა ვერ მოხერხდა";
+        return (
+          payload.message ??
+          payload.error ??
+          "შენახვა ვერ მოხერხდა"
+        );
       }
       router.push("/admin/products");
       router.refresh();
@@ -115,9 +121,11 @@ export default function AdminProductFormPage({
       product={product}
       restaurants={restaurants}
       categories={categories}
+      initialRestaurantId={initialRestaurantId}
       saving={saving}
       onSave={handleSave}
       onCancel={handleCancel}
+      onCategoriesChange={setCategories}
     />
   );
 }
