@@ -84,7 +84,7 @@ export default function CategoryMultiSelect({
               return (
                 <label
                   key={category}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-neutral-100"
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-[16px] md:text-[18px] hover:bg-neutral-100"
                 >
                   <Checkbox
                     checked={selected}
@@ -117,7 +117,7 @@ export default function CategoryMultiSelect({
         </div>
       )}
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export default async function AdminOrdersPage() {
       backHref="/admin"
     >
       <div className="overflow-x-auto rounded-2xl border border-neutral-200">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-full text-left text-[16px] md:text-[18px]">
           <thead className="bg-[#F3F4F6] text-neutral-600">
             <tr>
               <th className="px-4 py-3 font-medium">{"\u10dc\u10dd\u10db\u10d4\u10e0\u10d8"}</th>
@@ -62,7 +62,7 @@ export default async function AdminOrdersPage() {
                     <div>
                       {order.user.firstName} {order.user.lastName}
                     </div>
-                    <div className="text-xs text-neutral-500">{order.user.phone}</div>
+                    <div className="text-[16px] md:text-[18px] text-neutral-500">{order.user.phone}</div>
                   </td>
                   <td className="px-4 py-3">{order.restaurant.name}</td>
                   <td className="px-4 py-3">{ORDER_STATUS_KA[order.status]}</td>

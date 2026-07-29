@@ -50,7 +50,7 @@ export default function ImageUploadField({
 
   return (
     <div className={cn("flex h-full flex-col space-y-3", className)}>
-      <p className="text-sm font-medium text-neutral-800">{label}</p>
+      <p className="text-[16px] md:text-[18px] font-medium text-neutral-800">{label}</p>
 
       {value ? (
         <div
@@ -90,7 +90,7 @@ export default function ImageUploadField({
           )}
         >
           <ImageIcon className="mb-2 size-8 text-neutral-400" />
-          <p className="text-xs text-muted-foreground">JPG, PNG · max 4MB</p>
+          <p className="text-[16px] md:text-[18px] text-muted-foreground">JPG, PNG · max 4MB</p>
         </div>
       )}
 
@@ -120,7 +120,7 @@ export default function ImageUploadField({
       </Button>
 
       {localError && (
-        <p className="text-xs text-destructive">{localError}</p>
+        <p className="text-[16px] md:text-[18px] text-destructive">{localError}</p>
       )}
     </div>
   );

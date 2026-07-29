@@ -46,12 +46,12 @@ export default function AdminRestaurantDetailPage({
 
   if (restaurant === undefined) {
     return (
-      <p className="text-sm text-muted-foreground">იტვირთება...</p>
+      <p className="text-[16px] md:text-[18px] text-muted-foreground">იტვირთება...</p>
     );
   }
 
   if (error) {
-    return <p className="text-sm text-destructive">{error}</p>;
+    return <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>;
   }
 
   if (restaurant === null) return null;

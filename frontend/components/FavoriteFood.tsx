@@ -75,7 +75,7 @@ export default function FavoriteFood() {
                   />
                 </div>
                 <div className="flex items-center gap-2 px-2.5 py-2.5">
-                  <span className="truncate font-[family-name:var(--font-inter)] text-[14px] font-medium text-neutral-900 sm:text-[15px]">
+                  <span className="truncate font-[family-name:var(--font-inter)] text-[16px] font-medium text-neutral-900 md:text-[18px]">
                     {food.label}
                   </span>
                 </div>

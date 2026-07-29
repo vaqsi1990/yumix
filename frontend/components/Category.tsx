@@ -13,7 +13,7 @@ export default function Category() {
           </h2>
           <Link
             href="/categories"
-            className="inline-flex shrink-0 items-center gap-1 font-[family-name:var(--font-inter)] text-[14px] font-normal not-italic leading-normal text-[#FF0050] transition hover:opacity-80 sm:gap-1.5 sm:text-[18px] md:text-[20px]"
+            className="inline-flex shrink-0 items-center gap-1 font-[family-name:var(--font-inter)] text-[16px] font-normal not-italic leading-normal text-[#FF0050] transition hover:opacity-80 sm:gap-1.5 md:text-[18px]"
           >
             <span className="sm:hidden">ყველა</span>
             <span className="hidden sm:inline">ყველა კატეგორია</span>

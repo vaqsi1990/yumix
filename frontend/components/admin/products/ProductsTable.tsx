@@ -97,7 +97,7 @@ export default function ProductsTable({
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
+                    <div className="flex size-full items-center justify-center text-[16px] md:text-[18px] text-muted-foreground">
                       —
                     </div>
                   )}
@@ -107,7 +107,7 @@ export default function ProductsTable({
                 <div className="min-w-[120px]">
                   <p className="font-medium text-neutral-900">{product.name}</p>
                   {product.description && (
-                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                    <p className="mt-0.5 line-clamp-1 text-[16px] md:text-[18px] text-muted-foreground">
                       {product.description}
                     </p>
                   )}

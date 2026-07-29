@@ -96,7 +96,7 @@ export default async function CartPage() {
         </div>
         <Link
           href="/"
-          className="text-[14px] font-medium text-[#FF0050] hover:underline md:text-[16px]"
+          className="text-[16px] font-medium text-[#FF0050] hover:underline md:text-[18px]"
         >
           ← მთავარი
         </Link>

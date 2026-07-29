@@ -267,7 +267,7 @@ export default function AdminRestaurantsPage() {
       />
 
       {error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-[16px] md:text-[18px] text-destructive">
           {error}
         </p>
       )}

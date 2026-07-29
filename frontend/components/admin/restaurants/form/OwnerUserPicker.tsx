@@ -105,7 +105,7 @@ export default function OwnerUserPicker({
         {open && (
           <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-neutral-200 bg-white shadow-lg">
             {results.length === 0 ? (
-              <li className="px-3 py-2.5 text-sm text-neutral-500">
+              <li className="px-3 py-2.5 text-[16px] md:text-[18px] text-neutral-500">
                 ვერ მოიძებნა
               </li>
             ) : (
@@ -124,10 +124,10 @@ export default function OwnerUserPicker({
                       setOpen(false);
                     }}
                   >
-                    <span className="text-sm font-medium text-neutral-900">
+                    <span className="text-[16px] md:text-[18px] font-medium text-neutral-900">
                       {user.firstName} {user.lastName}
                     </span>
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-[16px] md:text-[18px] text-neutral-500">
                       {user.email} · {user.phone} · {ROLE_KA[user.role]}
                     </span>
                   </button>
@@ -139,7 +139,7 @@ export default function OwnerUserPicker({
       </div>
 
       {selectedUser && (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm">
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-[16px] md:text-[18px]">
           <p className="font-medium text-neutral-900">{selectedLabel}</p>
           <p className="mt-0.5 text-neutral-600">{selectedUser.email}</p>
           <p className="text-neutral-600">{selectedUser.phone}</p>

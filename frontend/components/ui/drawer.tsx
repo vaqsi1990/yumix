@@ -82,7 +82,7 @@ function DrawerDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-sm text-muted-foreground", className)} {...props} />
+    <p className={cn("text-[16px] md:text-[18px] text-muted-foreground", className)} {...props} />
   );
 }
 

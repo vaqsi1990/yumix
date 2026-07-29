@@ -206,7 +206,7 @@ export default function CartView({
             type="button"
             onClick={clearCart}
             disabled={clearing}
-            className="text-[14px] text-neutral-500 underline-offset-2 hover:text-[#FF0050] hover:underline disabled:opacity-50 md:text-[16px]"
+            className="text-[16px] text-neutral-500 underline-offset-2 hover:text-[#FF0050] hover:underline disabled:opacity-50 md:text-[18px]"
           >
             გასუფთავება
           </button>
@@ -364,7 +364,7 @@ export default function CartView({
                 type="button"
                 disabled={couponBusy || !couponCode.trim()}
                 onClick={applyCoupon}
-                className="rounded-lg bg-neutral-900 px-3 py-2.5 text-[14px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50 md:text-[16px]"
+                className="rounded-lg bg-neutral-900 px-3 py-2.5 text-[16px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50 md:text-[18px]"
               >
                 გამოყენება
               </button>

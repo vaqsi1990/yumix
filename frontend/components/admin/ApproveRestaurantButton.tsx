@@ -33,7 +33,7 @@ export default function ApproveRestaurantButton({
       type="button"
       onClick={toggle}
       disabled={loading}
-      className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-60 ${
+      className={`shrink-0 rounded-lg px-3 py-1.5 text-[16px] md:text-[18px] font-medium transition disabled:opacity-60 ${
         isApproved
           ? "bg-white text-neutral-700"
           : "bg-[#FF0050] text-white"

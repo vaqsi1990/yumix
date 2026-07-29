@@ -93,12 +93,12 @@ export default function ProductPhotosUpload({
               ? "ლიმიტი ამოწურულია"
               : "ფოტოს ატვირთვა"}
         </Button>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[16px] md:text-[18px] text-muted-foreground">
           {photos.length}/{maxPhotos} · JPG, PNG · max 4MB
         </span>
       </div>
 
-      {localError && <p className="text-xs text-destructive">{localError}</p>}
+      {localError && <p className="text-[16px] md:text-[18px] text-destructive">{localError}</p>}
 
       {photos.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">

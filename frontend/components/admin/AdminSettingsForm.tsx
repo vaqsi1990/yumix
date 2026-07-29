@@ -6,6 +6,7 @@ import { useAuth } from "@/components/auth-context";
 import { formatDateTime } from "@/lib/admin/format";
 import { ROLE_KA } from "@/lib/admin/labels";
 import { adminSettingsSchema } from "@/lib/validation/admin";
+import { adminTextClass as textClass } from "@/lib/admin/typography";
 
 type Role = "USER" | "COURIER" | "RESTAURANT_OWNER" | "ADMIN";
 
@@ -20,7 +21,6 @@ export type AdminProfile = {
   createdAt: string | Date;
 };
 
-const textClass = "text-[16px] md:text-[18px]";
 const inputClass = `w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 ${textClass} outline-none transition focus:border-[#FF0050] focus:ring-2 focus:ring-[#FF0050]/20`;
 
 function toDateInput(value: string | Date | null) {
@@ -121,7 +121,7 @@ export default function AdminSettingsForm({
     <form onSubmit={onSubmit} className={`mx-auto max-w-2xl space-y-6 ${textClass}`}>
       <section className="rounded-2xl border border-neutral-200 bg-white p-5">
         <h2 className="font-bold text-neutral-900">პირადი მონაცემები</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-[16px] md:text-[18px] text-neutral-500">
           როლი: {ROLE_KA[profile.role]} · რეგისტრაცია:{" "}
           {formatDateTime(profile.createdAt)}
         </p>
@@ -188,7 +188,7 @@ export default function AdminSettingsForm({
 
       <section className="rounded-2xl border border-neutral-200 bg-white p-5">
         <h2 className="font-bold text-neutral-900">პაროლის შეცვლა</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-[16px] md:text-[18px] text-neutral-500">
           ცარიელი დატოვე, თუ პაროლის შეცვლა არ გინდა
         </p>
 

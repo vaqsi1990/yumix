@@ -48,7 +48,7 @@ export default function ProductsToolbar({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold text-neutral-900">პროდუქტები</h2>
-          <p className="text-sm text-muted-foreground">სულ: {totalCount}</p>
+          <p className="text-[16px] md:text-[18px] text-muted-foreground">სულ: {totalCount}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={onAddProduct}>
@@ -149,7 +149,7 @@ export default function ProductsToolbar({
       </div>
 
       {filters.restaurantId && scopedCategories.length === 0 && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[16px] md:text-[18px] text-amber-900">
           ამ რესტორნის მენიუს კატეგორიები ჯერ არ არის. დაამატე პროდუქტისას ან
           გახსენი{" "}
           <a

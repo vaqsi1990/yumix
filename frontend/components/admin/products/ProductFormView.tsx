@@ -225,10 +225,10 @@ export default function ProductFormView({
           <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
             <div>
-              <p className="text-sm font-semibold text-amber-900">
+              <p className="text-[16px] md:text-[18px] font-semibold text-amber-900">
                 რესტორანი ჯერ არ არის დამტკიცებული
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-amber-800/90">
+              <p className="mt-1 text-[16px] md:text-[18px] leading-relaxed text-amber-800/90">
                 პროდუქტებს დაამატებ, მაგრამ მომხმარებლებს მაღაზიაში არ გამოჩნდება,
                 სანამ რესტორანს არ დაამტკიცებ.{" "}
                 <Link
@@ -259,7 +259,7 @@ export default function ProductFormView({
                 onChange={(e) => updateField("name", e.target.value)}
               />
               {fieldErrors.name && (
-                <p className="text-xs text-destructive">{fieldErrors.name}</p>
+                <p className="text-[16px] md:text-[18px] text-destructive">{fieldErrors.name}</p>
               )}
             </div>
 
@@ -317,7 +317,7 @@ export default function ProductFormView({
                   </SelectContent>
                 </Select>
                 {fieldErrors.categoryId && (
-                  <p className="text-xs text-destructive">
+                  <p className="text-[16px] md:text-[18px] text-destructive">
                     {fieldErrors.categoryId}
                   </p>
                 )}
@@ -346,7 +346,7 @@ export default function ProductFormView({
                   </div>
                 )}
                 {categoryError && (
-                  <p className="text-xs text-destructive">{categoryError}</p>
+                  <p className="text-[16px] md:text-[18px] text-destructive">{categoryError}</p>
                 )}
               </div>
             </div>
@@ -368,9 +368,9 @@ export default function ProductFormView({
                   }}
                 />
                 {fieldErrors.price ? (
-                  <p className="text-xs text-destructive">{fieldErrors.price}</p>
+                  <p className="text-[16px] md:text-[18px] text-destructive">{fieldErrors.price}</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[16px] md:text-[18px] text-muted-foreground">
                     ფასი უნდა იყოს 0-ზე მეტი
                   </p>
                 )}
@@ -466,7 +466,7 @@ export default function ProductFormView({
                     })
                   }
                 />
-                <span className="text-sm font-medium">ვეგეტარიანული</span>
+                <span className="text-[16px] md:text-[18px] font-medium">ვეგეტარიანული</span>
               </label>
               <label className="flex items-center gap-3">
                 <Switch
@@ -478,7 +478,7 @@ export default function ProductFormView({
                     })
                   }
                 />
-                <span className="text-sm font-medium">ვეგანური</span>
+                <span className="text-[16px] md:text-[18px] font-medium">ვეგანური</span>
               </label>
             </div>
           </CardContent>
@@ -501,7 +501,7 @@ export default function ProductFormView({
           </CardHeader>
           <CardContent className="space-y-3">
             {form.variants.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[16px] md:text-[18px] text-muted-foreground">
                 ვარიანტები არ არის (მაგ: S, M, L ზომები)
               </p>
             ) : (
@@ -544,7 +544,7 @@ export default function ProductFormView({
           </CardContent>
         </Card>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>}
 
         <div className="flex flex-wrap justify-end gap-3 pb-2">
           <Button
@@ -573,7 +573,7 @@ export default function ProductFormView({
             <CardTitle className="text-base font-bold">
               პროდუქტის ფოტოები
             </CardTitle>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[16px] md:text-[18px] text-muted-foreground">
               პირველი ფოტო გამოჩნდება სიაში · მაქს. 8 ფოტო
             </p>
           </CardHeader>
@@ -622,8 +622,8 @@ export default function ProductFormView({
         <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <Lightbulb className="mt-0.5 size-5 shrink-0 text-amber-600" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">ყურადღება</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-800/90">
+            <p className="text-[16px] md:text-[18px] font-semibold text-amber-900">ყურადღება</p>
+            <p className="mt-1 text-[16px] md:text-[18px] leading-relaxed text-amber-800/90">
               დარწმუნდით, რომ ინფორმაცია სწორად არის შეყვანილი. არასწორი
               ინფორმაცია შეიძლება გახდეს შეკვეთის გაუქმების მიზეზი.
             </p>

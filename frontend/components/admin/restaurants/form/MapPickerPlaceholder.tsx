@@ -40,12 +40,12 @@ export default function MapPickerPlaceholder({
           </svg>
         </div>
         <MapPin className="relative mb-2 size-10 text-neutral-400" />
-        <p className="relative text-sm font-medium text-neutral-600">
+        <p className="relative text-[16px] md:text-[18px] font-medium text-neutral-600">
           {hasCoords
             ? `${latitude}, ${longitude}`
             : "რუკა · mock placeholder"}
         </p>
-        <p className="relative mt-1 text-xs text-muted-foreground">
+        <p className="relative mt-1 text-[16px] md:text-[18px] text-muted-foreground">
           OpenStreetMap ინტეგრაცია მომავალ ეтапზე
         </p>
       </div>

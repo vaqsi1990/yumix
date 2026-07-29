@@ -59,7 +59,7 @@ export default function RestaurantsStats({ stats }: RestaurantsStatsProps) {
               <p className="text-2xl font-bold tabular-nums text-neutral-900">
                 {stats[key]}
               </p>
-              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-[16px] md:text-[18px] text-muted-foreground">{label}</p>
             </div>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/admin/format";
 import { ROLE_KA } from "@/lib/admin/labels";
 import type { Role } from "@/lib/types";
 import { adminUserCreateSchema, adminUserUpdateSchema } from "@/lib/validation/admin";
+import { adminTextClass as textClass } from "@/lib/admin/typography";
 
 export type AdminUserRow = {
   id: string;
@@ -40,8 +41,6 @@ const emptyForm: FormState = {
 };
 
 const ROLES: Role[] = ["USER", "COURIER", "RESTAURANT_OWNER", "ADMIN"];
-
-const textClass = "text-[16px] md:text-[18px]";
 
 const inputClass =
   `w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 ${textClass} outline-none transition focus:border-[#FF0050] focus:ring-2 focus:ring-[#FF0050]/20`;
@@ -291,7 +290,7 @@ export default function AdminUsersManager({
                         className="inline-flex size-9 items-center justify-center rounded-md text-[#FF0050] transition hover:bg-[#FF0050]/10 disabled:opacity-40"
                       >
                         {deletingId === user.id ? (
-                          <span className="text-sm">...</span>
+                          <span className="text-[16px] md:text-[18px]">...</span>
                         ) : (
                           <svg
                             className="size-5"

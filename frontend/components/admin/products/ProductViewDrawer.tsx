@@ -84,7 +84,7 @@ export default function ProductViewDrawer({
             </Badge>
             <span className="text-lg font-bold">{formatGel(product.price)}</span>
             {product.discountPrice != null && (
-              <span className="text-sm text-emerald-600">
+              <span className="text-[16px] md:text-[18px] text-emerald-600">
                 ფასდაკლება: {formatGel(product.discountPrice)}
               </span>
             )}
@@ -92,14 +92,14 @@ export default function ProductViewDrawer({
 
           {product.description && (
             <div>
-              <h4 className="mb-1 text-sm font-medium text-muted-foreground">
+              <h4 className="mb-1 text-[16px] md:text-[18px] font-medium text-muted-foreground">
                 აღწერა
               </h4>
-              <p className="text-sm">{product.description}</p>
+              <p className="text-[16px] md:text-[18px]">{product.description}</p>
             </div>
           )}
 
-          <dl className="grid grid-cols-2 gap-3 text-sm">
+          <dl className="grid grid-cols-2 gap-3 text-[16px] md:text-[18px]">
             <div>
               <dt className="text-muted-foreground">მომზადება</dt>
               <dd className="font-medium">
@@ -128,8 +128,8 @@ export default function ProductViewDrawer({
 
           {product.variants.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-medium">ვარიანტები</h4>
-              <ul className="space-y-1 text-sm">
+              <h4 className="mb-2 text-[16px] md:text-[18px] font-medium">ვარიანტები</h4>
+              <ul className="space-y-1 text-[16px] md:text-[18px]">
                 {product.variants.map((v) => (
                   <li key={v.id} className="flex justify-between">
                     <span>{v.name}</span>
@@ -142,8 +142,8 @@ export default function ProductViewDrawer({
 
           {product.addOns.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-medium">დამატებები</h4>
-              <ul className="space-y-1 text-sm">
+              <h4 className="mb-2 text-[16px] md:text-[18px] font-medium">დამატებები</h4>
+              <ul className="space-y-1 text-[16px] md:text-[18px]">
                 {product.addOns.map((a) => (
                   <li key={a.id} className="flex justify-between">
                     <span>{a.name}</span>
@@ -156,7 +156,7 @@ export default function ProductViewDrawer({
 
           {activeAllergens.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-medium">ალერგენები</h4>
+              <h4 className="mb-2 text-[16px] md:text-[18px] font-medium">ალერგენები</h4>
               <div className="flex flex-wrap gap-1.5">
                 {activeAllergens.map((label) => (
                   <Badge key={label} variant="outline">
@@ -169,7 +169,7 @@ export default function ProductViewDrawer({
 
           {product.gallery.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-medium">გალერეა</h4>
+              <h4 className="mb-2 text-[16px] md:text-[18px] font-medium">გალერეა</h4>
               <div className="grid grid-cols-3 gap-2">
                 {product.gallery.map((url, i) => (
                   <div

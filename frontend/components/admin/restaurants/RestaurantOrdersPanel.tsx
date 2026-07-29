@@ -70,7 +70,7 @@ export default function RestaurantOrdersPanel({
           <p className="text-muted-foreground">შეკვეთები ჯერ არ არის</p>
           <Link
             href="/admin/orders"
-            className="text-sm font-medium text-primary hover:underline"
+            className="text-[16px] md:text-[18px] font-medium text-primary hover:underline"
           >
             ყველა შეკვეთა →
           </Link>
@@ -95,7 +95,7 @@ export default function RestaurantOrdersPanel({
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-mono text-xs">
+                <TableCell className="font-mono text-[16px] md:text-[18px]">
                   {order.id.slice(0, 8)}...
                 </TableCell>
                 <TableCell>

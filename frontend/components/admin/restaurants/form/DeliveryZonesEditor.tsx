@@ -23,7 +23,7 @@ export default function DeliveryZonesEditor() {
   return (
     <div className="space-y-4">
       {fields.length === 0 ? (
-        <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed px-4 py-8 text-center text-[16px] md:text-[18px] text-muted-foreground">
           მიწოდების ზონები ჯერ არ არის დამატებული
         </p>
       ) : (
@@ -34,7 +34,7 @@ export default function DeliveryZonesEditor() {
               className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4"
             >
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold text-neutral-800">
+                <p className="text-[16px] md:text-[18px] font-semibold text-neutral-800">
                   ზონა #{index + 1}
                 </p>
                 <Button

@@ -210,7 +210,7 @@ export default function RestaurantFormView({
               key={key}
               className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 px-3 py-2.5"
             >
-              <span className="text-sm font-medium">{label}</span>
+              <span className="text-[16px] md:text-[18px] font-medium">{label}</span>
               <Switch
                 checked={watch(key)}
                 onCheckedChange={(checked) => setValue(key, checked)}
@@ -236,14 +236,14 @@ export default function RestaurantFormView({
                   setValue(key, checked === true)
                 }
               />
-              <span className="text-sm font-medium">{label}</span>
+              <span className="text-[16px] md:text-[18px] font-medium">{label}</span>
             </label>
           ))}
         </div>
       </FormSectionCard>
 
       {errors.root?.message && (
-        <p className="text-sm text-destructive">{errors.root.message}</p>
+        <p className="text-[16px] md:text-[18px] text-destructive">{errors.root.message}</p>
       )}
     </>
   );

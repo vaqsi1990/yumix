@@ -57,7 +57,7 @@ export default function SearchBox({
      
       <button
         type="submit"
-        className="shrink-0 rounded-lg bg-[#FF0050] px-4 py-2 text-[14px] font-medium text-white transition hover:bg-[#e00048] md:text-[16px]"
+        className="shrink-0 rounded-lg bg-[#FF0050] px-4 py-2 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px]"
       >
         ძებნა
       </button>

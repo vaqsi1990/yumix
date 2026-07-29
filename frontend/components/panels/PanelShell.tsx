@@ -21,7 +21,7 @@ export default function PanelShell({
           <div className="min-w-0">
             <Link
               href={backHref}
-              className="text-sm font-medium text-[#FF0050] hover:underline sm:text-[16px]"
+              className="text-[16px] font-medium text-[#FF0050] hover:underline md:text-[18px]"
             >
               ← უკან
             </Link>
@@ -29,12 +29,12 @@ export default function PanelShell({
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-1 text-sm text-neutral-500 sm:text-base">{subtitle}</p>
+              <p className="mt-1 text-[16px] text-neutral-500 md:text-[18px]">{subtitle}</p>
             )}
           </div>
           <Link
             href="/"
-            className="hidden shrink-0 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700 transition hover:bg-neutral-50 sm:inline-flex sm:text-[16px]"
+            className="hidden shrink-0 rounded-lg border border-neutral-200 px-3 py-2 text-[16px] text-neutral-700 transition hover:bg-neutral-50 sm:inline-flex md:text-[18px]"
           >
             საიტზე დაბრუნება
           </Link>

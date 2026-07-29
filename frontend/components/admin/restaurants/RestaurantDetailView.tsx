@@ -88,7 +88,7 @@ export default function RestaurantDetailView({
             />
             <div>
               <h2 className="text-xl font-bold text-white">{restaurant.name}</h2>
-              <p className="text-sm text-white/80">
+              <p className="text-[16px] md:text-[18px] text-white/80">
                 {restaurant.city} · {categoriesLabel(restaurant.categories)}
               </p>
             </div>
@@ -129,7 +129,7 @@ export default function RestaurantDetailView({
               </div>
               <div>
                 <p className="text-lg font-bold tabular-nums">{value}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-[16px] md:text-[18px] text-muted-foreground">{label}</p>
               </div>
             </CardContent>
           </Card>
@@ -183,7 +183,7 @@ export default function RestaurantDetailView({
               <CardHeader>
                 <CardTitle className="text-base">ზოგადი ინფორმაცია</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="space-y-3 text-[16px] md:text-[18px]">
                 <Row label="სახელი" value={restaurant.name} />
                 <Row label="Slug" value={restaurant.slug} />
                 <Row
@@ -196,7 +196,7 @@ export default function RestaurantDetailView({
               <CardHeader>
                 <CardTitle className="text-base">მფლობელი</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="space-y-3 text-[16px] md:text-[18px]">
                 <Row label="სახელი" value={ownerFullName(restaurant)} />
                 <Row label="Email" value={restaurant.owner.email} />
                 <Row label="ტელეფონი" value={restaurant.owner.phone} />
@@ -206,7 +206,7 @@ export default function RestaurantDetailView({
               <CardHeader>
                 <CardTitle className="text-base">ბიზნესი</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="space-y-3 text-[16px] md:text-[18px]">
                 <Row
                   label="კატეგორიები"
                   value={categoriesLabel(restaurant.categories)}
@@ -237,7 +237,7 @@ export default function RestaurantDetailView({
               <CardHeader>
                 <CardTitle className="text-base">კონტაქტი</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="space-y-3 text-[16px] md:text-[18px]">
                 <Row label="ტელეფონი" value={restaurant.phone} />
                 <Row label="Email" value={restaurant.email ?? "—"} />
                 <Row label="ვებსაიტი" value={restaurant.website ?? "—"} />
@@ -253,7 +253,7 @@ export default function RestaurantDetailView({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <div className="grid gap-3 text-[16px] md:text-[18px] sm:grid-cols-2">
                 <Row label="ქვეყანა" value={restaurant.country} />
                 <Row label="ქალაქი" value={restaurant.city} />
                 <Row label="მისამართი" value={restaurant.address} />
@@ -282,9 +282,9 @@ export default function RestaurantDetailView({
           <Card>
             <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
               {restaurant.approvalStatus !== "approved" && (
-                <div className="w-full max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+                <div className="w-full max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-[16px] md:text-[18px] text-amber-900">
                   <p className="font-semibold">რესტორანი ჯერ არ არის დამტკიცებული</p>
-                  <p className="mt-1 text-xs text-amber-800/90">
+                  <p className="mt-1 text-[16px] md:text-[18px] text-amber-800/90">
                     მენიუ შეგიძლია შექმნა, მაგრამ მომხმარებლებს მაღაზიაში არ
                     გამოჩნდება, სანამ დამტკიცებას არ მიიღებს.
                   </p>
@@ -296,13 +296,13 @@ export default function RestaurantDetailView({
               <div className="flex flex-wrap justify-center gap-3">
                 <Link
                   href={`/admin/products/new?restaurantId=${restaurant.id}`}
-                  className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-[16px] md:text-[18px] font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   პროდუქტის დამატება
                 </Link>
                 <Link
                   href={`/admin/products?restaurantId=${restaurant.id}`}
-                  className="text-sm font-medium text-primary hover:underline"
+                  className="text-[16px] md:text-[18px] font-medium text-primary hover:underline"
                 >
                   ამ რესტორნის პროდუქტები →
                 </Link>
@@ -315,12 +315,12 @@ export default function RestaurantDetailView({
           <div className="space-y-4">
             <Card>
               <CardContent className="py-6">
-                <p className="mb-3 text-sm font-medium text-neutral-900">
+                <p className="mb-3 text-[16px] md:text-[18px] font-medium text-neutral-900">
                   საკვები ტიპები (კუზინა)
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {restaurant.categories.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">—</p>
+                    <p className="text-[16px] md:text-[18px] text-muted-foreground">—</p>
                   ) : (
                     restaurant.categories.map((cat) => (
                       <Badge key={cat} variant="secondary">

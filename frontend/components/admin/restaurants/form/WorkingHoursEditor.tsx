@@ -66,10 +66,10 @@ function WorkingHoursCard({
   return (
     <div className="rounded-xl border border-neutral-200 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-neutral-900">
+        <span className="text-[16px] md:text-[18px] font-semibold text-neutral-900">
           {DAY_LABELS[day]}
         </span>
-        <label className="flex items-center gap-2 text-xs text-neutral-600">
+        <label className="flex items-center gap-2 text-[16px] md:text-[18px] text-neutral-600">
           დაკეტილი
           <Controller
             control={control}
@@ -82,7 +82,7 @@ function WorkingHoursCard({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <p className="text-xs text-neutral-500">გახსნა</p>
+          <p className="text-[16px] md:text-[18px] text-neutral-500">გახსნა</p>
           <Controller
             control={control}
             name={`workingHours.${index}.openTime`}
@@ -96,7 +96,7 @@ function WorkingHoursCard({
           />
         </div>
         <div className="space-y-1.5">
-          <p className="text-xs text-neutral-500">დაკეტვა</p>
+          <p className="text-[16px] md:text-[18px] text-neutral-500">დაკეტვა</p>
           <Controller
             control={control}
             name={`workingHours.${index}.closeTime`}

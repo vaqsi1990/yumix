@@ -104,13 +104,13 @@ export default function RestaurantMenuCategoriesPanel({
   return (
     <Card>
       <CardContent className="space-y-4 py-6">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[16px] md:text-[18px] text-muted-foreground">
           მენიუს კატეგორიები (პიცა, სალათები, სასმელები...) — პროდუქტების
           დაჯგუფებისთვის.
         </p>
 
         {error && (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[16px] md:text-[18px] text-destructive">
             {error}
           </p>
         )}
@@ -139,7 +139,7 @@ export default function RestaurantMenuCategoriesPanel({
         </div>
 
         {categories.length === 0 ? (
-          <p className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-xl border border-dashed py-10 text-center text-[16px] md:text-[18px] text-muted-foreground">
             მენიუს კატეგორიები ჯერ არ არის
           </p>
         ) : (
@@ -151,7 +151,7 @@ export default function RestaurantMenuCategoriesPanel({
               >
                 <div>
                   <p className="font-medium">{category.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[16px] md:text-[18px] text-muted-foreground">
                     {category._count?.products ?? 0} პროდუქტი
                   </p>
                 </div>

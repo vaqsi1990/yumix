@@ -103,12 +103,12 @@ export default function AdminProductFormPage({
   }
 
   if (loadError) {
-    return <p className="text-sm text-destructive">{loadError}</p>;
+    return <p className="text-[16px] md:text-[18px] text-destructive">{loadError}</p>;
   }
 
   if (product === undefined) {
     return (
-      <p className="text-sm text-muted-foreground">იტვირთება...</p>
+      <p className="text-[16px] md:text-[18px] text-muted-foreground">იტვირთება...</p>
     );
   }
 

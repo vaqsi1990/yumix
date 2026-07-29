@@ -42,7 +42,7 @@ export function Pagination({
         return (
           <React.Fragment key={p}>
             {showEllipsis && (
-              <span className="px-2 text-sm text-muted-foreground">…</span>
+              <span className="px-2 text-[16px] md:text-[18px] text-muted-foreground">…</span>
             )}
             <Button
               variant={p === page ? "default" : "outline"}

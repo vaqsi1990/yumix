@@ -159,17 +159,17 @@ export default function AdminProductsPage() {
 
   if (loading) {
     return (
-      <p className="text-sm text-muted-foreground">იტვირთება...</p>
+      <p className="text-[16px] md:text-[18px] text-muted-foreground">იტვირთება...</p>
     );
   }
 
   if (error) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>
         <button
           type="button"
-          className="text-sm font-medium text-primary hover:underline"
+          className="text-[16px] md:text-[18px] font-medium text-primary hover:underline"
           onClick={() => void loadProducts()}
         >
           თავიდან ცდა

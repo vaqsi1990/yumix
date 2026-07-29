@@ -82,12 +82,12 @@ export default function AdminEditRestaurantPage({
 
   if (restaurant === undefined) {
     return (
-      <p className="text-sm text-muted-foreground">იტვირთება...</p>
+      <p className="text-[16px] md:text-[18px] text-muted-foreground">იტვირთება...</p>
     );
   }
 
   if (error && restaurant === null) {
-    return <p className="text-sm text-destructive">{error}</p>;
+    return <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>;
   }
 
   if (restaurant === null) return null;
@@ -95,7 +95,7 @@ export default function AdminEditRestaurantPage({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-[16px] md:text-[18px] text-destructive">
           {error}
         </div>
       )}

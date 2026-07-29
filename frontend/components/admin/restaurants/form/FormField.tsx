@@ -31,9 +31,9 @@ export default function FormField({
       </Label>
       {children}
       {hint && !error && (
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="text-[16px] md:text-[18px] text-muted-foreground">{hint}</p>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>}
     </div>
   );
 }

@@ -48,7 +48,7 @@ export default function RestaurantsToolbar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-lg font-bold text-neutral-900">რესტორნები</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[16px] md:text-[18px] text-muted-foreground">
             ნაჩვენები: {totalCount}
             {selectedCount > 0 && ` · არჩეული: ${selectedCount}`}
           </p>
@@ -67,7 +67,7 @@ export default function RestaurantsToolbar({
 
       {selectedCount > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-          <span className="text-sm font-medium text-neutral-800">
+          <span className="text-[16px] md:text-[18px] font-medium text-neutral-800">
             {selectedCount} არჩეული
           </span>
           <Button size="sm" variant="secondary" onClick={onBulkApprove}>

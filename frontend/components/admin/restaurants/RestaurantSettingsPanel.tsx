@@ -36,7 +36,7 @@ export default function RestaurantSettingsPanel({
     <Card>
       <CardContent className="space-y-4 py-6">
         {error && (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[16px] md:text-[18px] text-destructive">
             {error}
           </p>
         )}
@@ -82,7 +82,7 @@ function SettingRow({
 }) {
   return (
     <label className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-[16px] md:text-[18px] font-medium">{label}</span>
       <Switch
         checked={checked}
         disabled={disabled}
