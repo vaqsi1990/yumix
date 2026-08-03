@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { ChevronDown } from "lucide-react";
+import { Fragment, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { formatDateTime } from "@/lib/admin/format";
+import AdminUserDetailPage from "@/components/admin/AdminUserDetailPage";
 import { ROLE_KA } from "@/lib/admin/labels";
-import type { Role } from "@/lib/types";
-import { adminUserCreateSchema, adminUserUpdateSchema } from "@/lib/validation/admin";
 import { adminTextClass as textClass } from "@/lib/admin/typography";
+import type { Role } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { adminUserCreateSchema } from "@/lib/validation/admin";
 
 export type AdminUserRow = {
   id: string;
@@ -54,41 +56,32 @@ export default function AdminUsersManager({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"create" | "edit">("create");
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [editOnExpandId, setEditOnExpandId] = useState<string | null>(null);
 
-  const title = useMemo(
-    () =>
-      mode === "create"
-        ? "ახალი მომხმარებელი"
-        : "მომხმარებლის რედაქტირება",
-    [mode],
-  );
-
-  function openCreate() {
-    setMode("create");
-    setEditingId(null);
-    setForm(emptyForm);
-    setError("");
-    setOpen(true);
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setEditOnExpandId((editId) =>
+      expandedIds.has(id) && editId === id ? null : editId,
+    );
   }
 
-  function openEdit(user: AdminUserRow) {
-    setMode("edit");
-    setEditingId(user.id);
-    setForm({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phone,
-      password: "",
-      role: user.role,
-      isActive: user.isActive,
-    });
+  function expandWithEdit(id: string) {
+    setExpandedIds((prev) => new Set(prev).add(id));
+    setEditOnExpandId(id);
+  }
+
+  function openCreate() {
+    setForm(emptyForm);
     setError("");
     setOpen(true);
   }
@@ -105,9 +98,7 @@ export default function AdminUsersManager({
     setError("");
 
     try {
-      const schema =
-        mode === "create" ? adminUserCreateSchema : adminUserUpdateSchema;
-      const parsed = schema.safeParse({
+      const parsed = adminUserCreateSchema.safeParse({
         ...form,
         password: form.password || undefined,
       });
@@ -124,21 +115,14 @@ export default function AdminUsersManager({
         phone: form.phone.trim(),
         role: form.role,
         isActive: form.isActive,
-        ...(form.password ? { password: form.password } : {}),
+        password: form.password,
       };
 
-      const res =
-        mode === "create"
-          ? await fetch("/api/backend/admin/users", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ...payload, password: form.password }),
-            })
-          : await fetch(`/api/backend/admin/users/${editingId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
+      const res = await fetch("/api/backend/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -229,89 +213,118 @@ export default function AdminUsersManager({
               <th className="px-4 py-3 font-medium">ელფოსტა</th>
               <th className="px-4 py-3 font-medium">ტელეფონი</th>
               <th className="px-4 py-3 font-medium">როლი</th>
-              <th className="px-4 py-3 font-medium">შეკვეთები</th>
-              <th className="px-4 py-3 font-medium">სტატუსი</th>
               <th className="px-4 py-3 font-medium">მოქმედება</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
                   მომხმარებლები ჯერ არ არის
                 </td>
               </tr>
             ) : (
-              users.map((user) => (
-                <tr key={user.id} className="border-t border-neutral-100">
-                  <td className="px-4 py-3 font-medium">
-                    {user.firstName} {user.lastName}
-                  </td>
-                  <td className="px-4 py-3">{user.email}</td>
-                  <td className="px-4 py-3">{user.phone}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={user.role}
-                      onChange={(e) =>
-                        onRoleChange(user, e.target.value as Role)
-                      }
-                      className={`rounded-md border border-neutral-200 bg-white px-2 py-1.5 ${textClass}`}
-                    >
-                      {ROLES.map((role) => (
-                        <option key={role} value={role}>
-                          {ROLE_KA[role]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">{user._count.orders}</td>
-                  <td className="px-4 py-3">
-                    {user.isActive
-                      ? "აქტიური"
-                      : "გათიშული"}
-                  </td>
-                  
-                  <td className="px-4 py-3">
-                    <div className="flex md:flex-nowrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(user)}
-                        className={`rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 ${textClass} font-medium text-neutral-700 hover:bg-neutral-50`}
-                      >
-                        რედაქტირება
-                      </button>
-                      <button
-                        type="button"
-                        disabled={
-                          user.id === currentUserId || deletingId === user.id
-                        }
-                        onClick={() => onDelete(user)}
-                        aria-label="წაშლა"
-                        className="inline-flex size-9 items-center justify-center rounded-md text-[#FF0050] transition hover:bg-[#FF0050]/10 disabled:opacity-40"
-                      >
-                        {deletingId === user.id ? (
-                          <span className="text-[16px] ">...</span>
-                        ) : (
-                          <svg
-                            className="size-5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            aria-hidden="true"
+              users.map((user) => {
+                const expanded = expandedIds.has(user.id);
+
+                return (
+                  <Fragment key={user.id}>
+                    <tr className="border-t border-neutral-100">
+                      <td className="px-4 py-3 font-medium text-neutral-900">
+                        {user.firstName} {user.lastName}
+                      </td>
+                      <td className="px-4 py-3">{user.email}</td>
+                      <td className="px-4 py-3">{user.phone}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={user.role}
+                          onChange={(e) =>
+                            onRoleChange(user, e.target.value as Role)
+                          }
+                          className={`rounded-md border border-neutral-200 bg-white px-2 py-1.5 ${textClass}`}
+                        >
+                          {ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {ROLE_KA[role]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex md:flex-nowrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => expandWithEdit(user.id)}
+                            className={`rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 ${textClass} font-medium text-neutral-700 hover:bg-neutral-50`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14ZM10 11v6M14 11v6"
+                            რედაქტირება
+                          </button>
+                          <button
+                            type="button"
+                            disabled={
+                              user.id === currentUserId || deletingId === user.id
+                            }
+                            onClick={() => onDelete(user)}
+                            aria-label="წაშლა"
+                            className="inline-flex size-9 items-center justify-center rounded-md text-[#FF0050] transition hover:bg-[#FF0050]/10 disabled:opacity-40"
+                          >
+                            {deletingId === user.id ? (
+                              <span className="text-[16px] ">...</span>
+                            ) : (
+                              <svg
+                                className="size-5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14ZM10 11v6M14 11v6"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(user.id)}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? "Hide details" : "Show details"}
+                            className="inline-flex size-9 items-center justify-center rounded-md text-[#FF0050] transition hover:bg-[#FF0050]/10"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "size-4 shrink-0 transition-transform",
+                                expanded && "rotate-180",
+                              )}
+                              aria-hidden="true"
                             />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr className="border-t border-neutral-100 bg-neutral-50/80">
+                        <td colSpan={5} className="p-4">
+                          <AdminUserDetailPage
+                            key={
+                              editOnExpandId === user.id
+                                ? `${user.id}-edit`
+                                : user.id
+                            }
+                            userId={user.id}
+                            currentUserId={currentUserId}
+                            initialEdit={editOnExpandId === user.id}
+                            embedded
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -329,7 +342,9 @@ export default function AdminUsersManager({
             aria-modal="true"
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className={`${textClass} font-bold text-neutral-900`}>{title}</h2>
+              <h2 className={`${textClass} font-bold text-neutral-900`}>
+                ახალი მომხმარებელი
+              </h2>
               <button
                 type="button"
                 onClick={close}
@@ -402,14 +417,10 @@ export default function AdminUsersManager({
                 </select>
               </label>
               <label className={`grid gap-1 ${textClass} sm:col-span-2`}>
-                <span className="text-neutral-600">
-                  {mode === "create"
-                    ? "პაროლი"
-                    : "ახალი პაროლი (არასავალდებულო)"}
-                </span>
+                <span className="text-neutral-600">პაროლი</span>
                 <input
                   type="password"
-                  required={mode === "create"}
+                  required
                   minLength={6}
                   className={inputClass}
                   value={form.password}
@@ -446,11 +457,7 @@ export default function AdminUsersManager({
                   disabled={loading}
                   className={`rounded-lg bg-[#FF0050] px-4 py-2.5 ${textClass} font-medium text-white disabled:opacity-60`}
                 >
-                  {loading
-                    ? "..."
-                    : mode === "create"
-                      ? "დამატება"
-                      : "შენახვა"}
+                  {loading ? "..." : "დამატება"}
                 </button>
               </div>
             </form>

@@ -128,6 +128,11 @@ export class AdminController {
     return this.admin.getUsers();
   }
 
+  @Get('users/:id')
+  getUser(@Param('id') id: string) {
+    return this.admin.getUser(id);
+  }
+
   @Post('users')
   createUser(@Body() body: Record<string, unknown>) {
     return this.admin.createUser(body as never);

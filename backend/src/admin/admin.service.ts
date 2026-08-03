@@ -621,6 +621,78 @@ export class AdminService {
     return { users };
   }
 
+  async getUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        birthDate: true,
+        avatar: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+        phoneVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        addresses: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            city: true,
+            street: true,
+            building: true,
+            isDefault: true,
+          },
+        },
+        restaurants: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            isApproved: true,
+            isOpen: true,
+          },
+        },
+        courier: {
+          select: {
+            id: true,
+            vehicleType: true,
+            isOnline: true,
+            rating: true,
+          },
+        },
+        orders: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            total: true,
+            createdAt: true,
+            restaurant: { select: { id: true, name: true } },
+          },
+        },
+        _count: {
+          select: {
+            orders: true,
+            deliveries: true,
+            restaurants: true,
+            reviews: true,
+            addresses: true,
+          },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('მომხმარებელი არ მოიძებნა');
+    return { user };
+  }
+
   async createUser(body: {
     firstName?: string;
     lastName?: string;
