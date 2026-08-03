@@ -4,47 +4,47 @@ import HorizontalScroll from "@/components/HorizontalScroll";
 
 const foods = [
   {
-    href: "/foods/khinkali",
+    href: "/categories/khinkali",
     label: "ხინკალი",
     image: "/rest/5.jpg",
   },
   {
-    href: "/foods/khachapuri",
+    href: "/categories/khachapuri",
     label: "ხაჭაპური",
     image: "/rest/2.jpg",
   },
   {
-    href: "/foods/pizza",
+    href: "/categories/pizza",
     label: "პიცა",
     image: "/rest/1.jpg",
   },
   {
-    href: "/foods/sushi",
+    href: "/categories/sushi",
     label: "სუში",
     image: "/rest/4.jpg",
   },
   {
-    href: "/foods/burgers",
+    href: "/categories/burger",
     label: "ბურგერები",
     image: "/rest/3.jpg",
   },
   {
-    href: "/foods/salads",
+    href: "/categories/salads",
     label: "სალათები",
     image: "/rest/2.jpg",
   },
   {
-    href: "/foods/soups",
+    href: "/categories/soups",
     label: "სუპები",
     image: "/rest/5.jpg",
   },
   {
-    href: "/foods/desserts",
+    href: "/categories/desserts",
     label: "დესერტები",
     image: "/rest/1.jpg",
   },
   {
-    href: "/foods/drinks",
+    href: "/categories/drinks",
     label: "სასმელები",
     image: "/rest/3.jpg",
   },

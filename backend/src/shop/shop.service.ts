@@ -93,6 +93,117 @@ export class ShopService {
     return `₾${fee.toFixed(2)}`;
   }
 
+  private mapRestaurantRow(
+    restaurant: {
+      id: string;
+      slug: string;
+      name: string;
+      city: string;
+      isOpen: boolean;
+      deliveryFee: number | null;
+      coverImage: string | null;
+      logo: string | null;
+      categories: { category: { name: string } }[];
+      reviews: { rating: number }[];
+    },
+    index: number,
+  ): PublicRestaurant {
+    const reviewCount = restaurant.reviews.length;
+    const rating =
+      reviewCount > 0
+        ? restaurant.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+        : 0;
+    const categoryNames = restaurant.categories
+      .map((c) => c.category.name)
+      .join(', ');
+    const fallbackImage = DEMO_IMAGES[index % DEMO_IMAGES.length];
+
+    return {
+      id: restaurant.id,
+      slug: restaurant.slug,
+      name: restaurant.name,
+      categories: categoryNames || restaurant.city,
+      rating: Number(rating.toFixed(1)),
+      reviews: reviewCount,
+      time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
+      deliveryFeeLabel: this.formatFee(restaurant.deliveryFee),
+      image: restaurant.coverImage || restaurant.logo || fallbackImage,
+      logo: restaurant.logo || restaurant.coverImage || fallbackImage,
+      city: restaurant.city,
+      isOpen: restaurant.isOpen,
+    };
+  }
+
+  private menuKeywordFilters(keywords: string[]) {
+    return keywords.flatMap((keyword) => [
+      { name: { contains: keyword, mode: 'insensitive' as const } },
+      { description: { contains: keyword, mode: 'insensitive' as const } },
+      { foodType: { contains: keyword, mode: 'insensitive' as const } },
+      {
+        category: {
+          name: { contains: keyword, mode: 'insensitive' as const },
+        },
+      },
+    ]);
+  }
+
+  async getPublicRestaurantsByMenuKeywords(keywords: string[]) {
+    const normalized = [
+      ...new Set(keywords.map((keyword) => keyword.trim()).filter(Boolean)),
+    ];
+
+    if (normalized.length === 0) {
+      return { restaurants: [], fromDatabase: true, pendingCount: 0 };
+    }
+
+    const [db, totalInDb, pendingCount] = await Promise.all([
+      this.prisma.restaurant.findMany({
+        where: {
+          isApproved: true,
+          products: {
+            some: {
+              isHidden: false,
+              isAvailable: true,
+              OR: this.menuKeywordFilters(normalized),
+            },
+          },
+        },
+        include: {
+          categories: {
+            include: { category: { select: { name: true } } },
+          },
+          reviews: { select: { rating: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.restaurant.count(),
+      this.prisma.restaurant.count({ where: { isApproved: false } }),
+    ]);
+
+    if (db.length > 0) {
+      return {
+        restaurants: db.map((restaurant, index) =>
+          this.mapRestaurantRow(restaurant, index),
+        ),
+        fromDatabase: true,
+        pendingCount,
+      };
+    }
+
+    if (totalInDb > 0) {
+      return { restaurants: [], fromDatabase: true, pendingCount };
+    }
+
+    const filtered = DEMO_RESTAURANTS.filter((restaurant) => {
+      const haystack = restaurant.categories.toLowerCase();
+      return normalized.some((keyword) =>
+        haystack.includes(keyword.toLowerCase()),
+      );
+    });
+
+    return { restaurants: filtered, fromDatabase: false, pendingCount: 0 };
+  }
+
   async getPublicRestaurants(query?: string) {
     const q = query?.trim();
 
@@ -123,35 +234,13 @@ export class ShopService {
     ]);
 
     if (db.length > 0) {
-      const restaurants = db.map((restaurant, index) => {
-        const reviewCount = restaurant.reviews.length;
-        const rating =
-          reviewCount > 0
-            ? restaurant.reviews.reduce((sum, r) => sum + r.rating, 0) /
-              reviewCount
-            : 0;
-        const categoryNames = restaurant.categories
-          .map((c) => c.category.name)
-          .join(', ');
-        const fallbackImage = DEMO_IMAGES[index % DEMO_IMAGES.length];
-
-        return {
-          id: restaurant.id,
-          slug: restaurant.slug,
-          name: restaurant.name,
-          categories: categoryNames || restaurant.city,
-          rating: Number(rating.toFixed(1)),
-          reviews: reviewCount,
-          time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
-          deliveryFeeLabel: this.formatFee(restaurant.deliveryFee),
-          image: restaurant.coverImage || restaurant.logo || fallbackImage,
-          logo: restaurant.logo || restaurant.coverImage || fallbackImage,
-          city: restaurant.city,
-          isOpen: restaurant.isOpen,
-        } satisfies PublicRestaurant;
-      });
-
-      return { restaurants, fromDatabase: true, pendingCount };
+      return {
+        restaurants: db.map((restaurant, index) =>
+          this.mapRestaurantRow(restaurant, index),
+        ),
+        fromDatabase: true,
+        pendingCount,
+      };
     }
 
     if (totalInDb > 0) {

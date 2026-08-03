@@ -6,7 +6,14 @@ export class ShopController {
   constructor(private shop: ShopService) {}
 
   @Get('restaurants')
-  getRestaurants(@Query('q') q?: string) {
+  getRestaurants(@Query('q') q?: string, @Query('menu') menu?: string) {
+    if (menu?.trim()) {
+      const keywords = menu
+        .split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean);
+      return this.shop.getPublicRestaurantsByMenuKeywords(keywords);
+    }
     return this.shop.getPublicRestaurants(q);
   }
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import RestaurantCard from "@/components/RestaurantCard";
 import { getCategoryBySlug, getCategoryKeywords } from "@/lib/categories";
-import { getPublicRestaurants } from "@/lib/restaurants";
+import { getPublicRestaurantsByMenuFood } from "@/lib/restaurants";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -13,26 +13,18 @@ export default async function CategoryDetailPage({ params }: Props) {
   const category = getCategoryBySlug(slug);
   if (!category) notFound();
 
-  let restaurants: Awaited<
-    ReturnType<typeof getPublicRestaurants>
+  const keywords = getCategoryKeywords(slug);
+
+  let filtered: Awaited<
+    ReturnType<typeof getPublicRestaurantsByMenuFood>
   >["restaurants"] = [];
 
   try {
-    const data = await getPublicRestaurants();
-    restaurants = data.restaurants;
+    const data = await getPublicRestaurantsByMenuFood(keywords);
+    filtered = data.restaurants;
   } catch {
-    restaurants = [];
+    filtered = [];
   }
-
-  const keywords = getCategoryKeywords(slug);
-
-  const filtered = restaurants.filter((restaurant) => {
-    const haystack =
-      `${restaurant.name} ${restaurant.categories}`.toLowerCase();
-    return keywords.some((keyword) =>
-      haystack.includes(keyword.toLowerCase()),
-    );
-  });
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-5 lg:px-8">
@@ -40,9 +32,7 @@ export default async function CategoryDetailPage({ params }: Props) {
         <h1 className="mt-1 font-[family-name:var(--font-inter)] text-[22px] font-bold text-neutral-900 md:text-[28px]">
           {category.label}
         </h1>
-        <p className="mt-1 text-[16px] text-neutral-500 md:text-[18px]">
-          {category.description} · {filtered.length} რესტორანი
-        </p>
+     
       </div>
 
       {filtered.length === 0 ? (

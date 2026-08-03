@@ -135,6 +135,40 @@ export async function getPublicRestaurants(query?: string): Promise<{
   }
 }
 
+export async function getPublicRestaurantsByMenuFood(
+  keywords: string[],
+): Promise<{
+  restaurants: PublicRestaurant[];
+  fromDatabase: boolean;
+  pendingCount?: number;
+}> {
+  const normalized = [
+    ...new Set(keywords.map((keyword) => keyword.trim()).filter(Boolean)),
+  ];
+
+  if (normalized.length === 0) {
+    return { restaurants: [], fromDatabase: true, pendingCount: 0 };
+  }
+
+  const path = `/shop/restaurants?menu=${encodeURIComponent(normalized.join(","))}`;
+
+  try {
+    return await serverApiFetch<{
+      restaurants: PublicRestaurant[];
+      fromDatabase: boolean;
+      pendingCount?: number;
+    }>(path);
+  } catch {
+    const filtered = DEMO_RESTAURANTS.filter((restaurant) => {
+      const haystack = `${restaurant.name} ${restaurant.categories}`.toLowerCase();
+      return normalized.some((keyword) =>
+        haystack.includes(keyword.toLowerCase()),
+      );
+    });
+    return { restaurants: filtered, fromDatabase: false, pendingCount: 0 };
+  }
+}
+
 export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenuResponse | null> {

@@ -53,6 +53,7 @@ export const RESTAURANT_CATEGORY_DEFS: RestaurantCategoryDef[] = [
   { slug: "asian-soup", label: "აზიური სუპი", keywords: ["აზიურ", "სუპ"], description: "აზიური სუპები", image: null },
   { slug: "central-asian", label: "ცენტრალურ-აზიური", keywords: ["ცენტრალ", "central asian"], description: "ცენტრალურ-აზიური კერძები", image: null },
   { slug: "khinkali", label: "ხინკალი", keywords: ["ხინკ", "khinkali"], description: "ხინკალი და ხაჩაფური", image: null },
+  { slug: "khachapuri", label: "ხაჭაპური", keywords: ["ხაჭაპურ", "khachapuri"], description: "ხაჭაპური და პურის კერძები", image: null },
   { slug: "cocktail", label: "კოქტეილი", keywords: ["კოქტ", "cocktail"], description: "კოქტეილი და ბარი", image: null },
   { slug: "pasta", label: "პასტა", keywords: ["პასტ", "pasta"], description: "პასტა", image: null },
 ];
