@@ -18,6 +18,8 @@ import {
 } from '../common/decorators/current-user.decorator';
 import type { ProductWriteInput } from '../admin/admin.service';
 import type { OrderStatus } from '../generated/prisma/client';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { restaurantProductWriteSchema } from '../admin/dto/product.schemas';
 
 @Controller('restaurant')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -141,7 +143,8 @@ export class RestaurantController {
   @Post('products')
   createProduct(
     @CurrentUser() user: AuthUser,
-    @Body() body: Omit<ProductWriteInput, 'restaurantId'>,
+    @Body(new ZodValidationPipe(restaurantProductWriteSchema))
+    body: Omit<ProductWriteInput, 'restaurantId'>,
   ) {
     return this.restaurant.createProduct(user.id, user.role, body);
   }
@@ -150,7 +153,8 @@ export class RestaurantController {
   updateProduct(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: Omit<ProductWriteInput, 'restaurantId'>,
+    @Body(new ZodValidationPipe(restaurantProductWriteSchema))
+    body: Omit<ProductWriteInput, 'restaurantId'>,
   ) {
     return this.restaurant.updateProduct(user.id, user.role, id, body);
   }

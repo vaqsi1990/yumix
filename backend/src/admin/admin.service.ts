@@ -1367,22 +1367,6 @@ export class AdminService {
     };
   }
 
-  private validateProductInput(input: Partial<ProductWriteInput>) {
-    if (!input.restaurantId) return 'აირჩიე რესტორანი';
-    if (!input.categoryId) return 'აირჩიე კატეგორია';
-    if (!input.name?.trim()) return 'სახელი სავალდებულოა';
-    if (input.price == null || input.price <= 0)
-      return 'ფასი უნდა იყოს 0-ზე მეტი';
-    if (
-      input.discountPrice != null &&
-      input.discountPrice > 0 &&
-      input.discountPrice >= (input.price ?? 0)
-    ) {
-      return 'ფასდაკლება უნდა იყოს ძირითად ფასზე ნაკლები';
-    }
-    return null;
-  }
-
   private async assertCategoryBelongsToRestaurant(
     categoryId: string,
     restaurantId: string,
@@ -1455,8 +1439,6 @@ export class AdminService {
   }
 
   async createProduct(input: ProductWriteInput) {
-    const err = this.validateProductInput(input);
-    if (err) throw new BadRequestException(err);
     await this.assertCategoryBelongsToRestaurant(
       input.categoryId,
       input.restaurantId,
@@ -1477,8 +1459,6 @@ export class AdminService {
   }
 
   async updateProduct(id: string, input: ProductWriteInput) {
-    const err = this.validateProductInput(input);
-    if (err) throw new BadRequestException(err);
     await this.assertCategoryBelongsToRestaurant(
       input.categoryId,
       input.restaurantId,

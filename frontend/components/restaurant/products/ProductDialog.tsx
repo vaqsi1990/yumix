@@ -21,6 +21,11 @@ import {
 } from "@/components/ui/select";
 import ProductImageUpload from "@/components/restaurant/products/ProductImageUpload";
 import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
+import {
+  isSchemaValid,
+  parseWithSchema,
+  productDialogSchema,
+} from "@/lib/validation/product";
 import type {
   ProductAvailability,
   ProductCategory,
@@ -67,6 +72,12 @@ export default function ProductDialog({
   const [availability, setAvailability] = useState<ProductAvailability>(
     product?.availability ?? "AVAILABLE",
   );
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    price?: string;
+    image?: string;
+  }>({});
 
   function handleOpenChange(next: boolean) {
     if (next) {
@@ -74,6 +85,8 @@ export default function ProductDialog({
       setDescription(product?.description ?? "");
       setImage(product?.image ?? null);
       setUploadError(null);
+      setFormError(null);
+      setFieldErrors({});
       setCategoryId(
         product?.categoryId ?? defaultCategoryId ?? categories[0]?.id ?? "",
       );
@@ -91,30 +104,54 @@ export default function ProductDialog({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!categoryId) return;
-
-    const parsedPrice = Number(price.replace(",", "."));
-    if (!price.trim() || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      return;
-    }
+    setFormError(null);
+    setFieldErrors({});
 
     const parsedPrep = preparationTime.trim()
       ? Number(preparationTime)
       : null;
 
-    onSave({
-      name,
-      description: description || null,
-      image,
+    const validation = parseWithSchema(productDialogSchema, {
       categoryId,
-      price: parsedPrice,
+      name,
+      image: image ?? "",
+      price,
+      description: description || null,
       discountPrice: discountPrice ? Number(discountPrice) : null,
       preparationTime: parsedPrep,
       availability,
+    });
+
+    if (!validation.success) {
+      setFieldErrors(validation.errors);
+      setFormError(validation.message);
+      return;
+    }
+
+    onSave({
+      name: validation.data.name,
+      description: validation.data.description ?? null,
+      image: validation.data.image,
+      categoryId: validation.data.categoryId,
+      price: validation.data.price,
+      discountPrice: validation.data.discountPrice ?? null,
+      preparationTime: validation.data.preparationTime ?? null,
+      availability: validation.data.availability,
       variants: product?.variants ?? [],
     });
     onOpenChange(false);
   }
+
+  const canSubmit = isSchemaValid(productDialogSchema, {
+    categoryId,
+    name,
+    image: image ?? "",
+    price,
+    description: description || null,
+    discountPrice: discountPrice ? Number(discountPrice) : null,
+    preparationTime: preparationTime.trim() ? Number(preparationTime) : null,
+    availability,
+  });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -127,24 +164,42 @@ export default function ProductDialog({
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <ProductImageUpload
-              label={KA.image}
-              value={image}
-              onChange={setImage}
-              onError={setUploadError}
-            />
-            {uploadError && (
-              <p className="text-sm text-destructive">{uploadError}</p>
-            )}
+            <div className="space-y-1">
+              <ProductImageUpload
+                label={`${KA.image} *`}
+                value={image}
+                onChange={(url) => {
+                  setImage(url);
+                  if (url) {
+                    setFieldErrors((prev) => ({ ...prev, image: undefined }));
+                  }
+                }}
+                onError={setUploadError}
+              />
+              {(fieldErrors.image || uploadError) && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.image ?? uploadError}
+                </p>
+              )}
+            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="product-name">{KA.products.name}</Label>
+              <Label htmlFor="product-name">{KA.products.name} *</Label>
               <Input
                 id="product-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (e.target.value.trim()) {
+                    setFieldErrors((prev) => ({ ...prev, name: undefined }));
+                  }
+                }}
                 required
+                aria-invalid={Boolean(fieldErrors.name)}
               />
+              {fieldErrors.name && (
+                <p className="text-sm text-destructive">{fieldErrors.name}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -159,7 +214,7 @@ export default function ProductDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>{KA.products.category}</Label>
+                <Label>{KA.products.category} *</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
                   <SelectTrigger>
                     <SelectValue placeholder={KA.products.selectCategory} />
@@ -206,7 +261,7 @@ export default function ProductDialog({
                   htmlFor="price"
                   className="flex min-h-10 items-end leading-tight"
                 >
-                  {KA.products.price}
+                  {KA.products.price} *
                 </Label>
                 <Input
                   id="price"
@@ -214,10 +269,20 @@ export default function ProductDialog({
                   min={0}
                   step={0.01}
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    setPrice(e.target.value);
+                    const parsed = Number(e.target.value.replace(",", "."));
+                    if (e.target.value.trim() && parsed > 0) {
+                      setFieldErrors((prev) => ({ ...prev, price: undefined }));
+                    }
+                  }}
                   className={numberInputClass}
                   required
+                  aria-invalid={Boolean(fieldErrors.price)}
                 />
+                {fieldErrors.price && (
+                  <p className="text-sm text-destructive">{fieldErrors.price}</p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -259,6 +324,10 @@ export default function ProductDialog({
             </div>
           </div>
 
+          {formError && (
+            <p className="text-sm text-destructive">{formError}</p>
+          )}
+
           <DialogFooter>
             <Button
               type="button"
@@ -267,7 +336,10 @@ export default function ProductDialog({
             >
               {KA.cancel}
             </Button>
-            <Button type="submit" disabled={!categoryId}>
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+            >
               {product ? KA.saveChanges : KA.create}
             </Button>
           </DialogFooter>

@@ -21,4 +21,9 @@ export class ShopController {
   getRestaurantMenu(@Param('slug') slug: string) {
     return this.shop.getRestaurantMenu(slug);
   }
+
+  @Get('offers')
+  getOffers() {
+    return this.shop.getPublicOffers();
+  }
 }

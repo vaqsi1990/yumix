@@ -9,7 +9,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AdminService, type ProductWriteInput } from './admin.service';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import {
+  productAvailabilityPatchSchema,
+  productWriteSchema,
+} from './dto/product.schemas';
+import {
+  AdminService,
+  type ProductWriteInput,
+} from './admin.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -194,7 +202,10 @@ export class AdminController {
   }
 
   @Post('products')
-  createProduct(@Body() body: ProductWriteInput) {
+  createProduct(
+    @Body(new ZodValidationPipe(productWriteSchema))
+    body: ProductWriteInput,
+  ) {
     return this.admin.createProduct(body);
   }
 
@@ -214,9 +225,11 @@ export class AdminController {
       Object.keys(body).length === 1 &&
       body.availability
     ) {
-      return this.admin.patchAvailability(id, body.availability);
+      const parsed = productAvailabilityPatchSchema.parse(body);
+      return this.admin.patchAvailability(id, parsed.availability);
     }
-    return this.admin.updateProduct(id, body as ProductWriteInput);
+    const parsed = productWriteSchema.parse(body);
+    return this.admin.updateProduct(id, parsed);
   }
 
   @Delete('products/:id')

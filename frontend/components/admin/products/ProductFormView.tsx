@@ -33,6 +33,7 @@ import {
   SPICINESS_OPTIONS,
 } from "./form-options";
 import { productFormSchema } from "@/lib/validation/admin";
+import { isSchemaValid, parseWithSchema } from "@/lib/validation/product";
 
 type ProductFormViewProps = {
   product: AdminProduct | null;
@@ -119,21 +120,17 @@ export default function ProductFormView({
   }
 
   function validate(): boolean {
-    const parsed = productFormSchema.safeParse({
+    const parsed = parseWithSchema(productFormSchema, {
       restaurantId: form.restaurantId,
       categoryId: form.categoryId,
       name: form.name,
+      image: form.image ?? "",
       price: form.price,
       discountPrice: form.discountPrice,
     });
     if (!parsed.success) {
-      const nextFieldErrors: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0]?.toString() ?? "root";
-        if (!nextFieldErrors[key]) nextFieldErrors[key] = issue.message;
-      }
-      setFieldErrors(nextFieldErrors);
-      setError(parsed.error.issues[0]?.message ?? "ვალიდაცია ვერ გაიარა");
+      setFieldErrors(parsed.errors);
+      setError(parsed.message);
       return false;
     }
     if (scopedCategories.length === 0 && form.restaurantId) {
@@ -220,6 +217,17 @@ export default function ProductFormView({
     }));
   }
 
+  const canSave =
+    isSchemaValid(productFormSchema, {
+      restaurantId: form.restaurantId,
+      categoryId: form.categoryId,
+      name: form.name,
+      image: form.image ?? "",
+      price: form.price,
+      discountPrice: form.discountPrice,
+    }) &&
+    !(scopedCategories.length === 0 && form.restaurantId);
+
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
       <div className="space-y-5">
@@ -249,10 +257,13 @@ export default function ProductFormView({
             <CardTitle className="text-base font-bold">
               ძირითადი ინფორმაცია
             </CardTitle>
+            <p className="text-[14px] text-muted-foreground md:text-[16px]">
+              * სავალდებულო ველები: სახელი, ფასი, ფოტო
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="product-name">პროდუქტის დასახელება</Label>
+              <Label htmlFor="product-name">პროდუქტის დასახელება *</Label>
               <Input
                 id="product-name"
                 placeholder="მაგ: ხაჭაპური იმერული"
@@ -355,7 +366,7 @@ export default function ProductFormView({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="price">ფასი ₾</Label>
+                <Label htmlFor="price">ფასი ₾ *</Label>
                 <Input
                   id="price"
                   type="number"
@@ -562,7 +573,7 @@ export default function ProductFormView({
             type="button"
             className="min-w-[120px]"
             onClick={() => void handleSave()}
-            disabled={saving}
+            disabled={saving || !canSave}
           >
             {saving ? "ინახება..." : "შენახვა"}
           </Button>
@@ -573,18 +584,32 @@ export default function ProductFormView({
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-bold">
-              პროდუქტის ფოტოები
+              პროდუქტის ფოტოები *
             </CardTitle>
             <p className="text-[16px] md:text-[18px] text-muted-foreground">
-              პირველი ფოტო გამოჩნდება სიაში · მაქს. 8 ფოტო
+              პირველი ფოტო სავალდებულოა · მაქს. 8 ფოტო
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <ProductPhotosUpload
               photos={allPhotos}
-              onPhotosChange={applyPhotos}
+              onPhotosChange={(photos) => {
+                applyPhotos(photos);
+                if (photos.length > 0) {
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.image;
+                    return next;
+                  });
+                }
+              }}
               onError={(msg) => setError(msg)}
             />
+            {fieldErrors.image && (
+              <p className="text-[16px] text-destructive md:text-[18px]">
+                {fieldErrors.image}
+              </p>
+            )}
           </CardContent>
         </Card>
 

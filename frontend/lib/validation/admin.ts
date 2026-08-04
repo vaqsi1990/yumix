@@ -1,23 +1,17 @@
 import { z } from "zod";
 
-export const productFormSchema = z
-  .object({
-    restaurantId: z.string().min(1, "აირჩიე რესტორანი"),
-    categoryId: z.string().min(1, "აირჩიე კატეგორია"),
-    name: z.string().trim().min(1, "სახელი სავალდებულოა"),
-    price: z.number().gt(0, "ფასი უნდა იყოს 0-ზე მეტი"),
-    discountPrice: z.number().nullable().optional(),
-  })
-  .refine(
-    (data) =>
-      data.discountPrice == null ||
-      data.discountPrice <= 0 ||
-      data.discountPrice < data.price,
-    {
-      message: "ფასდაკლება უნდა იყოს ძირითად ფასზე ნაკლები",
-      path: ["discountPrice"],
-    },
-  );
+export {
+  productFormSchema,
+  productCoreSchema,
+  productDialogSchema,
+  productWriteSchema,
+  restaurantProductWriteSchema,
+  productAvailabilitySchema,
+  type ProductFormValues,
+  type ProductDialogValues,
+  type ProductWriteValues,
+  type RestaurantProductWriteValues,
+} from "./product";
 
 export const adminSettingsSchema = z
   .object({

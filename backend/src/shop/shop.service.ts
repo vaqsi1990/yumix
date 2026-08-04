@@ -354,4 +354,49 @@ export class ShopService {
       fromDatabase: true,
     };
   }
+
+  async getPublicOffers() {
+    const products = await this.prisma.product.findMany({
+      where: {
+        isHidden: false,
+        isAvailable: true,
+        outOfStock: false,
+        discountPrice: { not: null, gt: 0 },
+        restaurant: { isApproved: true },
+      },
+      include: {
+        restaurant: {
+          select: { slug: true, name: true, logo: true, coverImage: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const offers = products
+      .filter(
+        (product) =>
+          product.discountPrice != null &&
+          product.discountPrice > 0 &&
+          product.discountPrice < product.price,
+      )
+      .map((product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        image: product.image,
+        price: product.price,
+        discountPrice: product.discountPrice as number,
+        outOfStock: product.outOfStock,
+        restaurant: {
+          slug: product.restaurant.slug,
+          name: product.restaurant.name,
+          logo:
+            product.restaurant.logo ||
+            product.restaurant.coverImage ||
+            DEMO_IMAGES[0],
+        },
+      }));
+
+    return { offers, fromDatabase: true };
+  }
 }
