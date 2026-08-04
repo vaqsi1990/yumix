@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import {
   CheckCircle2,
+  ChevronDown,
   Clock,
   DollarSign,
   ShoppingBag,
@@ -13,14 +15,39 @@ import StatCard from "@/components/restaurant/StatCard";
 import { formatCurrency } from "@/lib/restaurant/format";
 import { KA } from "@/lib/restaurant/labels";
 import type { DashboardStats } from "@/lib/restaurant/types";
+import { cn } from "@/lib/utils";
 
 type DashboardStatsGridProps = {
   stats: DashboardStats;
 };
 
 export default function DashboardStatsGrid({ stats }: DashboardStatsGridProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="mb-3 flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left md:hidden"
+      >
+        <span className="text-sm font-semibold text-neutral-900">სტატისტიკა</span>
+        <ChevronDown
+          className={cn(
+            "size-5 shrink-0 text-neutral-500 transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+
+      <div
+        className={cn(
+          "grid gap-4 sm:grid-cols-2 lg:grid-cols-4",
+          !open && "hidden md:grid",
+        )}
+      >
       <StatCard
         title={KA.dashboard.todayOrders}
         value={stats.todayOrders}
@@ -72,6 +99,7 @@ export default function DashboardStatsGrid({ stats }: DashboardStatsGridProps) {
         icon={Star}
         iconClassName="bg-amber-500/10 text-amber-600"
       />
-    </div>
+      </div>
+    </section>
   );
 }
