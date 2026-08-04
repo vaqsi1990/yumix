@@ -11,38 +11,24 @@ export default function AuthNav({ mobile = false }: { mobile?: boolean }) {
   if (!user) {
     if (mobile) {
       return (
-        <div className="mt-3 flex flex-col gap-2 border-t border-white/20 pt-4">
+        <div className="mt-3 border-t border-white/20 pt-4">
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-md border border-white px-4 py-2.5 text-sm"
+            className="inline-flex w-full items-center justify-center rounded-md bg-white px-4 py-2.5 text-sm font-medium text-[#FF0050]"
           >
             შესვლა
-          </Link>
-          <Link
-            href="/reg"
-            className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2.5 text-sm font-medium text-[#FF0050]"
-          >
-            რეგისტრაცია
           </Link>
         </div>
       );
     }
 
     return (
-      <>
-        <Link
-          href="/login"
-          className="hidden rounded-md border border-white px-4 py-1.5 text-[16px] transition hover:bg-white/10 lg:inline-flex"
-        >
-          შესვლა
-        </Link>
-        <Link
-          href="/reg"
-          className="hidden rounded-md bg-white px-4 py-1.5 text-[16px] font-medium text-[#FF0050] transition hover:bg-white/95 lg:inline-flex"
-        >
-          რეგისტრაცია
-        </Link>
-      </>
+      <Link
+        href="/login"
+        className="hidden rounded-md border border-white px-4 py-1.5 text-[16px] transition hover:bg-white/10 lg:inline-flex"
+      >
+        შესვლა
+      </Link>
     );
   }
 

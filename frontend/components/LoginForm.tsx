@@ -59,9 +59,15 @@ export default function LoginForm() {
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-[0_0_4px_0_rgba(0,0,0,0.12)] sm:p-8">
-      <h1 className="mb-6 text-center font-[family-name:var(--font-inter)] text-2xl font-semibold text-neutral-900">
+      <h1 className="text-center font-[family-name:var(--font-inter)] text-2xl font-semibold text-neutral-900">
         შესვლა
       </h1>
+      <p className="mb-6 mt-2 text-center text-base text-neutral-500">
+        ან{" "}
+        <Link href="/reg" className="font-medium text-[#FF0050] hover:underline">
+          დარეგისტრირდი
+        </Link>
+      </p>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
