@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fileUrlFromUpload, useUploadThing } from "@/lib/uploadthing";
+import { uploadAdminImage } from "@/lib/admin-upload";
 import { cn } from "@/lib/utils";
 
 type ProductImageUploadProps = {
@@ -23,22 +23,27 @@ export default function ProductImageUpload({
   className,
 }: ProductImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const { startUpload, isUploading } = useUploadThing("productPhotos", {
-    onClientUploadComplete: (res) => {
-      const url = fileUrlFromUpload(res[0]);
-      if (url) onChange(url);
-    },
-    onUploadError: (error) => {
-      onError?.(error.message);
-    },
-  });
+  const [localError, setLocalError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   async function handleFiles(files: FileList | null) {
     const file = files?.[0];
     if (!file || isUploading) return;
-    await startUpload([file]);
-    if (inputRef.current) inputRef.current.value = "";
+
+    setLocalError("");
+    setIsUploading(true);
+    try {
+      const url = await uploadAdminImage(file);
+      onChange(url);
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "ატვირთვა ვერ მოხერხდა";
+      setLocalError(msg);
+      onError?.(msg);
+    } finally {
+      setIsUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
   return (
@@ -97,6 +102,10 @@ export default function ProductImageUpload({
         )}
         {isUploading ? "იტვირთება..." : value ? "შეცვლა" : "ფოტოს ატვირთვა"}
       </Button>
+
+      {localError && (
+        <p className="text-[16px] text-destructive md:text-[18px]">{localError}</p>
+      )}
     </div>
   );
 }

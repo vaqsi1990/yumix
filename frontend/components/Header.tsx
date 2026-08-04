@@ -204,7 +204,7 @@ export default function Header() {
             <MapPinIcon className="size-4 shrink-0 text-[#FF0050] sm:size-5" />
             <input
               type="text"
-              placeholder="შეიყვანე მისამართი"
+              placeholder="ძებნა"
               className="w-full min-w-0 bg-transparent py-2 text-sm text-neutral-800 outline-none placeholder:text-neutral-400 sm:py-2.5 sm:text-[0.95rem]"
             />
           </div>
