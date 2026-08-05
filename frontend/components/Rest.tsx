@@ -22,16 +22,14 @@ export default async function Rest() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-8">
         <div className="mb-5 flex items-center justify-between gap-2 sm:mb-6 sm:gap-4">
           <h2 className="min-w-0 font-[family-name:var(--font-inter)] text-[16px] font-bold not-italic leading-tight text-neutral-900 sm:text-[18px] md:text-[20px]">
-            {"\u10de\u10dd\u10de\u10e3\u10da\u10d0\u10e0\u10e3\u10da\u10d8 \u10e0\u10d4\u10e1\u10e2\u10dd\u10e0\u10dc\u10d4\u10d1\u10d8"}
+            პოპულარული რესტორნები
           </h2>
           <Link
             href="/restaurants"
             className="inline-flex shrink-0 items-center gap-1 font-[family-name:var(--font-inter)] text-[16px] font-normal not-italic leading-normal text-[#FF0050] transition hover:opacity-80 sm:gap-1.5 md:text-[18px]"
           >
-            <span className="sm:hidden">{"\u10e7\u10d5\u10d4\u10da\u10d0"}</span>
-            <span className="hidden sm:inline">
-              {"\u10e7\u10d5\u10d4\u10da\u10d0 \u10e0\u10d4\u10e1\u10e2\u10dd\u10e0\u10d0\u10dc\u10d8"}
-            </span>
+            <span className="sm:hidden">ყველა</span>
+            <span className="hidden sm:inline">ყველა რესტორანი</span>
             <span aria-hidden="true">→</span>
           </Link>
         </div>

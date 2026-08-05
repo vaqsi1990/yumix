@@ -40,19 +40,19 @@ export default function RestaurantCard({
   const href = `/restaurants/${restaurant.slug}`;
 
   return (
-    <article className="overflow-hidden rounded-2xl bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)]">
+    <article className="group relative overflow-hidden rounded-2xl bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] transition hover:shadow-[0_2px_12px_0_rgba(0,0,0,0.12)]">
       <div className="relative h-[160px] w-full">
         <Image
           src={restaurant.image}
           alt={restaurant.name}
           fill
           sizes="(max-width: 768px) 100vw, 300px"
-          className="object-cover"
+          className="object-cover transition duration-300 group-hover:scale-[1.02]"
         />
         <button
           type="button"
           aria-label="რჩეულებში დამატება"
-          className="absolute right-3 top-3 rounded-full p-1.5 text-white drop-shadow transition hover:scale-105"
+          className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-white drop-shadow transition hover:scale-105"
         >
           <HeartIcon className="size-6" />
         </button>
@@ -72,14 +72,11 @@ export default function RestaurantCard({
         </div>
       </div>
 
-      <div className="relative z-10 px-4 pb-4 pt-8">
+      <div className="relative px-4 pb-4 pt-8">
         <div className="flex items-start justify-between gap-2">
-          <Link
-            href={href}
-            className="font-[family-name:var(--font-inter)] text-[18px] font-bold leading-tight text-neutral-900 transition hover:text-[#FF0050] md:text-[20px]"
-          >
+          <h3 className="font-[family-name:var(--font-inter)] text-[18px] font-bold leading-tight text-neutral-900 transition group-hover:text-[#FF0050] md:text-[20px]">
             {restaurant.name}
-          </Link>
+          </h3>
           <div className="flex shrink-0 items-center gap-1 pt-0.5 text-sm">
             <StarIcon className="size-4 text-[#F5C518]" />
             <span className="font-semibold text-neutral-900">
@@ -97,14 +94,17 @@ export default function RestaurantCard({
             <span className="mx-1.5 text-neutral-300">·</span>
             <span>{restaurant.deliveryFeeLabel}</span>
           </div>
-          <Link
-            href={href}
-            className="relative z-10 inline-flex shrink-0 rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] md:text-[18px]"
-          >
+          <span className="inline-flex shrink-0 rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition group-hover:bg-[#e60048] md:text-[18px]">
             მენიუ
-          </Link>
+          </span>
         </div>
       </div>
+
+      <Link
+        href={href}
+        className="absolute inset-0 z-[1]"
+        aria-label={`${restaurant.name} — მენიუ`}
+      />
     </article>
   );
 }
