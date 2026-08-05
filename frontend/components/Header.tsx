@@ -174,7 +174,7 @@ export default function Header() {
             <Link
               href="/cart"
               aria-label="კალათა"
-              className="rounded-md p-1.5 transition hover:bg-white/10"
+              className="hidden rounded-md p-1.5 transition hover:bg-white/10 md:inline-flex"
               onClick={() => setMenuOpen(false)}
             >
               <BasketIcon className="size-5" />
@@ -201,7 +201,7 @@ export default function Header() {
           </div>
         </div>
 
-        <form className="mt-3 hidden w-full min-w-0 items-center gap-1 rounded-xl bg-white p-1 shadow-sm sm:mt-4 sm:gap-2 sm:p-1.5 md:flex md:w-[50%]">
+        <form className="mt-3 flex w-full min-w-0 items-center gap-1 rounded-xl bg-white p-1 shadow-sm sm:mt-4 sm:gap-2 sm:p-1.5 md:w-[50%]">
           <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 sm:gap-2 sm:px-3">
             <MapPinIcon className="size-4 shrink-0 text-[#FF0050] sm:size-5" />
             <input
