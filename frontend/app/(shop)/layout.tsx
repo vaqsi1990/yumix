@@ -1,3 +1,4 @@
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 
 export default function ShopLayout({
@@ -8,7 +9,8 @@ export default function ShopLayout({
   return (
     <>
       <Header />
-      {children}
+      <main className="flex-1">{children}</main>
+      <Footer />
     </>
   );
 }
