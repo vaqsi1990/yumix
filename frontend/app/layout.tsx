@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
@@ -21,6 +21,13 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#FF0050",
+};
+
 export const metadata: Metadata = {
   title: "Yumix",
   description: "საკვების მიწოდება",
@@ -40,7 +47,7 @@ export default function RootLayout({
       lang="ka"
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-dvh flex-col">
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <Providers>{children}</Providers>
       </body>

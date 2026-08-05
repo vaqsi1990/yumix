@@ -1,95 +1,85 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDown, LogOut, User } from "lucide-react";
 import { useAuth } from "@/components/auth-context";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getProfileHref } from "@/lib/auth-routes";
+import { cn } from "@/lib/utils";
 
-export default function AuthNav({ mobile = false }: { mobile?: boolean }) {
+type AuthNavProps = {
+  onNavigate?: () => void;
+};
+
+export default function AuthNav({ onNavigate }: AuthNavProps) {
   const { user, status, logout } = useAuth();
 
-  if (status === "loading") return null;
+  if (status === "loading") {
+    return (
+      <div
+        className="size-9 shrink-0 rounded-md border border-white/20 sm:size-10"
+        aria-hidden="true"
+      />
+    );
+  }
 
   if (!user) {
-    if (mobile) {
-      return (
-        <div className="mt-3 border-t border-white/20 pt-4">
-          <Link
-            href="/login"
-            className="inline-flex w-full items-center justify-center rounded-md bg-white px-4 py-2.5 text-sm font-medium text-[#FF0050]"
-          >
-            შესვლა
-          </Link>
-        </div>
-      );
-    }
-
     return (
       <Link
         href="/login"
-        className="hidden rounded-md border border-white px-4 py-1.5 text-[16px] transition hover:bg-white/10 lg:inline-flex"
+        onClick={onNavigate}
+        className="inline-flex shrink-0 items-center rounded-md border border-white px-3 py-1.5 text-sm transition hover:bg-white/10 sm:px-4 sm:text-[16px]"
       >
         შესვლა
       </Link>
     );
   }
 
-  const role = user.role;
-  const panelHref =
-    role === "ADMIN"
-      ? "/admin"
-      : role === "RESTAURANT_OWNER"
-        ? "/restaurant"
-        : role === "COURIER"
-          ? "/courier"
-          : null;
-
-  const panelLabel =
-    role === "ADMIN"
-      ? "ადმინი"
-      : role === "RESTAURANT_OWNER"
-        ? "რესტორანი"
-        : role === "COURIER"
-          ? "კურიერი"
-          : null;
-
-  if (mobile) {
-    return (
-      <div className="mt-3 flex flex-col gap-2 border-t border-white/20 pt-4">
-        {panelHref && panelLabel && (
-          <Link
-            href={panelHref}
-            className="inline-flex items-center justify-center rounded-md border border-white px-4 py-2.5 text-[16px]"
-          >
-            {panelLabel}
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2.5 text-sm font-medium text-[#FF0050]"
-        >
-          გამოსვლა
-        </button>
-      </div>
-    );
-  }
+  const profileHref = getProfileHref(user);
+  const displayName = user.name?.trim() || user.firstName?.trim() || user.email;
 
   return (
-    <>
-      {panelHref && panelLabel && (
-        <Link
-          href={panelHref}
-          className="hidden rounded-md border border-white px-4 py-1.5 text-[16px] transition hover:bg-white/10 lg:inline-flex"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "flex max-w-[42vw] min-w-0 shrink-0 items-center gap-1 rounded-md border border-white/90 px-2 py-1.5 text-sm transition hover:bg-white/10 sm:max-w-[12rem] sm:gap-1.5 sm:px-2.5 sm:text-[16px]",
+          )}
         >
-          {panelLabel}
-        </Link>
-      )}
-      <button
-        type="button"
-        onClick={() => void logout()}
-        className="hidden rounded-md bg-white px-4 py-1.5 text-[16px] font-medium text-[#FF0050] transition hover:bg-white/95 lg:inline-flex"
-      >
-        გამოსვლა
-      </button>
-    </>
+          <span className="truncate font-medium">{displayName}</span>
+          <ChevronDown className="size-3.5 shrink-0 opacity-90 sm:size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem asChild>
+          <Link
+            href={profileHref}
+            onClick={onNavigate}
+            className="cursor-pointer"
+          >
+            <User className="size-4" />
+            პროფილი
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="cursor-pointer text-red-600 focus:text-red-600"
+          onClick={() => {
+            onNavigate?.();
+            void logout();
+          }}
+        >
+          <LogOut className="size-4" />
+          გამოსვლა
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

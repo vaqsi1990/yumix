@@ -30,44 +30,50 @@ const discountPriceRefine = {
   path: ["discountPrice"] as const,
 };
 
-export const productWriteSchema = z
-  .object({
-    restaurantId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.restaurant),
-    categoryId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.category),
-    name: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.name),
-    image: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.image),
-    price: z.number().gt(0, PRODUCT_VALIDATION_MESSAGES.price),
-    description: z.string().nullable().optional(),
-    gallery: z.array(z.string()).optional(),
-    discountPrice: z.number().nullable().optional(),
-    calories: z.number().nullable().optional(),
-    preparationTime: z.number().nullable().optional(),
-    weight: z.number().nullable().optional(),
-    foodType: z.string().nullable().optional(),
-    spicinessLevel: z.string().nullable().optional(),
-    availability: productAvailabilitySchema,
-    allergens: z
-      .object({
-        gluten: z.boolean(),
-        milk: z.boolean(),
-        eggs: z.boolean(),
-        fish: z.boolean(),
-        nuts: z.boolean(),
-        soy: z.boolean(),
-        vegan: z.boolean(),
-        vegetarian: z.boolean(),
-      })
-      .optional(),
-    variants: z.array(productVariantSchema).default([]),
-  })
+const productWriteBaseSchema = z.object({
+  restaurantId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.restaurant),
+  categoryId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.category),
+  name: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.name),
+  image: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.image),
+  price: z.number().gt(0, PRODUCT_VALIDATION_MESSAGES.price),
+  description: z.string().nullable().optional(),
+  gallery: z.array(z.string()).optional(),
+  discountPrice: z.number().nullable().optional(),
+  calories: z.number().nullable().optional(),
+  preparationTime: z.number().nullable().optional(),
+  weight: z.number().nullable().optional(),
+  foodType: z.string().nullable().optional(),
+  spicinessLevel: z.string().nullable().optional(),
+  availability: productAvailabilitySchema,
+  allergens: z
+    .object({
+      gluten: z.boolean(),
+      milk: z.boolean(),
+      eggs: z.boolean(),
+      fish: z.boolean(),
+      nuts: z.boolean(),
+      soy: z.boolean(),
+      vegan: z.boolean(),
+      vegetarian: z.boolean(),
+    })
+    .optional(),
+  variants: z.array(productVariantSchema).default([]),
+});
+
+export const productWriteSchema = productWriteBaseSchema.refine(
+  discountPriceRefine.check,
+  {
+    message: discountPriceRefine.message,
+    path: [...discountPriceRefine.path],
+  },
+);
+
+export const restaurantProductWriteSchema = productWriteBaseSchema
+  .omit({ restaurantId: true })
   .refine(discountPriceRefine.check, {
     message: discountPriceRefine.message,
     path: [...discountPriceRefine.path],
   });
-
-export const restaurantProductWriteSchema = productWriteSchema.omit({
-  restaurantId: true,
-});
 
 export const productAvailabilityPatchSchema = z.object({
   availability: productAvailabilitySchema,

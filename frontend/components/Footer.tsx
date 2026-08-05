@@ -52,7 +52,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-neutral-200 bg-neutral-50">
+    <footer className="mt-auto hidden border-t border-neutral-200 bg-neutral-50 md:block">
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-5 lg:px-8">
         <div className="flex items-start justify-between gap-6">
           <Logo />

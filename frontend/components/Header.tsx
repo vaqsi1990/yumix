@@ -134,7 +134,7 @@ export default function Header() {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.matchMedia("(min-width: 1024px)").matches) {
+      if (window.matchMedia("(min-width: 768px)").matches) {
         setMenuOpen(false);
       }
     };
@@ -154,7 +154,7 @@ export default function Header() {
 
           <button
             type="button"
-            className="flex min-w-0 max-w-[38%] items-center gap-1 rounded-md border border-white/90 px-2 py-1.5 text-xs transition hover:bg-white/10 sm:max-w-none sm:gap-1.5 sm:px-2.5 sm:text-sm"
+            className="hidden min-w-0 items-center gap-1 rounded-md border border-white/90 px-2 py-1.5 text-xs transition hover:bg-white/10 md:flex sm:gap-1.5 sm:px-2.5 sm:text-sm"
           >
             <MapPinIcon className="size-3.5 shrink-0 sm:size-4" />
             <span className="truncate">თბილისი</span>
@@ -180,11 +180,13 @@ export default function Header() {
               <BasketIcon className="size-5" />
             </Link>
 
-            <AuthNav />
+            <div className="hidden md:block">
+              <AuthNav onNavigate={() => setMenuOpen(false)} />
+            </div>
 
             <button
               type="button"
-              className="rounded-md p-1.5 transition hover:bg-white/10 lg:hidden"
+              className="rounded-md p-1.5 transition hover:bg-white/10 md:hidden"
               aria-label={menuOpen ? "მენიუს დახურვა" : "მენიუს გახსნა"}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
@@ -199,7 +201,7 @@ export default function Header() {
           </div>
         </div>
 
-        <form className="mt-3 flex w-full min-w-0 items-center gap-1 rounded-xl bg-white p-1 shadow-sm sm:mt-4 sm:gap-2 sm:p-1.5 md:w-[50%]">
+        <form className="mt-3 hidden w-full min-w-0 items-center gap-1 rounded-xl bg-white p-1 shadow-sm sm:mt-4 sm:gap-2 sm:p-1.5 md:flex md:w-[50%]">
           <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 sm:gap-2 sm:px-3">
             <MapPinIcon className="size-4 shrink-0 text-[#FF0050] sm:size-5" />
             <input
@@ -218,7 +220,7 @@ export default function Header() {
       </div>
 
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 md:hidden ${
           menuOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -229,7 +231,7 @@ export default function Header() {
 
       <div
         id="mobile-menu"
-        className={`absolute inset-x-0 top-full z-50 w-full origin-top border-t border-white/15 bg-[#FF0050] shadow-lg transition duration-200 lg:hidden ${
+        className={`absolute inset-x-0 top-full z-50 w-full origin-top border-t border-white/15 bg-[#FF0050] shadow-lg transition duration-200 md:hidden ${
           menuOpen
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-2 opacity-0"
@@ -246,10 +248,6 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-
-          <div onClick={() => setMenuOpen(false)}>
-            <AuthNav mobile />
-          </div>
         </nav>
       </div>
     </header>
