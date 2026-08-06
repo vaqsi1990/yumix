@@ -192,6 +192,7 @@ export class AdminService {
             lastName: true,
             email: true,
             phone: true,
+            personalId: true,
           },
         },
         categories: {
@@ -214,6 +215,7 @@ export class AdminService {
             lastName: true,
             email: true,
             phone: true,
+            personalId: true,
           },
         },
         categories: {
@@ -270,6 +272,9 @@ export class AdminService {
       throw new ConflictException('slug უკვე გამოყენებულია');
     }
 
+    const personalId = this.normalizePersonalId(body.ownerPersonalId);
+    await this.assertPersonalIdAvailable(personalId, ownerId);
+
     if (email) {
       const emailTaken = await this.prisma.restaurant.findUnique({ where: { email } });
       if (emailTaken) {
@@ -313,12 +318,13 @@ export class AdminService {
     };
 
     const restaurant = await this.prisma.$transaction(async (tx) => {
-      if (owner.role === 'USER') {
-        await tx.user.update({
-          where: { id: ownerId },
-          data: { role: 'RESTAURANT_OWNER' },
-        });
-      }
+      await tx.user.update({
+        where: { id: ownerId },
+        data: {
+          personalId,
+          ...(owner.role === 'USER' ? { role: 'RESTAURANT_OWNER' } : {}),
+        },
+      });
 
       const categoryIds: string[] = [];
       for (const categoryName of categories) {
@@ -379,6 +385,7 @@ export class AdminService {
               lastName: true,
               email: true,
               phone: true,
+              personalId: true,
             },
           },
           categories: {
@@ -398,6 +405,23 @@ export class AdminService {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
+  }
+
+  private normalizePersonalId(value: unknown): string {
+    const personalId = String(value ?? '').trim();
+    if (!/^\d{11}$/.test(personalId)) {
+      throw new BadRequestException('პირადობის ნომერი უნდა იყოს 11 ციფრი');
+    }
+    return personalId;
+  }
+
+  private async assertPersonalIdAvailable(personalId: string, userId: string) {
+    const taken = await this.prisma.user.findFirst({
+      where: { personalId, NOT: { id: userId } },
+    });
+    if (taken) {
+      throw new ConflictException('პირადობის ნომერი უკვე გამოყენებულია');
+    }
   }
 
   async patchRestaurant(
@@ -457,6 +481,9 @@ export class AdminService {
       throw new ConflictException('slug უკვე გამოყენებულია');
     }
 
+    const personalId = this.normalizePersonalId(body.ownerPersonalId);
+    await this.assertPersonalIdAvailable(personalId, ownerId);
+
     if (email) {
       const emailTaken = await this.prisma.restaurant.findFirst({
         where: { email, NOT: { id } },
@@ -502,12 +529,13 @@ export class AdminService {
     };
 
     await this.prisma.$transaction(async (tx) => {
-      if (owner.role === 'USER') {
-        await tx.user.update({
-          where: { id: ownerId },
-          data: { role: 'RESTAURANT_OWNER' },
-        });
-      }
+      await tx.user.update({
+        where: { id: ownerId },
+        data: {
+          personalId,
+          ...(owner.role === 'USER' ? { role: 'RESTAURANT_OWNER' } : {}),
+        },
+      });
 
       const categoryIds: string[] = [];
       for (const categoryName of categories) {
@@ -612,6 +640,7 @@ export class AdminService {
         lastName: true,
         email: true,
         phone: true,
+        personalId: true,
         role: true,
         isActive: true,
         createdAt: true,

@@ -145,6 +145,8 @@ export type RestaurantSettings = {
   email: string;
   city: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   minimumOrder: number;
   deliveryFee: number;
   deliveryRadius: number | null;

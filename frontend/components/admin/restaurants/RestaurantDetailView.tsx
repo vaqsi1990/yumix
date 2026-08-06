@@ -197,6 +197,10 @@ export default function RestaurantDetailView({
                 <Row label="სახელი" value={ownerFullName(restaurant)} />
                 <Row label="Email" value={restaurant.owner.email} />
                 <Row label="ტელეფონი" value={restaurant.owner.phone} />
+                <Row
+                  label="პირადობის ნომერი"
+                  value={restaurant.owner.personalId ?? "—"}
+                />
               </CardContent>
             </Card>
             <Card>
@@ -254,14 +258,6 @@ export default function RestaurantDetailView({
                 <Row label="ქვეყანა" value={restaurant.country} />
                 <Row label="ქალაქი" value={restaurant.city} />
                 <Row label="მისამართი" value={restaurant.address} />
-                <Row
-                  label="კოორდინატები"
-                  value={
-                    restaurant.latitude != null
-                      ? `${restaurant.latitude}, ${restaurant.longitude}`
-                      : "—"
-                  }
-                />
               </div>
               {restaurant.latitude != null && restaurant.longitude != null ? (
                 <LocationMapView

@@ -12,6 +12,7 @@ export type RestaurantOwnerCandidate = {
   lastName: string;
   email: string;
   phone: string;
+  personalId: string | null;
   role: Role;
 };
 
@@ -143,6 +144,9 @@ export default function OwnerUserPicker({
           <p className="font-medium text-neutral-900">{selectedLabel}</p>
           <p className="mt-0.5 text-neutral-600">{selectedUser.email}</p>
           <p className="text-neutral-600">{selectedUser.phone}</p>
+          {selectedUser.personalId && (
+            <p className="text-neutral-600">პ/ნ: {selectedUser.personalId}</p>
+          )}
         </div>
       )}
     </div>

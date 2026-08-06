@@ -170,6 +170,8 @@ export const restaurantApi = {
     email?: string;
     logo?: string | null;
     coverImage?: string | null;
+    latitude?: string;
+    longitude?: string;
   }) =>
     apiFetch<{ restaurant: RestaurantSummary }>("/restaurant/onboarding", {
       method: "POST",

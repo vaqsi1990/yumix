@@ -64,6 +64,7 @@ model User {
   lastName      String
   email         String    @unique
   phone         String    @unique
+  personalId    String?   @unique
   password      String
   birthDate     DateTime?
   avatar        String?

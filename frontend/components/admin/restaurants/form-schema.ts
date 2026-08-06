@@ -34,6 +34,11 @@ export const restaurantFormSchema = z.object({
   description: z.string(),
   categories: z.array(z.string()).min(1, "აირჩიეთ მინიმუმ ერთი კატეგორია"),
   ownerId: z.string().min(1, "აირჩიეთ მფლობელი"),
+  ownerPersonalId: z
+    .string()
+    .trim()
+    .min(1, "პირადობის ნომერი სავალდებულოა")
+    .regex(/^\d{11}$/, "პირადობის ნომერი უნდა იყოს 11 ციფრი"),
   country: z.string(),
   city: z.string().min(1, "ქალაქი სავალდებულოა"),
   street: z.string().min(1, "ქუჩა სავალდებულოა"),
@@ -120,6 +125,7 @@ export function createDefaultRestaurantForm(): RestaurantFormValues {
     description: "",
     categories: [],
     ownerId: "",
+    ownerPersonalId: "",
     country: "საქართველო",
     city: "",
     street: "",

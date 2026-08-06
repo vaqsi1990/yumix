@@ -258,6 +258,8 @@ export const KA = {
     email: "ელფოსტა",
     address: "მისამართი",
     city: "ქალაქი",
+    mapLocation: "მდებარეობა რუკაზე",
+    mapLocationDesc: "დააწკაპუნეთ რუკაზე ან გამოიყენეთ „ჩემი მდებარეობა“",
     acceptingOrders: "შეკვეთების მიღება",
     acceptingOrdersDesc: "რესტორანი ღიაა თუ დაკეტილი",
     deliverySettings: "მიწოდების პარამეტრები",

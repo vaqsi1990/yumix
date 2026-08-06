@@ -203,6 +203,7 @@ export type ApiRestaurantRow = {
     lastName: string;
     email: string;
     phone: string;
+    personalId: string | null;
   };
   categories?: { category: { name: string } }[];
   workingHours?: {
@@ -328,6 +329,7 @@ export function restaurantToFormValues(
     description: restaurant.description ?? "",
     categories: restaurant.categories,
     ownerId: restaurant.owner.id,
+    ownerPersonalId: restaurant.owner.personalId ?? "",
     country: restaurant.country,
     city: restaurant.city,
     street: restaurant.address.split(",")[0]?.trim() ?? restaurant.address,

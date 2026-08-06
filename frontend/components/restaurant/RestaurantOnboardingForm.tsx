@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { KA, translateApiError } from "@/lib/restaurant/labels";
 import { restaurantApi } from "@/lib/restaurant/api";
 import type { ApiUser } from "@/lib/api";
+import LocationMapPicker from "@/components/maps/LocationMapPicker";
 
 type RestaurantOnboardingFormProps = {
   owner: ApiUser;
@@ -33,6 +34,8 @@ export default function RestaurantOnboardingForm({
   const [email, setEmail] = useState(owner.email ?? "");
   const [logo, setLogo] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
@@ -76,6 +79,8 @@ export default function RestaurantOnboardingForm({
         email: email.trim() || undefined,
         logo,
         coverImage,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
       });
       router.refresh();
     } catch (err) {
@@ -193,6 +198,22 @@ export default function RestaurantOnboardingForm({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="მოკლე აღწერა..."
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label>{KA.settings.mapLocation}</Label>
+              <p className="text-sm text-muted-foreground">
+                {KA.settings.mapLocationDesc}
+              </p>
+              <LocationMapPicker
+                latitude={latitude}
+                longitude={longitude}
+                city={DEFAULT_CITY}
+                onChange={(lat, lng) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                }}
               />
             </div>
           </div>

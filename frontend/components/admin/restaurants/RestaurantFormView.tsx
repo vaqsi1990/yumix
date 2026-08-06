@@ -122,6 +122,16 @@ export default function RestaurantFormView({
 
   const latitude = watch("latitude");
   const longitude = watch("longitude");
+  const city = watch("city");
+  const ownerId = watch("ownerId");
+
+  useEffect(() => {
+    if (!ownerId) return;
+    const owner = users.find((user) => user.id === ownerId);
+    if (owner?.personalId) {
+      setValue("ownerPersonalId", owner.personalId, { shouldValidate: true });
+    }
+  }, [ownerId, users, setValue]);
 
   useEffect(() => {
     const sidebar = sidebarRef.current;
@@ -270,6 +280,22 @@ export default function RestaurantFormView({
           error={errors.ownerId?.message}
         />
       </FormField>
+
+      <FormField
+        label="პირადობის ნომერი"
+        htmlFor="ownerPersonalId"
+        required
+        error={errors.ownerPersonalId?.message}
+        hint="მფლობელის 11-ციფრიანი პირადობის ნომერი"
+      >
+        <Input
+          id="ownerPersonalId"
+          inputMode="numeric"
+          maxLength={11}
+          placeholder="01234567890"
+          {...register("ownerPersonalId")}
+        />
+      </FormField>
     </FormSectionCard>
   );
 
@@ -348,7 +374,7 @@ export default function RestaurantFormView({
     <>
       <FormSectionCard
         title="მისამართი"
-        description="ფიზიკური მდებარეობა და კოორდინატები"
+        description="შეიყვანეთ მისამართი და აირჩიეთ მდებარეობა რუკაზე"
         icon={<MapPinned className="size-4" />}
       >
         <div className="grid gap-4 sm:grid-cols-2">
@@ -393,19 +419,17 @@ export default function RestaurantFormView({
           <FormField label="საფოსტო კოდი" htmlFor="postalCode">
             <Input id="postalCode" {...register("postalCode")} />
           </FormField>
-          <FormField label="Latitude" htmlFor="latitude">
-            <Input id="latitude" {...register("latitude")} />
-          </FormField>
-          <FormField label="Longitude" htmlFor="longitude">
-            <Input id="longitude" {...register("longitude")} />
-          </FormField>
         </div>
+
+        <input type="hidden" {...register("latitude")} />
+        <input type="hidden" {...register("longitude")} />
 
         <Separator className="my-6" />
 
         <LocationMapPicker
           latitude={latitude}
           longitude={longitude}
+          city={city}
           onChange={handleLocationChange}
         />
       </FormSectionCard>

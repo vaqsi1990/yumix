@@ -12,6 +12,7 @@ const LocationMapPickerInner = dynamic(() => import("./LocationMapPickerInner"),
 type LocationMapPickerProps = {
   latitude?: string;
   longitude?: string;
+  city?: string;
   onChange: (latitude: string, longitude: string) => void;
   className?: string;
 };

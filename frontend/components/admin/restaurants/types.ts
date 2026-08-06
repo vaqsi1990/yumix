@@ -28,6 +28,7 @@ export type RestaurantOwner = {
   lastName: string;
   email: string;
   phone: string;
+  personalId: string | null;
 };
 
 export type RestaurantReview = {

@@ -751,8 +751,14 @@ export class RestaurantPanelService {
       body.minimumOrder != null ? Number(body.minimumOrder) : undefined;
     const deliveryFee =
       body.deliveryFee != null ? Number(body.deliveryFee) : undefined;
+    const deliveryRadius =
+      body.deliveryRadius != null ? Number(body.deliveryRadius) : undefined;
     const isOpen =
       typeof body.isOpen === 'boolean' ? body.isOpen : undefined;
+    const latitude =
+      body.latitude !== undefined ? this.parseOptionalCoord(body.latitude) : undefined;
+    const longitude =
+      body.longitude !== undefined ? this.parseOptionalCoord(body.longitude) : undefined;
 
     if (email) {
       const taken = await this.prisma.restaurant.findFirst({
@@ -779,7 +785,10 @@ export class RestaurantPanelService {
           ...(coverImage !== undefined ? { coverImage } : {}),
           ...(minimumOrder !== undefined ? { minimumOrder } : {}),
           ...(deliveryFee !== undefined ? { deliveryFee } : {}),
+          ...(deliveryRadius !== undefined ? { deliveryRadius } : {}),
           ...(isOpen !== undefined ? { isOpen } : {}),
+          ...(latitude !== undefined ? { latitude } : {}),
+          ...(longitude !== undefined ? { longitude } : {}),
         },
       });
 
@@ -999,6 +1008,8 @@ export class RestaurantPanelService {
       email: restaurant.email ?? '',
       city: restaurant.city,
       address: restaurant.address,
+      latitude: restaurant.latitude,
+      longitude: restaurant.longitude,
       minimumOrder: restaurant.minimumOrder ?? 0,
       deliveryFee: restaurant.deliveryFee ?? 0,
       deliveryRadius: restaurant.deliveryRadius,
@@ -1010,5 +1021,11 @@ export class RestaurantPanelService {
         closed: wh.isClosed,
       })),
     };
+  }
+
+  private parseOptionalCoord(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
   }
 }

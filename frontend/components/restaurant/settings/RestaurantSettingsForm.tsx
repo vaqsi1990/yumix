@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DAY_LABELS, KA, translateApiError } from "@/lib/restaurant/labels";
 import { restaurantApi } from "@/lib/restaurant/api";
 import type { RestaurantSettings, WorkingHour } from "@/lib/restaurant/types";
+import LocationMapPicker from "@/components/maps/LocationMapPicker";
 
 export default function RestaurantSettingsForm() {
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
@@ -56,6 +57,18 @@ export default function RestaurantSettingsForm() {
         workingHours: prev.workingHours.map((wh, i) =>
           i === index ? { ...wh, ...patch } : wh,
         ),
+      };
+    });
+    setSaved(false);
+  }
+
+  function updateMapLocation(latitude: string, longitude: string) {
+    setSettings((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        latitude: latitude ? Number.parseFloat(latitude) : null,
+        longitude: longitude ? Number.parseFloat(longitude) : null,
       };
     });
     setSaved(false);
@@ -198,6 +211,19 @@ export default function RestaurantSettingsForm() {
                       onChange={(e) => updateField("city", e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{KA.settings.mapLocation}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {KA.settings.mapLocationDesc}
+                  </p>
+                  <LocationMapPicker
+                    latitude={settings.latitude?.toString() ?? ""}
+                    longitude={settings.longitude?.toString() ?? ""}
+                    city={settings.city}
+                    onChange={updateMapLocation}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">
