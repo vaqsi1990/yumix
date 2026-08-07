@@ -20,7 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ProductImageUpload from "@/components/restaurant/products/ProductImageUpload";
+import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
 import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
+import {
+  normalizeProductVariants,
+  type ProductSizeVariant,
+} from "@/lib/product-sizes";
 import {
   isSchemaValid,
   parseWithSchema,
@@ -44,6 +49,12 @@ type ProductDialogProps = {
 
 const numberInputClass =
   "[appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+function mapVariantsFromProduct(
+  product?: RestaurantProduct | null,
+): ProductSizeVariant[] {
+  return normalizeProductVariants(product?.variants ?? []);
+}
 
 export default function ProductDialog({
   open,
@@ -72,6 +83,9 @@ export default function ProductDialog({
   const [availability, setAvailability] = useState<ProductAvailability>(
     product?.availability ?? "AVAILABLE",
   );
+  const [variants, setVariants] = useState<ProductSizeVariant[]>(() =>
+    mapVariantsFromProduct(product),
+  );
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -98,6 +112,7 @@ export default function ProductDialog({
           : "",
       );
       setAvailability(product?.availability ?? "AVAILABLE");
+      setVariants(mapVariantsFromProduct(product));
     }
     onOpenChange(next);
   }
@@ -137,7 +152,7 @@ export default function ProductDialog({
       discountPrice: validation.data.discountPrice ?? null,
       preparationTime: validation.data.preparationTime ?? null,
       availability: validation.data.availability,
-      variants: product?.variants ?? [],
+      variants: normalizeProductVariants(variants),
     });
     onOpenChange(false);
   }
@@ -321,6 +336,18 @@ export default function ProductDialog({
                   className={numberInputClass}
                 />
               </div>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
+              <Label className="text-sm font-semibold">
+                {KA.products.variants}
+              </Label>
+              <ProductSizeVariantsEditor
+                value={variants}
+                onChange={setVariants}
+                emptyHint={KA.products.variantsEmpty}
+                numberInputClass={numberInputClass}
+              />
             </div>
           </div>
 

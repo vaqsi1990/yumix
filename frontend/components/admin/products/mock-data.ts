@@ -62,8 +62,9 @@ export const MOCK_PRODUCTS: AdminProduct[] = [
     isAvailable: true,
     allergens: allergens({ gluten: true, milk: true, eggs: true }),
     variants: [
-      { id: "v1", name: "ორმაგი", price: 24.5 },
-      { id: "v2", name: "ტრიპლ", price: 29.9 },
+      { id: "v1", name: "M", price: 18.5 },
+      { id: "v2", name: "L", price: 24.5 },
+      { id: "v3", name: "XL", price: 29.9 },
     ],
     addOns: [
       { id: "a1", name: "ბეკონი", price: 3 },
@@ -130,7 +131,10 @@ export const MOCK_PRODUCTS: AdminProduct[] = [
     availability: "AVAILABLE",
     isAvailable: true,
     allergens: allergens({ fish: true, milk: true, soy: true }),
-    variants: [{ id: "v3", name: "16 ცალი", price: 38.0 }],
+    variants: [
+      { id: "v3", name: "M", price: 22.0 },
+      { id: "v4", name: "L", price: 38.0 },
+    ],
     addOns: [],
     createdAt: daysAgo(1),
     updatedAt: daysAgo(0),
@@ -173,8 +177,9 @@ export const MOCK_PRODUCTS: AdminProduct[] = [
     isAvailable: true,
     allergens: allergens({ gluten: true, milk: true, vegetarian: true }),
     variants: [
-      { id: "v4", name: "24სმ", price: 14.9 },
-      { id: "v5", name: "40სმ", price: 26.9 },
+      { id: "v5", name: "M", price: 19.9 },
+      { id: "v6", name: "L", price: 26.9 },
+      { id: "v7", name: "XL", price: 32.9 },
     ],
     addOns: [
       { id: "a6", name: "pepperoni", price: 4 },
@@ -221,8 +226,9 @@ export const MOCK_PRODUCTS: AdminProduct[] = [
     isAvailable: true,
     allergens: allergens({ gluten: true }),
     variants: [
-      { id: "v6", name: "5 ცალი", price: 7 },
-      { id: "v7", name: "15 ცალი", price: 16 },
+      { id: "v8", name: "S", price: 7 },
+      { id: "v9", name: "M", price: 12.0 },
+      { id: "v10", name: "L", price: 16 },
     ],
     addOns: [{ id: "a8", name: "სულგუნი", price: 3 }],
     createdAt: daysAgo(3),
@@ -265,7 +271,10 @@ export const MOCK_PRODUCTS: AdminProduct[] = [
     availability: "AVAILABLE",
     isAvailable: true,
     allergens: allergens({ vegan: true, vegetarian: true }),
-    variants: [{ id: "v8", name: "1L", price: 9.0 }],
+    variants: [
+      { id: "v11", name: "M", price: 5.5 },
+      { id: "v12", name: "L", price: 9.0 },
+    ],
     addOns: [],
     createdAt: daysAgo(14),
     updatedAt: daysAgo(6),

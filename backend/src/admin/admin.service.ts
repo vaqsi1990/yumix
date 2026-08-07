@@ -7,6 +7,10 @@ import {
 import { compare, hash } from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../generated/prisma/client';
+import {
+  sanitizeProductVariants,
+  sortVariantsBySize,
+} from '../common/product-sizes';
 
 const ROLES = ['USER', 'COURIER', 'RESTAURANT_OWNER', 'ADMIN'] as const;
 type Role = (typeof ROLES)[number];
@@ -1385,11 +1389,13 @@ export class AdminService {
       ),
       isAvailable: row.isAvailable,
       allergens: this.parseAllergens(row.allergens),
-      variants: row.variants.map((v) => ({
-        id: v.id,
-        name: v.name,
-        price: v.price,
-      })),
+      variants: sortVariantsBySize(
+        row.variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          price: v.price,
+        })),
+      ),
       addOns: [] as { id: string; name: string; price: number }[],
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -1477,9 +1483,10 @@ export class AdminService {
       data: {
         ...this.buildProductData(input),
         variants: {
-          create: input.variants
-            .filter((v) => v.name.trim())
-            .map((v) => ({ name: v.name.trim(), price: v.price })),
+          create: sanitizeProductVariants(input.variants).map((v) => ({
+            name: v.name,
+            price: v.price,
+          })),
         },
       },
       include: productInclude,
@@ -1503,9 +1510,10 @@ export class AdminService {
         data: {
           ...this.buildProductData(input),
           variants: {
-            create: input.variants
-              .filter((v) => v.name.trim())
-              .map((v) => ({ name: v.name.trim(), price: v.price })),
+            create: sanitizeProductVariants(input.variants).map((v) => ({
+              name: v.name,
+              price: v.price,
+            })),
           },
         },
         include: productInclude,

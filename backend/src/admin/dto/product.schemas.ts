@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  PRODUCT_SIZES,
+  sanitizeProductVariants,
+} from "../../common/product-sizes";
 
 export const PRODUCT_VALIDATION_MESSAGES = {
   name: "სახელი სავალდებულოა",
@@ -15,10 +19,12 @@ export const productAvailabilitySchema = z.enum([
   "OUT_OF_STOCK",
 ]);
 
+export const productSizeSchema = z.enum(PRODUCT_SIZES);
+
 export const productVariantSchema = z.object({
   id: z.string().optional(),
-  name: z.string(),
-  price: z.number(),
+  name: productSizeSchema,
+  price: z.number().gt(0),
 });
 
 const discountPriceRefine = {
@@ -57,7 +63,11 @@ const productWriteBaseSchema = z.object({
       vegetarian: z.boolean(),
     })
     .optional(),
-  variants: z.array(productVariantSchema).default([]),
+  variants: z.preprocess(
+    (value) =>
+      sanitizeProductVariants(Array.isArray(value) ? value : []),
+    z.array(productVariantSchema).default([]),
+  ),
 });
 
 export const productWriteSchema = productWriteBaseSchema.refine(

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { sortVariantsBySize } from '../common/product-sizes';
 
 export type PublicRestaurant = {
   id: string;
@@ -339,11 +340,13 @@ export class ShopService {
             price: product.price,
             discountPrice: product.discountPrice,
             outOfStock: product.outOfStock,
-            variants: product.variants.map((variant) => ({
-              id: variant.id,
-              name: variant.name,
-              price: variant.price,
-            })),
+            variants: sortVariantsBySize(
+              product.variants.map((variant) => ({
+                id: variant.id,
+                name: variant.name,
+                price: variant.price,
+              })),
+            ),
           })),
       }))
       .filter((category) => category.products.length > 0);

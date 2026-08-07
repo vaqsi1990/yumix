@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRODUCT_SIZES, normalizeProductVariants } from "@/lib/product-sizes";
 
 export const PRODUCT_VALIDATION_MESSAGES = {
   name: "სახელი სავალდებულოა",
@@ -15,10 +16,12 @@ export const productAvailabilitySchema = z.enum([
   "OUT_OF_STOCK",
 ]);
 
+export const productSizeSchema = z.enum(PRODUCT_SIZES);
+
 export const productVariantSchema = z.object({
   id: z.string().optional(),
-  name: z.string(),
-  price: z.number(),
+  name: productSizeSchema,
+  price: z.number().gt(0),
 });
 
 export const priceInputSchema = z.preprocess(
@@ -103,7 +106,11 @@ export const productWriteSchema = z
         vegetarian: z.boolean(),
       })
       .optional(),
-    variants: z.array(productVariantSchema).default([]),
+    variants: z.preprocess(
+      (value) =>
+        normalizeProductVariants(Array.isArray(value) ? value : []),
+      z.array(productVariantSchema).default([]),
+    ),
   })
   .refine(discountPriceRefine.check, {
     message: discountPriceRefine.message,

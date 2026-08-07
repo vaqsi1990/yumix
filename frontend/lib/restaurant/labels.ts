@@ -211,6 +211,9 @@ export const KA = {
     description: "აღწერა",
     name: "სახელი",
     category: "კატეგორია",
+    variants: "ზომები (არასავალდებულო)",
+    variantsEmpty:
+      "ზომები არ არის მითითებული — სურვილისამებრ შეიყვანეთ ფასი S, M, L, XL ან XXL ზომებისთვის",
   },
   categories: {
     title: "პროდუქტის კატეგორიები",

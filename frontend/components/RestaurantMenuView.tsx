@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatGel } from "@/lib/admin/format";
+import { sortVariantsBySize } from "@/lib/product-sizes";
 import type {
   PublicMenuCategory,
   PublicMenuProduct,
@@ -59,9 +60,16 @@ function ProductCard({ product }: { product: PublicMenuProduct }) {
               </p>
             )}
             {product.variants.length > 0 && (
-              <p className="mt-1 text-[16px] text-neutral-400 md:text-[18px]">
-                {product.variants.length} ვარიანტი
-              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {sortVariantsBySize(product.variants).map((variant) => (
+                  <span
+                    key={variant.id}
+                    className="rounded-md border border-neutral-200 px-2 py-0.5 text-[14px] font-medium text-neutral-700 md:text-[16px]"
+                  >
+                    {variant.name} · {formatGel(variant.price)}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
           <div className="shrink-0 text-right">

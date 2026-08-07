@@ -12,6 +12,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { formatDateTime, formatGel } from "@/lib/admin/format";
+import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { AdminCategory, AdminProduct, AdminRestaurant } from "./types";
 import {
   AVAILABILITY_BADGE,
@@ -128,9 +129,9 @@ export default function ProductViewDrawer({
 
           {product.variants.length > 0 && (
             <div>
-              <h4 className="mb-2 text-[16px] md:text-[18px] font-medium">ვარიანტები</h4>
+              <h4 className="mb-2 text-[16px] md:text-[18px] font-medium">ზომები</h4>
               <ul className="space-y-1 text-[16px] md:text-[18px]">
-                {product.variants.map((v) => (
+                {sortVariantsBySize(product.variants).map((v) => (
                   <li key={v.id} className="flex justify-between">
                     <span>{v.name}</span>
                     <span className="font-medium">{formatGel(v.price)}</span>

@@ -9,6 +9,7 @@ import {
   AdminService,
   type ProductWriteInput,
 } from '../admin/admin.service';
+import { sortVariantsBySize } from '../common/product-sizes';
 import type { OrderStatus, Prisma } from '../generated/prisma/client';
 
 const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
@@ -865,11 +866,13 @@ export class RestaurantPanelService {
       isAvailable: row.isAvailable,
       isHidden: row.isHidden,
       outOfStock: row.outOfStock,
-      variants: row.variants.map((v) => ({
-        id: v.id,
-        name: v.name,
-        price: v.price,
-      })),
+      variants: sortVariantsBySize(
+        row.variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          price: v.price,
+        })),
+      ),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

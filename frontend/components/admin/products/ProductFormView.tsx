@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Lightbulb, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,6 @@ import type {
   AdminProduct,
   AdminRestaurant,
   ProductFormData,
-  ProductVariant,
 } from "./types";
 import { createEmptyProductForm, productToFormData } from "./types";
 import { getCategoriesForRestaurant } from "./helpers";
@@ -34,6 +33,8 @@ import {
 } from "./form-options";
 import { productFormSchema } from "@/lib/validation/admin";
 import { isSchemaValid, parseWithSchema } from "@/lib/validation/product";
+import { normalizeProductVariants } from "@/lib/product-sizes";
+import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
 
 type ProductFormViewProps = {
   product: AdminProduct | null;
@@ -46,10 +47,6 @@ type ProductFormViewProps = {
   onCancel: () => void;
   onCategoriesChange?: (categories: AdminCategory[]) => void;
 };
-
-function newVariant(): ProductVariant {
-  return { id: `new_${Date.now()}_${Math.random()}`, name: "", price: 0 };
-}
 
 export default function ProductFormView({
   product,
@@ -180,24 +177,11 @@ export default function ProductFormView({
 
   async function handleSave() {
     if (!validate()) return;
-    const apiError = await onSave(form);
+    const apiError = await onSave({
+      ...form,
+      variants: normalizeProductVariants(form.variants),
+    });
     if (apiError) setError(apiError);
-  }
-
-  function updateVariant(index: number, patch: Partial<ProductVariant>) {
-    setForm((f) => ({
-      ...f,
-      variants: f.variants.map((v, i) =>
-        i === index ? { ...v, ...patch } : v,
-      ),
-    }));
-  }
-
-  function removeVariant(index: number) {
-    setForm((f) => ({
-      ...f,
-      variants: f.variants.filter((_, i) => i !== index),
-    }));
   }
 
   const prepValue = form.preparationTime?.toString() ?? "";
@@ -498,62 +482,21 @@ export default function ProductFormView({
         </Card>
 
         <Card className="border-neutral-200 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-bold">ვარიანტები</CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                updateField("variants", [...form.variants, newVariant()])
-              }
-            >
-              <Plus className="size-4" />
-              დამატება
-            </Button>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-bold">
+              ზომები (არასავალდებულო)
+            </CardTitle>
+            <p className="text-[14px] text-muted-foreground md:text-[16px]">
+              S, M, L, XL, XXL — შეიყვანეთ ფასი მხოლოდ იმ ზომებისთვის, რომლებიც
+              გსურთ. ცარიელი დატოვება შეიძლება.
+            </p>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {form.variants.length === 0 ? (
-              <p className="text-[16px] md:text-[18px] text-muted-foreground">
-                ვარიანტები არ არის (მაგ: S, M, L ზომები)
-              </p>
-            ) : (
-              form.variants.map((variant, index) => (
-                <div
-                  key={variant.id}
-                  className="grid gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 sm:grid-cols-[1fr_120px_auto]"
-                >
-                  <Input
-                    placeholder="სახელი (მაგ: დიდი)"
-                    value={variant.name}
-                    onChange={(e) =>
-                      updateVariant(index, { name: e.target.value })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    placeholder="₾"
-                    value={variant.price || ""}
-                    onChange={(e) =>
-                      updateVariant(index, {
-                        price: Number(e.target.value) || 0,
-                      })
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeVariant(index)}
-                    aria-label="წაშლა"
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
-                </div>
-              ))
-            )}
+          <CardContent>
+            <ProductSizeVariantsEditor
+              value={form.variants}
+              onChange={(variants) => updateField("variants", variants)}
+              emptyHint="ზომები არ არის მითითებული — სურვილისამებრ შეიყვანეთ ფასი"
+            />
           </CardContent>
         </Card>
 
