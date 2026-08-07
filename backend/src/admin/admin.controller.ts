@@ -47,6 +47,27 @@ export class AdminController {
     return this.admin.getActiveOrders();
   }
 
+  @Get('orders/:id')
+  order(@Param('id') id: string) {
+    return this.admin.getOrder(id);
+  }
+
+  @Patch('orders/:id/assign-courier')
+  assignCourier(
+    @Param('id') id: string,
+    @Body() body: { courierId: string },
+  ) {
+    return this.admin.assignCourier(id, body.courierId);
+  }
+
+  @Patch('orders/:id/status')
+  updateOrderStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.admin.updateOrderStatus(id, body.status as never);
+  }
+
   @Get('product-categories')
   listProductCategories(@Query('restaurantId') restaurantId?: string) {
     return this.admin.listProductCategories(restaurantId);
@@ -89,6 +110,32 @@ export class AdminController {
   @Get('restaurants/:id/menu')
   getRestaurantMenu(@Param('id') id: string) {
     return this.admin.getRestaurantMenu(id);
+  }
+
+  @Get('restaurants/:id/addons')
+  listRestaurantAddons(@Param('id') id: string) {
+    return this.admin.listRestaurantAddons(id);
+  }
+
+  @Post('restaurants/:id/addons')
+  createRestaurantAddon(
+    @Param('id') id: string,
+    @Body() body: { name: string; price: number; category?: string },
+  ) {
+    return this.admin.createRestaurantAddon(id, body);
+  }
+
+  @Patch('addons/:id')
+  updateRestaurantAddon(
+    @Param('id') id: string,
+    @Body() body: { name?: string; price?: number; category?: string },
+  ) {
+    return this.admin.updateRestaurantAddon(id, body);
+  }
+
+  @Delete('addons/:id')
+  deleteRestaurantAddon(@Param('id') id: string) {
+    return this.admin.deleteRestaurantAddon(id);
   }
 
   @Post('restaurants')

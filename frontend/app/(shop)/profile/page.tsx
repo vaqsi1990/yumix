@@ -41,6 +41,13 @@ export default function ProfilePage() {
           <p className="mt-1 text-sm text-neutral-500">{user.phone}</p>
         )}
 
+        <Link
+          href="/orders"
+          className="mt-6 flex w-full items-center justify-center rounded-lg border border-neutral-200 py-3 text-sm font-medium text-neutral-900 transition hover:bg-neutral-50"
+        >
+          ჩემი შეკვეთები
+        </Link>
+
         <button
           type="button"
           onClick={() => void logout()}

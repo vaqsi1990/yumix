@@ -41,6 +41,7 @@ export type PublicMenuCategory = {
 export type RestaurantMenuResponse = {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
+  addOns?: { id: string; name: string; price: number; category?: "FOOD" | "DRINK" }[];
   fromDatabase: boolean;
 };
 

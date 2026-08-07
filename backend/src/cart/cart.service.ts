@@ -4,6 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { AddCartExtraDto, AddCartItemDto } from './dto/cart.schemas';
+import {
+  assertProductOrderable,
+  assertRestaurantOrderable,
+  cartItemSignature,
+  normalizeAddonInputs,
+  resolveProductUnitPrice,
+} from '../common/order.utils';
+import { ensureAddonCarrierProduct } from '../common/addon-carrier';
 
 @Injectable()
 export class CartService {
@@ -109,6 +118,17 @@ export class CartService {
     const cart = await this.getUserCart(userId);
     if (!cart) return { cart: null, totals: null };
 
+    const addOns = await this.prisma.productAddon.findMany({
+      where: { restaurantId: cart.restaurantId },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        category: true,
+      },
+    });
+
     let discount = 0;
     if (cart.coupon) {
       const base = this.calcCartTotals(cart.items, cart.restaurant.deliveryFee);
@@ -129,7 +149,7 @@ export class CartService {
       cart.restaurant.deliveryFee,
       discount,
     );
-    return { cart, totals };
+    return { cart: { ...cart, addOns }, totals };
   }
 
   async clearCart(userId: string) {
@@ -234,5 +254,222 @@ export class CartService {
       data: { couponId: null },
     });
     return { removed: true };
+  }
+
+  async addItem(userId: string, input: AddCartItemDto) {
+    const quantity = input.quantity ?? 1;
+    const addOnInputs = normalizeAddonInputs(input.addOns);
+
+    const product = await this.prisma.product.findUnique({
+      where: { id: input.productId },
+      include: {
+        restaurant: true,
+        variants: true,
+      },
+    });
+    if (!product) throw new NotFoundException('პროდუქტი ვერ მოიძებნა');
+
+    assertProductOrderable(product);
+    assertRestaurantOrderable(product.restaurant);
+
+    let variant: { id: string; price: number } | null = null;
+    if (input.variantId) {
+      const found = product.variants.find((v) => v.id === input.variantId);
+      if (!found) {
+        throw new BadRequestException('არჩეული ზომა არასწორია');
+      }
+      variant = found;
+    } else if (product.variants.length > 0) {
+      throw new BadRequestException('აირჩიე ზომა');
+    }
+
+    const addons = await this.prisma.productAddon.findMany({
+      where: {
+        id: { in: addOnInputs.map((a) => a.addonId) },
+        restaurantId: product.restaurantId,
+      },
+    });
+    if (addons.length !== addOnInputs.length) {
+      throw new BadRequestException('დამატება არასწორია');
+    }
+
+    const addonById = new Map(addons.map((a) => [a.id, a]));
+    const unitPrice = resolveProductUnitPrice(product, variant);
+
+    let cart = await this.getUserCart(userId);
+    if (cart && cart.restaurantId !== product.restaurantId) {
+      throw new BadRequestException(
+        'კალათაში სხვა რესტორნის პროდუქტებია. ჯერ გაასუფთავე კალათა.',
+      );
+    }
+
+    if (!cart) {
+      cart = await this.prisma.cart.create({
+        data: {
+          userId,
+          restaurantId: product.restaurantId,
+        },
+        include: {
+          restaurant: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              deliveryFee: true,
+              minimumOrder: true,
+              logo: true,
+            },
+          },
+          coupon: true,
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  price: true,
+                  discountPrice: true,
+                  isAvailable: true,
+                },
+              },
+              variant: { select: { id: true, name: true, price: true } },
+              addOns: {
+                include: { addon: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    const signature = cartItemSignature({
+      productId: product.id,
+      variantId: variant?.id ?? null,
+      addOns: addOnInputs,
+    });
+
+    const existing = cart.items.find((item) => {
+      const itemAddons = item.addOns.map((a) => ({
+        addonId: a.addonId,
+        quantity: a.quantity,
+      }));
+      return (
+        cartItemSignature({
+          productId: item.productId,
+          variantId: item.variantId,
+          addOns: itemAddons,
+        }) === signature
+      );
+    });
+
+    if (existing) {
+      const nextQty = existing.quantity + quantity;
+      if (nextQty > 99) {
+        throw new BadRequestException('მაქსიმუმ რაოდენობა 99');
+      }
+      await this.prisma.cartItem.update({
+        where: { id: existing.id },
+        data: { quantity: nextQty },
+      });
+    } else {
+      await this.prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          productId: product.id,
+          variantId: variant?.id ?? null,
+          quantity,
+          price: unitPrice,
+          addOns: {
+            create: addOnInputs.map((row) => ({
+              addonId: row.addonId,
+              quantity: row.quantity,
+              price: addonById.get(row.addonId)!.price,
+            })),
+          },
+        },
+      });
+    }
+
+    return this.getCart(userId);
+  }
+
+  async addExtraItem(userId: string, input: AddCartExtraDto) {
+    const quantity = input.quantity ?? 1;
+    const addon = await this.prisma.productAddon.findUnique({
+      where: { id: input.addonId },
+      include: { restaurant: true },
+    });
+    if (!addon) throw new NotFoundException('დამატება ვერ მოიძებნა');
+
+    assertRestaurantOrderable(addon.restaurant);
+
+    const cart = await this.getUserCart(userId);
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('ჯერ დაამატე მთავარი კერძი კალათაში');
+    }
+    if (cart.restaurantId !== addon.restaurantId) {
+      throw new BadRequestException(
+        'კალათაში სხვა რესტორნის პროდუქტებია. ჯერ გაასუფთავე კალათა.',
+      );
+    }
+
+    const carrier = await ensureAddonCarrierProduct(
+      this.prisma,
+      addon.restaurantId,
+    );
+    const addOnInputs = [{ addonId: addon.id, quantity }];
+
+    const signature = cartItemSignature({
+      productId: carrier.id,
+      variantId: null,
+      addOns: addOnInputs,
+    });
+
+    const existing = cart.items.find((item) => {
+      const itemAddons = item.addOns.map((a) => ({
+        addonId: a.addonId,
+        quantity: a.quantity,
+      }));
+      return (
+        cartItemSignature({
+          productId: item.productId,
+          variantId: item.variantId,
+          addOns: itemAddons,
+        }) === signature
+      );
+    });
+
+    if (existing) {
+      const nextQty = existing.quantity + quantity;
+      if (nextQty > 99) {
+        throw new BadRequestException('მაქსიმუმ რაოდენობა 99');
+      }
+      await this.prisma.cartItem.update({
+        where: { id: existing.id },
+        data: { quantity: nextQty },
+      });
+    } else {
+      await this.prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          productId: carrier.id,
+          variantId: null,
+          quantity,
+          price: 0,
+          addOns: {
+            create: [
+              {
+                addonId: addon.id,
+                quantity,
+                price: addon.price,
+              },
+            ],
+          },
+        },
+      });
+    }
+
+    return this.getCart(userId);
   }
 }

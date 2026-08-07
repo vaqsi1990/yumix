@@ -14,6 +14,12 @@ import {
   CurrentUser,
   type AuthUser,
 } from '../common/decorators/current-user.decorator';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import {
+  addCartExtraSchema,
+  addCartItemSchema,
+  updateCartItemSchema,
+} from './dto/cart.schemas';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
@@ -25,6 +31,25 @@ export class CartController {
     return this.cart.getCart(user.id);
   }
 
+  @Post('items')
+  addItem(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(addCartItemSchema)) body: unknown,
+  ) {
+    return this.cart.addItem(user.id, body as ReturnType<typeof addCartItemSchema.parse>);
+  }
+
+  @Post('extras')
+  addExtra(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(addCartExtraSchema)) body: unknown,
+  ) {
+    return this.cart.addExtraItem(
+      user.id,
+      body as ReturnType<typeof addCartExtraSchema.parse>,
+    );
+  }
+
   @Delete()
   clearCart(@CurrentUser() user: AuthUser) {
     return this.cart.clearCart(user.id);
@@ -34,9 +59,9 @@ export class CartController {
   updateItem(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: { quantity?: number },
+    @Body(new ZodValidationPipe(updateCartItemSchema)) body: { quantity: number },
   ) {
-    return this.cart.updateItemQuantity(user.id, id, Number(body.quantity));
+    return this.cart.updateItemQuantity(user.id, id, body.quantity);
   }
 
   @Delete('items/:id')

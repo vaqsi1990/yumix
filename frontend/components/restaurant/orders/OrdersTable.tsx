@@ -138,13 +138,8 @@ export default function OrdersTable({
                       </DropdownMenuItem>
                     )}
                     {order.status === "READY" && (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          onStatusChange(order.id, "PICKED_UP")
-                        }
-                      >
-                        <CheckCircle2 className="size-4" />
-                        {KA.markPickedUp}
+                      <DropdownMenuItem disabled className="text-neutral-400">
+                        კურიერის მოლოდინში
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>

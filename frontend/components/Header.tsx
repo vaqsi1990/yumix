@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import AuthNav from "@/components/AuthNav";
 import Logo from "@/components/Logo";
+import CartBadge from "@/components/shop/CartBadge";
 
 const navLinks = [
   { href: "/", label: "მთავარი" },
@@ -170,15 +171,7 @@ export default function Header() {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
-           
-            <Link
-              href="/cart"
-              aria-label="კალათა"
-              className="hidden rounded-md p-1.5 transition hover:bg-white/10 md:inline-flex"
-              onClick={() => setMenuOpen(false)}
-            >
-              <BasketIcon className="size-5" />
-            </Link>
+            <CartBadge onNavigate={() => setMenuOpen(false)} />
 
             <div className="hidden md:block">
               <AuthNav onNavigate={() => setMenuOpen(false)} />

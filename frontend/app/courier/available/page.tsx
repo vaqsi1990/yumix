@@ -1,4 +1,7 @@
 import PanelShell from "@/components/panels/PanelShell";
+import {
+  CourierAcceptButton,
+} from "@/components/courier/CourierOrderActions";
 import { serverApiFetch } from "@/lib/session";
 
 type AvailableOrder = {
@@ -46,6 +49,9 @@ export default async function CourierAvailablePage() {
               <p className="mt-2 font-semibold text-[#FF0050]">
                 ₾{order.total.toFixed(2)}
               </p>
+              <div className="mt-3">
+                <CourierAcceptButton orderId={order.id} />
+              </div>
             </article>
           ))
         )}

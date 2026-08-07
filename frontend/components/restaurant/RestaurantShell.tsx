@@ -20,6 +20,7 @@ export default function RestaurantShell({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState(shellData.pendingOrders);
 
   useEffect(() => {
     const stored = localStorage.getItem("restaurant-dark-mode");
@@ -28,6 +29,31 @@ export default function RestaurantShell({
       document.documentElement.classList.add("dark");
     }
   }, []);
+
+  useEffect(() => {
+    setPendingOrders(shellData.pendingOrders);
+  }, [shellData.pendingOrders]);
+
+  useEffect(() => {
+    if (!shellData.hasRestaurant) return;
+
+    async function pollPendingOrders() {
+      try {
+        const res = await fetch("/api/backend/restaurant/dashboard");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          stats?: { pendingOrders?: number };
+        };
+        setPendingOrders(data.stats?.pendingOrders ?? 0);
+      } catch {
+        // ignore polling errors
+      }
+    }
+
+    void pollPendingOrders();
+    const timer = setInterval(pollPendingOrders, 15000);
+    return () => clearInterval(timer);
+  }, [shellData.hasRestaurant]);
 
   function toggleDarkMode() {
     setDarkMode((prev) => {
@@ -50,7 +76,6 @@ export default function RestaurantShell({
   const restaurantLogo = shellData.restaurant.logo ?? "/yumix-logo.svg";
   const ownerName = `${shellData.owner.firstName} ${shellData.owner.lastName}`;
   const ownerAvatar = shellData.owner.avatar ?? "";
-  const pendingOrders = shellData.pendingOrders;
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden bg-background">

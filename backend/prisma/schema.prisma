@@ -58,6 +58,11 @@ enum VehicleType {
   CAR
 }
 
+enum AddonCategory {
+  FOOD
+  DRINK
+}
+
 model User {
   id            String    @id @default(cuid())
   firstName     String
@@ -229,11 +234,12 @@ model ProductVariant {
 }
 
 model ProductAddon {
-  id           String     @id @default(cuid())
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String
   name         String
   price        Float
+  category     AddonCategory @default(FOOD)
 
   orderAddons OrderAddon[]
   cartAddons  CartAddon[]

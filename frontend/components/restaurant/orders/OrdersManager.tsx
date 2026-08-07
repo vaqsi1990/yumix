@@ -31,23 +31,36 @@ export default function OrdersManager() {
   );
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
+  const loadOrders = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const res = await restaurantApi.orders();
       setOrders(res.orders);
     } catch (e) {
-      setError(
-        translateApiError(e instanceof Error ? e.message : KA.failedLoad),
-      );
+      if (!silent) {
+        setError(
+          translateApiError(e instanceof Error ? e.message : KA.failedLoad),
+        );
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    loadOrders();
+    void loadOrders();
+  }, [loadOrders]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void loadOrders(true);
+    }, 15000);
+    return () => clearInterval(timer);
   }, [loadOrders]);
 
   const filtered = useMemo(() => {

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import RestaurantMenuView from "@/components/RestaurantMenuView";
+import RestaurantMenuClient from "@/components/shop/RestaurantMenuClient";
 import { getRestaurantMenu } from "@/lib/restaurants";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +17,10 @@ export default async function RestaurantMenuPage({ params }: Props) {
   }
 
   return (
-    <RestaurantMenuView
+    <RestaurantMenuClient
       restaurant={data.restaurant}
       menu={data.menu}
+      addOns={data.addOns ?? []}
     />
   );
 }

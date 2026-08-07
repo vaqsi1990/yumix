@@ -179,7 +179,11 @@ export default function ProductFormView({
     if (!validate()) return;
     const apiError = await onSave({
       ...form,
-      variants: normalizeProductVariants(form.variants),
+      variants: normalizeProductVariants(form.variants).map((v) => ({
+        id: v.id ?? `new_${v.name}`,
+        name: v.name,
+        price: v.price,
+      })),
     });
     if (apiError) setError(apiError);
   }
@@ -494,7 +498,16 @@ export default function ProductFormView({
           <CardContent>
             <ProductSizeVariantsEditor
               value={form.variants}
-              onChange={(variants) => updateField("variants", variants)}
+              onChange={(variants) =>
+                updateField(
+                  "variants",
+                  variants.map((v) => ({
+                    id: v.id ?? `new_${v.name}`,
+                    name: v.name,
+                    price: v.price,
+                  })),
+                )
+              }
               emptyHint="ზომები არ არის მითითებული — სურვილისამებრ შეიყვანეთ ფასი"
             />
           </CardContent>

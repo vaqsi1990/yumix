@@ -65,6 +65,7 @@ export default async function CartPage() {
     if (data.cart) {
       cart = {
         ...data.cart,
+        addOns: data.cart.addOns ?? [],
         coupon: data.cart.coupon
           ? {
               id: data.cart.coupon.id,

@@ -7,6 +7,7 @@ import { CourierModule } from './courier/courier.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { ShopModule } from './shop/shop.module';
+import { OrdersModule } from './orders/orders.module';
 import { UploadModule } from './upload/upload.module';
 import { AppController } from './app.controller';
 
@@ -20,6 +21,7 @@ import { AppController } from './app.controller';
     ShopModule,
     CourierModule,
     RestaurantModule,
+    OrdersModule,
     UploadModule,
   ],
   controllers: [AppController],

@@ -283,6 +283,7 @@ export class ShopService {
             },
           },
         },
+        addOns: { orderBy: [{ category: 'asc' }, { name: 'asc' }] },
       },
     });
 
@@ -354,6 +355,12 @@ export class ShopService {
     return {
       restaurant: publicRestaurant,
       menu,
+      addOns: restaurant.addOns.map((addon) => ({
+        id: addon.id,
+        name: addon.name,
+        price: addon.price,
+        category: addon.category,
+      })),
       fromDatabase: true,
     };
   }

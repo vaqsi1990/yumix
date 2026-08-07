@@ -40,6 +40,7 @@ import {
   ownerFullName,
 } from "./utils";
 import RestaurantMenuPanel from "./RestaurantMenuPanel";
+import RestaurantAddonsPanel from "./RestaurantAddonsPanel";
 import RestaurantOrdersPanel from "./RestaurantOrdersPanel";
 import RestaurantSettingsPanel from "./RestaurantSettingsPanel";
 
@@ -269,12 +270,13 @@ export default function RestaurantDetailView({
           </Card>
         </TabsContent>
 
-        <TabsContent value="menu">
+        <TabsContent value="menu" className="space-y-6">
           <RestaurantMenuPanel
             restaurantId={restaurant.id}
             restaurantName={restaurant.name}
             isApproved={restaurant.approvalStatus === "approved"}
           />
+          <RestaurantAddonsPanel restaurantId={restaurant.id} />
         </TabsContent>
 
         <TabsContent value="orders">

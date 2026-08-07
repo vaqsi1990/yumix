@@ -21,7 +21,13 @@ function StarIcon({ className }: { className?: string }) {
   );
 }
 
-function ProductCard({ product }: { product: PublicMenuProduct }) {
+function ProductCard({
+  product,
+  onSelect,
+}: {
+  product: PublicMenuProduct;
+  onSelect?: (product: PublicMenuProduct) => void;
+}) {
   const displayPrice =
     product.discountPrice != null && product.discountPrice > 0
       ? product.discountPrice
@@ -88,6 +94,7 @@ function ProductCard({ product }: { product: PublicMenuProduct }) {
           <button
             type="button"
             disabled={unavailable}
+            onClick={() => onSelect?.(product)}
             className="rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] disabled:cursor-not-allowed disabled:bg-neutral-300 md:text-[18px]"
           >
             {unavailable ? "ამოწურული" : "კალათაში"}
@@ -98,7 +105,13 @@ function ProductCard({ product }: { product: PublicMenuProduct }) {
   );
 }
 
-function MenuCategorySection({ category }: { category: PublicMenuCategory }) {
+function MenuCategorySection({
+  category,
+  onProductClick,
+}: {
+  category: PublicMenuCategory;
+  onProductClick?: (product: PublicMenuProduct) => void;
+}) {
   return (
     <section id={`category-${category.id}`} className="scroll-mt-28">
       <h2 className="mb-4 text-center font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 md:text-[20px]">
@@ -107,7 +120,7 @@ function MenuCategorySection({ category }: { category: PublicMenuCategory }) {
       <ul className="grid w-full gap-4">
         {category.products.map((product) => (
           <li key={product.id}>
-            <ProductCard product={product} />
+            <ProductCard product={product} onSelect={onProductClick} />
           </li>
         ))}
       </ul>
@@ -121,9 +134,11 @@ const pageContainerClass =
 export default function RestaurantMenuView({
   restaurant,
   menu,
+  onProductClick,
 }: {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
+  onProductClick?: (product: PublicMenuProduct) => void;
 }) {
   return (
     <div className="pb-12">
@@ -242,7 +257,11 @@ export default function RestaurantMenuView({
             </div>
           ) : (
             menu.map((category) => (
-              <MenuCategorySection key={category.id} category={category} />
+              <MenuCategorySection
+                key={category.id}
+                category={category}
+                onProductClick={onProductClick}
+              />
             ))
           )}
         </div>

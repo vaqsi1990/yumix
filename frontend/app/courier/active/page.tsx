@@ -1,4 +1,5 @@
 import PanelShell from "@/components/panels/PanelShell";
+import { CourierStatusButtons } from "@/components/courier/CourierOrderActions";
 import { ORDER_STATUS_KA } from "@/lib/admin/labels";
 import { serverApiFetch } from "@/lib/session";
 import type { OrderStatus } from "@/lib/types";
@@ -8,8 +9,8 @@ type ActiveOrder = {
   orderNumber: string;
   status: OrderStatus;
   restaurant: { name: string };
-  address: { street: string };
-  user: { firstName: string; lastName: string; phone: string };
+  address: { street: string; city: string };
+  customer: { name: string; phone: string } | null;
 };
 
 export default async function CourierActivePage() {
@@ -45,12 +46,15 @@ export default async function CourierActivePage() {
                 </span>
               </div>
               <p className="mt-2 text-sm text-neutral-600">
-                {order.restaurant.name} → {order.address.street}
+                {order.restaurant.name} → {order.address.city},{" "}
+                {order.address.street}
               </p>
-              <p className="text-sm text-neutral-500">
-                კლიენტი: {order.user.firstName} {order.user.lastName} ·{" "}
-                {order.user.phone}
-              </p>
+              {order.customer && (
+                <p className="text-sm text-neutral-500">
+                  კლიენტი: {order.customer.name} · {order.customer.phone}
+                </p>
+              )}
+              <CourierStatusButtons orderId={order.id} status={order.status} />
             </article>
           ))
         )}

@@ -15,6 +15,7 @@ import { formatDateTime, formatGel } from "@/lib/admin/format";
 
 type OrderRow = {
   id: string;
+  orderNumber?: string;
   status: string;
   total: number;
   createdAt: string;
@@ -90,13 +91,14 @@ export default function RestaurantOrdersPanel({
               <TableHead>სტატუსი</TableHead>
               <TableHead>თანხა</TableHead>
               <TableHead>თარიღი</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-mono text-[16px] md:text-[18px]">
-                  {order.id.slice(0, 8)}...
+                  {order.orderNumber ?? `${order.id.slice(0, 8)}...`}
                 </TableCell>
                 <TableCell>
                   {order.user
@@ -107,6 +109,14 @@ export default function RestaurantOrdersPanel({
                 <TableCell>{formatGel(order.total)}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDateTime(order.createdAt)}
+                </TableCell>
+                <TableCell>
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    დეტალები
+                  </Link>
                 </TableCell>
               </TableRow>
             ))}

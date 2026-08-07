@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PanelShell from "@/components/panels/PanelShell";
 import { ORDER_STATUS_KA } from "@/lib/admin/labels";
 import { formatDateTime, formatGel } from "@/lib/admin/format";
@@ -45,12 +46,13 @@ export default async function AdminOrdersPage() {
               <th className="px-4 py-3 font-medium">{"\u10e1\u10e2\u10d0\u10e2\u10e3\u10e1\u10d8"}</th>
               <th className="px-4 py-3 font-medium">{"\u10d7\u10d0\u10dc\u10ee\u10d0"}</th>
               <th className="px-4 py-3 font-medium">{"\u10d7\u10d0\u10e0\u10d8\u10e6\u10d8"}</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
                   {"\u10e8\u10d4\u10d9\u10d5\u10d4\u10d7\u10d4\u10d1\u10d8 \u10ef\u10d4\u10e0 \u10d0\u10e0 \u10d0\u10e0\u10d8\u10e1"}
                 </td>
               </tr>
@@ -69,6 +71,14 @@ export default async function AdminOrdersPage() {
                   <td className="px-4 py-3">{formatGel(order.total)}</td>
                   <td className="px-4 py-3 text-neutral-500">
                     {formatDateTime(order.createdAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="font-medium text-[#FF0050] hover:underline"
+                    >
+                      დეტალები →
+                    </Link>
                   </td>
                 </tr>
               ))

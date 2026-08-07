@@ -23,7 +23,7 @@ const OWNER_ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   PENDING: ['ACCEPTED', 'PREPARING', 'CANCELLED'],
   ACCEPTED: ['PREPARING', 'CANCELLED'],
   PREPARING: ['READY', 'CANCELLED'],
-  READY: ['PICKED_UP', 'CANCELLED'],
+  READY: ['CANCELLED'],
 };
 
 const DAY_NAMES = [
@@ -659,27 +659,40 @@ export class RestaurantPanelService {
       );
     }
 
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status },
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            phone: true,
-            email: true,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.order.update({
+        where: { id: orderId },
+        data: { status },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true,
+            },
           },
-        },
-        address: true,
-        items: {
-          include: {
-            product: { select: { name: true } },
-            addOns: { include: { addon: { select: { name: true } } } },
+          address: true,
+          items: {
+            include: {
+              product: { select: { name: true } },
+              addOns: { include: { addon: { select: { name: true } } } },
+            },
           },
+          _count: { select: { items: true } },
         },
-        _count: { select: { items: true } },
-      },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: next.userId,
+          title: 'შეკვეთის სტატუსი',
+          message: `${next.orderNumber}: ${status}`,
+          type: 'ORDER_STATUS',
+        },
+      });
+
+      return next;
     });
 
     return { order: this.mapOrderDetail(updated) };

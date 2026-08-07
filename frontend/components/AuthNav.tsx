@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut, User } from "lucide-react";
+import { ChevronDown, LogOut, Package, User } from "lucide-react";
 import { useAuth } from "@/components/auth-context";
 import {
   DropdownMenu,
@@ -68,6 +68,18 @@ export default function AuthNav({ onNavigate }: AuthNavProps) {
             პროფილი
           </Link>
         </DropdownMenuItem>
+        {user.role === "USER" && (
+          <DropdownMenuItem asChild>
+            <Link
+              href="/orders"
+              onClick={onNavigate}
+              className="cursor-pointer"
+            >
+              <Package className="size-4" />
+              ჩემი შეკვეთები
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer text-red-600 focus:text-red-600"

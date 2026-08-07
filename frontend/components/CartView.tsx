@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import CartQuickExtras from "@/components/shop/CartQuickExtras";
+import { ADDON_CARRIER_PRODUCT_NAME } from "@/lib/addon-categories";
+import type { AddonCategory } from "@/lib/addon-categories";
 
 export type CartViewData = {
   id: string;
@@ -39,6 +42,12 @@ export type CartViewData = {
       addon: { id: string; name: string };
     }[];
   }[];
+  addOns?: {
+    id: string;
+    name: string;
+    price: number;
+    category?: AddonCategory;
+  }[];
 };
 
 type Totals = {
@@ -59,6 +68,16 @@ function itemLineTotal(item: CartViewData["items"][number]) {
     0,
   );
   return item.price * item.quantity + addOns;
+}
+
+function getItemTitle(item: CartViewData["items"][number]) {
+  if (
+    item.product.name === ADDON_CARRIER_PRODUCT_NAME &&
+    item.addOns.length > 0
+  ) {
+    return item.addOns.map((a) => a.addon.name).join(", ");
+  }
+  return item.product.name;
 }
 
 export default function CartView({
@@ -242,17 +261,23 @@ export default function CartView({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="truncate font-[family-name:var(--font-inter)] text-[16px] font-semibold text-neutral-900 md:text-[18px]">
-                      {item.product.name}
+                      {getItemTitle(item)}
                     </h3>
-                    {item.variant && (
+                    {item.product.name !== ADDON_CARRIER_PRODUCT_NAME &&
+                      item.variant && (
                       <p className="mt-0.5 text-sm text-neutral-500">
                         {item.variant.name}
                       </p>
                     )}
-                    {item.addOns.length > 0 && (
+                    {item.product.name !== ADDON_CARRIER_PRODUCT_NAME &&
+                      item.addOns.length > 0 && (
                       <p className="mt-0.5 text-sm text-neutral-400">
                         {item.addOns
-                          .map((a) => a.addon.name)
+                          .map((a) =>
+                            a.quantity > 1
+                              ? `${a.addon.name} ×${a.quantity}`
+                              : a.addon.name,
+                          )
                           .join(", ")}
                       </p>
                     )}
@@ -323,6 +348,10 @@ export default function CartView({
             </li>
           ))}
         </ul>
+
+        {cart.addOns && cart.addOns.length > 0 && (
+          <CartQuickExtras addOns={cart.addOns} />
+        )}
       </div>
 
       <aside className="h-fit rounded-2xl border border-neutral-200 bg-[#F5F5F5] p-5 lg:sticky lg:top-4">
@@ -407,15 +436,18 @@ export default function CartView({
           </p>
         )}
 
-        <button
-          type="button"
-          disabled={belowMinimum}
-          className="mt-5 w-full rounded-lg bg-[#FF0050] px-4 py-3 text-[16px] font-medium text-white transition hover:bg-[#e00048] disabled:cursor-not-allowed disabled:opacity-50 md:text-[18px]"
+        <Link
+          href="/checkout"
+          className={`mt-5 flex w-full items-center justify-center rounded-lg bg-[#FF0050] px-4 py-3 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px] ${
+            belowMinimum
+              ? "pointer-events-none cursor-not-allowed opacity-50"
+              : ""
+          }`}
         >
           შეკვეთის გაფორმება
-        </button>
+        </Link>
         <p className="mt-2 text-center text-xs text-neutral-400">
-          Checkout მალე დაემატება
+          სავარაუდო მიწოდება: 35-55 წთ
         </p>
       </aside>
     </div>

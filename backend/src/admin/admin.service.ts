@@ -11,6 +11,9 @@ import {
   sanitizeProductVariants,
   sortVariantsBySize,
 } from '../common/product-sizes';
+import { orderInclude } from '../common/order.utils';
+import { parseAddonCategory } from '../common/addon-categories';
+import type { OrderStatus } from '../generated/prisma/client';
 
 const ROLES = ['USER', 'COURIER', 'RESTAURANT_OWNER', 'ADMIN'] as const;
 type Role = (typeof ROLES)[number];
@@ -142,6 +145,169 @@ export class AdminService {
       },
     });
     return { orders };
+  }
+
+  async getOrder(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: orderInclude,
+    });
+    if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+    return { order };
+  }
+
+  async assignCourier(orderId: string, courierUserId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+
+    const courier = await this.prisma.user.findFirst({
+      where: { id: courierUserId, role: 'COURIER', isActive: true },
+    });
+    if (!courier) throw new BadRequestException('კურიერი ვერ მოიძებნა');
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { courierId: courierUserId },
+      include: orderInclude,
+    });
+    return { order: updated };
+  }
+
+  async listRestaurantAddons(restaurantId: string) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { id: true },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+    }
+
+    const addOns = await this.prisma.productAddon.findMany({
+      where: { restaurantId },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+    return { addOns };
+  }
+
+  async createRestaurantAddon(
+    restaurantId: string,
+    input: { name: string; price: number; category?: string },
+  ) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { id: true },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+    }
+
+    const name = input.name?.trim();
+    if (!name) {
+      throw new BadRequestException('დამატების სახელი სავალდებულოა');
+    }
+    const price = Number(input.price);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new BadRequestException('ფასი არასწორია');
+    }
+
+    const addon = await this.prisma.productAddon.create({
+      data: {
+        restaurantId,
+        name,
+        price,
+        category: parseAddonCategory(input.category),
+      },
+    });
+    return { addon };
+  }
+
+  async updateRestaurantAddon(
+    id: string,
+    input: { name?: string; price?: number; category?: string },
+  ) {
+    const existing = await this.prisma.productAddon.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('დამატება ვერ მოიძებნა');
+    }
+
+    const name =
+      input.name !== undefined ? input.name.trim() : existing.name;
+    if (!name) {
+      throw new BadRequestException('დამატების სახელი სავალდებულოა');
+    }
+
+    let price = existing.price;
+    if (input.price !== undefined) {
+      price = Number(input.price);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new BadRequestException('ფასი არასწორია');
+      }
+    }
+
+    const addon = await this.prisma.productAddon.update({
+      where: { id },
+      data: {
+        name,
+        price,
+        ...(input.category !== undefined
+          ? { category: parseAddonCategory(input.category) }
+          : {}),
+      },
+    });
+    return { addon };
+  }
+
+  async deleteRestaurantAddon(id: string) {
+    const existing = await this.prisma.productAddon.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('დამატება ვერ მოიძებნა');
+    }
+
+    await this.prisma.productAddon.delete({ where: { id } });
+    return { ok: true };
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status,
+          ...(status === 'CANCELLED' ? { paymentStatus: 'FAILED' } : {}),
+          ...(status === 'DELIVERED' && order.paymentMethod === 'CASH'
+            ? { paymentStatus: 'PAID' }
+            : {}),
+        },
+        include: orderInclude,
+      });
+
+      if (status === 'DELIVERED' && order.paymentMethod === 'CASH') {
+        await tx.payment.updateMany({
+          where: { orderId },
+          data: { status: 'PAID', paidAt: new Date() },
+        });
+      }
+
+      await tx.notification.create({
+        data: {
+          userId: next.userId,
+          title: 'შეკვეთის სტატუსი',
+          message: `${next.orderNumber}: ${status}`,
+          type: 'ORDER_STATUS',
+        },
+      });
+
+      return next;
+    });
+
+    return { order: updated };
   }
 
   async getCouriers() {
