@@ -18,6 +18,7 @@ import CustomizationGroupPicker, {
 } from "@/components/shop/CustomizationGroupPicker";
 import { formatGel } from "@/lib/admin/format";
 import { addToCart } from "@/lib/shop-api";
+import { syncCartFromResponse, useCart } from "@/components/cart-context";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
 import { useAuth } from "@/components/auth-context";
@@ -37,6 +38,7 @@ export default function ProductDetailSheet({
 }: ProductDetailSheetProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { setItemCount } = useCart();
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedCustomizations, setSelectedCustomizations] = useState<
@@ -113,7 +115,7 @@ export default function ProductDetailSheet({
     setBusy(true);
     setError("");
     try {
-      await addToCart({
+      const result = await addToCart({
         productId: product.id,
         variantId,
         quantity,
@@ -124,6 +126,7 @@ export default function ProductDetailSheet({
           }),
         ),
       });
+      setItemCount(syncCartFromResponse(result));
       handleOpenChange(false);
       router.refresh();
     } catch (e) {

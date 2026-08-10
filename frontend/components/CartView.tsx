@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import CartQuickExtras from "@/components/shop/CartQuickExtras";
+import { syncCartFromResponse, useCart } from "@/components/cart-context";
 import { ADDON_CARRIER_PRODUCT_NAME } from "@/lib/addon-categories";
 import type { AddonCategory } from "@/lib/addon-categories";
 
@@ -102,6 +103,7 @@ export default function CartView({
   totals: Totals | null;
 }) {
   const router = useRouter();
+  const { setItemCount } = useCart();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [couponCode, setCouponCode] = useState("");
@@ -117,6 +119,8 @@ export default function CartView({
         body: JSON.stringify({ quantity }),
       });
       if (!res.ok) return;
+      const data = await res.json();
+      setItemCount(syncCartFromResponse(data));
       router.refresh();
     } finally {
       setBusyId(null);
@@ -130,6 +134,8 @@ export default function CartView({
         method: "DELETE",
       });
       if (!res.ok) return;
+      const data = await res.json();
+      setItemCount(syncCartFromResponse(data));
       router.refresh();
     } finally {
       setBusyId(null);
@@ -142,6 +148,7 @@ export default function CartView({
     try {
       const res = await fetch("/api/backend/cart", { method: "DELETE" });
       if (!res.ok) return;
+      setItemCount(0);
       router.refresh();
     } finally {
       setClearing(false);

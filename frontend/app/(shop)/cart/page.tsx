@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CartView, { type CartViewData } from "@/components/CartView";
+import CartCountSync from "@/components/shop/CartCountSync";
 import { getSession, serverApiFetch } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,7 @@ export default async function CartPage() {
         </Link>
       </div>
 
+      {totals ? <CartCountSync count={totals.itemCount} /> : null}
       <CartView cart={cart} totals={totals} />
     </section>
   );

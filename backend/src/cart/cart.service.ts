@@ -117,7 +117,7 @@ export class CartService {
       deliveryFee: fee,
       discount: appliedDiscount,
       total,
-      itemCount: items.reduce((n, item) => n + item.quantity, 0),
+      itemCount: items.length,
     };
   }
 
@@ -191,7 +191,8 @@ export class CartService {
       where: { id: itemId },
       data: { quantity },
     });
-    return { item: updated };
+    void updated;
+    return this.getCart(userId);
   }
 
   async removeItem(userId: string, itemId: string) {
@@ -208,7 +209,7 @@ export class CartService {
     if (remaining === 0) {
       await this.prisma.cart.delete({ where: { id: item.cartId } });
     }
-    return { deleted: true };
+    return this.getCart(userId);
   }
 
   async applyCoupon(userId: string, codeRaw: string) {

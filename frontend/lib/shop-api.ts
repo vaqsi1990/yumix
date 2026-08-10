@@ -69,9 +69,20 @@ export async function fetchCartSummary() {
   const res = await fetch("/api/backend/cart");
   if (!res.ok) return { itemCount: 0 };
   const data = (await res.json()) as {
-    totals: { itemCount: number } | null;
+    totals?: { itemCount?: number } | null;
+    cart?: { items?: { quantity: number }[] } | null;
   };
-  return { itemCount: data.totals?.itemCount ?? 0 };
+  return { itemCount: countCartLineItems(data) };
+}
+
+/** Unique cart lines (not total quantity). */
+export function countCartLineItems(data: {
+  totals?: { itemCount?: number } | null;
+  cart?: { items?: unknown[] | null } | null;
+}) {
+  const items = data.cart?.items ?? [];
+  if (items.length > 0) return items.length;
+  return data.totals?.itemCount ?? 0;
 }
 
 export async function fetchAddresses() {

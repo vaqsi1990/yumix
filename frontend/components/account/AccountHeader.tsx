@@ -128,7 +128,7 @@ export default function AccountHeader({ defaultAddress }: AccountHeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <CartBadge />
+          <CartBadge variant="light" />
 
           {user && (
             <DropdownMenu>
