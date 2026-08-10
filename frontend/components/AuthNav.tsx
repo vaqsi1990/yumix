@@ -71,7 +71,7 @@ export default function AuthNav({ onNavigate }: AuthNavProps) {
         {user.role === "USER" && (
           <DropdownMenuItem asChild>
             <Link
-              href="/orders"
+              href="/account/orders"
               onClick={onNavigate}
               className="cursor-pointer"
             >

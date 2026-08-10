@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -17,6 +19,7 @@ import { AddressesService } from './addresses.service';
 import {
   createAddressSchema,
   createOrderSchema,
+  updateAddressSchema,
 } from './dto/order.schemas';
 
 @Controller('orders')
@@ -47,6 +50,11 @@ export class OrdersController {
       body as ReturnType<typeof createOrderSchema.parse>,
     );
   }
+
+  @Post(':id/reorder')
+  reorder(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.orders.reorder(user.id, id);
+  }
 }
 
 @Controller('addresses')
@@ -68,5 +76,28 @@ export class AddressesController {
       user.id,
       body as ReturnType<typeof createAddressSchema.parse>,
     );
+  }
+
+  @Patch(':id/default')
+  setDefault(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.addresses.setDefault(user.id, id);
+  }
+
+  @Patch(':id')
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateAddressSchema)) body: unknown,
+  ) {
+    return this.addresses.update(
+      user.id,
+      id,
+      body as ReturnType<typeof updateAddressSchema.parse>,
+    );
+  }
+
+  @Delete(':id')
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.addresses.remove(user.id, id);
   }
 }

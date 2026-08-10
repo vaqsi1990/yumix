@@ -15,7 +15,7 @@ export function getPanelHref(role: string): string | null {
 
 export function getProfileHref(user: ApiUser | null): string {
   if (!user) return "/login";
-  return getPanelHref(user.role) ?? "/profile";
+  return getPanelHref(user.role) ?? "/account";
 }
 
 export function isProfileNavActive(
@@ -27,8 +27,8 @@ export function isProfileNavActive(
   }
 
   const href = getProfileHref(user);
-  if (href === "/profile") {
-    return pathname === "/profile";
+  if (href === "/account") {
+    return pathname === "/account" || pathname.startsWith("/account/");
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);

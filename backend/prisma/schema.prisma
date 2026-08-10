@@ -77,6 +77,7 @@ model User {
   isActive      Boolean   @default(true)
   emailVerified Boolean   @default(false)
   phoneVerified Boolean   @default(false)
+  preferences   Json?
 
   addresses     Address[]
   restaurants   Restaurant[]
@@ -84,6 +85,7 @@ model User {
   deliveries    Order[]              @relation("CourierOrders")
   reviews       Review[]
   favorites     FavoriteRestaurant[]
+  favoriteProducts FavoriteProduct[]
   notifications Notification[]
   cart          Cart?
   courier       Courier?
@@ -217,6 +219,7 @@ model Product {
   variants   ProductVariant[]
   orderItems OrderItem[]
   cartItems  CartItem[]
+  favorites  FavoriteProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -430,6 +433,18 @@ model FavoriteRestaurant {
   createdAt DateTime @default(now())
 
   @@unique([userId, restaurantId])
+}
+
+model FavoriteProduct {
+  id        String  @id @default(cuid())
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
 }
 
 model Notification {

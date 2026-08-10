@@ -1,23 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import FavoriteRestaurantButton from "@/components/shop/FavoriteRestaurantButton";
 import type { PublicRestaurant } from "@/lib/restaurants";
-
-function HeartIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-    </svg>
-  );
-}
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -49,13 +33,10 @@ export default function RestaurantCard({
           sizes="(max-width: 768px) 100vw, 300px"
           className="object-cover transition duration-300 group-hover:scale-[1.02]"
         />
-        <button
-          type="button"
-          aria-label="რჩეულებში დამატება"
-          className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-white drop-shadow transition hover:scale-105"
-        >
-          <HeartIcon className="size-6" />
-        </button>
+        <FavoriteRestaurantButton
+          restaurantId={restaurant.id}
+          className="absolute right-3 top-3"
+        />
         {!restaurant.isOpen && (
           <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white">
             დახურულია

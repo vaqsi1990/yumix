@@ -103,6 +103,8 @@ export class OrdersService {
         orderNumber: o.orderNumber,
         status: o.status,
         paymentStatus: o.paymentStatus,
+        paymentMethod: o.paymentMethod,
+        estimatedTime: o.estimatedTime,
         total: o.total,
         createdAt: o.createdAt.toISOString(),
         restaurant: o.restaurant,
@@ -110,6 +112,30 @@ export class OrdersService {
         previewItems: o.items,
       })),
     };
+  }
+
+  async reorder(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: {
+        items: { include: { addOns: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+
+    for (const item of order.items) {
+      await this.cartService.addItem(userId, {
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        addOns: item.addOns.map((a) => ({
+          addonId: a.addonId,
+          quantity: a.quantity,
+        })),
+      });
+    }
+
+    return this.cartService.getCart(userId);
   }
 
   async getForUser(userId: string, orderId: string) {

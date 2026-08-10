@@ -25,6 +25,8 @@ export type Address = {
   apartment: string | null;
   postalCode: string | null;
   deliveryNote: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   isDefault: boolean;
 };
 

@@ -22,6 +22,23 @@ export const createAddressSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+export const updateAddressSchema = z.object({
+  title: z.string().trim().min(1).optional(),
+  city: z.string().trim().min(1).optional(),
+  street: z.string().trim().min(1).optional(),
+  building: z.string().nullable().optional(),
+  entrance: z.string().nullable().optional(),
+  floor: z.string().nullable().optional(),
+  apartment: z.string().nullable().optional(),
+  postalCode: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  deliveryNote: z.string().nullable().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export type UpdateAddressDto = z.infer<typeof updateAddressSchema>;
+
 export const createOrderSchema = z.object({
   addressId: z.string().min(1, 'აირჩიე მისამართი'),
   paymentMethod: paymentMethodSchema,

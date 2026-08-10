@@ -128,7 +128,7 @@ export default function CheckoutView({
         paymentMethod,
         customerNote: customerNote.trim() || null,
       });
-      router.push(`/orders/${order.id}?success=1`);
+      router.push(`/account/orders/${order.id}?success=1`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "შეკვეთის გაფორმება ვერ მოხერხდა");

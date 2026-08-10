@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CreateAddressDto } from './dto/order.schemas';
+import type { CreateAddressDto, UpdateAddressDto } from './dto/order.schemas';
 
 @Injectable()
 export class AddressesService {
@@ -62,5 +62,92 @@ export class AddressesService {
     });
     if (!address) throw new NotFoundException('მისამართი ვერ მოიძებნა');
     return address;
+  }
+
+  async update(userId: string, addressId: string, input: UpdateAddressDto) {
+    await this.getOwned(userId, addressId);
+
+    if (input.isDefault) {
+      await this.prisma.address.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      });
+    }
+
+    const address = await this.prisma.address.update({
+      where: { id: addressId },
+      data: {
+        ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+        ...(input.city !== undefined ? { city: input.city.trim() } : {}),
+        ...(input.street !== undefined ? { street: input.street.trim() } : {}),
+        ...(input.building !== undefined
+          ? { building: input.building?.trim() || null }
+          : {}),
+        ...(input.entrance !== undefined
+          ? { entrance: input.entrance?.trim() || null }
+          : {}),
+        ...(input.floor !== undefined
+          ? { floor: input.floor?.trim() || null }
+          : {}),
+        ...(input.apartment !== undefined
+          ? { apartment: input.apartment?.trim() || null }
+          : {}),
+        ...(input.postalCode !== undefined
+          ? { postalCode: input.postalCode?.trim() || null }
+          : {}),
+        ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+        ...(input.longitude !== undefined
+          ? { longitude: input.longitude }
+          : {}),
+        ...(input.deliveryNote !== undefined
+          ? { deliveryNote: input.deliveryNote?.trim() || null }
+          : {}),
+        ...(input.isDefault !== undefined ? { isDefault: input.isDefault } : {}),
+      },
+    });
+
+    return { address };
+  }
+
+  async setDefault(userId: string, addressId: string) {
+    await this.getOwned(userId, addressId);
+    await this.prisma.address.updateMany({
+      where: { userId },
+      data: { isDefault: false },
+    });
+    const address = await this.prisma.address.update({
+      where: { id: addressId },
+      data: { isDefault: true },
+    });
+    return { address };
+  }
+
+  async remove(userId: string, addressId: string) {
+    const address = await this.getOwned(userId, addressId);
+    const orderCount = await this.prisma.order.count({
+      where: { addressId },
+    });
+    if (orderCount > 0) {
+      throw new BadRequestException(
+        'ამ მისამართზე შეკვეთებია — წაშლა შეუძლებელია',
+      );
+    }
+
+    await this.prisma.address.delete({ where: { id: addressId } });
+
+    if (address.isDefault) {
+      const next = await this.prisma.address.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (next) {
+        await this.prisma.address.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    return { deleted: true };
   }
 }
