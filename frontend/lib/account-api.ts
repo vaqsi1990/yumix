@@ -229,6 +229,15 @@ export async function fetchFavoriteRestaurants() {
   return res.json() as Promise<{ restaurants: RestaurantCard[] }>;
 }
 
+export async function fetchFavoritesSummary() {
+  const res = await fetch("/api/backend/account/favorites/summary");
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{
+    restaurantIds: string[];
+    productIds: string[];
+  }>;
+}
+
 export async function addFavoriteRestaurant(restaurantId: string) {
   const res = await fetch(
     `/api/backend/account/favorites/restaurants/${restaurantId}`,

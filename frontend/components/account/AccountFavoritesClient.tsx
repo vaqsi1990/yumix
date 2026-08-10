@@ -7,6 +7,7 @@ import { Heart, ShoppingBag, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
+import { useFavorites } from "@/components/favorites-context";
 import AccountEmptyState from "@/components/account/AccountEmptyState";
 import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { formatGel } from "@/lib/admin/format";
@@ -66,15 +67,18 @@ export default function AccountFavoritesClient({
   const [products, setProducts] = useState(initialProducts);
   const [selectedProduct, setSelectedProduct] = useState<FavoriteProduct | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const { refresh: refreshFavorites } = useFavorites();
 
   async function handleRemoveRestaurant(id: string) {
     await removeFavoriteRestaurant(id);
     setRestaurants((prev) => prev.filter((r) => r.id !== id));
+    await refreshFavorites();
   }
 
   async function handleRemoveProduct(id: string) {
     await removeFavoriteProduct(id);
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    await refreshFavorites();
   }
 
   function openProduct(product: FavoriteProduct) {

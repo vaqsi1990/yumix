@@ -267,7 +267,7 @@ export class AccountService {
   }
 
   async addFavoriteRestaurant(userId: string, restaurantId: string) {
-    const restaurant = await this.prisma.restaurant.findUnique({
+    const restaurant = await this.prisma.restaurant.findFirst({
       where: { id: restaurantId, isApproved: true },
     });
     if (!restaurant) {
@@ -287,6 +287,24 @@ export class AccountService {
       where: { userId, restaurantId },
     });
     return { removed: true };
+  }
+
+  async getFavoritesSummary(userId: string) {
+    const [restaurants, products] = await Promise.all([
+      this.prisma.favoriteRestaurant.findMany({
+        where: { userId },
+        select: { restaurantId: true },
+      }),
+      this.prisma.favoriteProduct.findMany({
+        where: { userId },
+        select: { productId: true },
+      }),
+    ]);
+
+    return {
+      restaurantIds: restaurants.map((row) => row.restaurantId),
+      productIds: products.map((row) => row.productId),
+    };
   }
 
   async listFavoriteProducts(userId: string) {

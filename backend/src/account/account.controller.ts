@@ -70,6 +70,11 @@ export class AccountController {
     return this.account.deleteAccount(user.id);
   }
 
+  @Get('favorites/summary')
+  favoritesSummary(@CurrentUser() user: AuthUser) {
+    return this.account.getFavoritesSummary(user.id);
+  }
+
   @Get('favorites/restaurants')
   favoriteRestaurants(@CurrentUser() user: AuthUser) {
     return this.account.listFavoriteRestaurants(user.id);

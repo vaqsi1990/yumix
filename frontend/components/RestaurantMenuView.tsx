@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import FavoriteRestaurantButton from "@/components/shop/FavoriteRestaurantButton";
 import { formatGel } from "@/lib/admin/format";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type {
@@ -152,6 +153,10 @@ export default function RestaurantMenuView({
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <FavoriteRestaurantButton
+          restaurantId={restaurant.id}
+          className="absolute right-4 top-4 sm:right-6"
+        />
         <div className={`absolute bottom-0 left-0 right-0 ${pageContainerClass} pb-5`}>
           <Link
             href="/restaurants"

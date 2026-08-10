@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { useAuth } from "@/components/auth-context";
-import {
-  addFavoriteRestaurant,
-  removeFavoriteRestaurant,
-} from "@/lib/account-api";
+import { useFavorites } from "@/components/favorites-context";
 import { cn } from "@/lib/utils";
 
 type FavoriteRestaurantButtonProps = {
@@ -19,10 +16,10 @@ export default function FavoriteRestaurantButton({
   className,
 }: FavoriteRestaurantButtonProps) {
   const { user } = useAuth();
-  const [active, setActive] = useState(false);
+  const { isRestaurantFavorite, toggleRestaurant, ready } = useFavorites();
   const [busy, setBusy] = useState(false);
 
-  if (!user || user.role !== "USER") return null;
+  const active = ready && isRestaurantFavorite(restaurantId);
 
   async function toggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -30,28 +27,23 @@ export default function FavoriteRestaurantButton({
     if (busy) return;
     setBusy(true);
     try {
-      if (active) {
-        await removeFavoriteRestaurant(restaurantId);
-        setActive(false);
-      } else {
-        await addFavoriteRestaurant(restaurantId);
-        setActive(true);
-      }
-    } catch {
-      // ignore
+      await toggleRestaurant(restaurantId);
     } finally {
       setBusy(false);
     }
   }
 
+  if (user && user.role !== "USER") return null;
+
   return (
     <button
       type="button"
       aria-label={active ? "რჩეულებიდან წაშლა" : "რჩეულებში დამატება"}
+      aria-pressed={active}
       disabled={busy}
       onClick={(e) => void toggle(e)}
       className={cn(
-        "relative z-20 rounded-full bg-black/30 p-1.5 text-white backdrop-blur transition hover:scale-105",
+        "relative z-20 rounded-full bg-black/30 p-1.5 text-white backdrop-blur transition hover:scale-105 disabled:opacity-60",
         className,
       )}
     >

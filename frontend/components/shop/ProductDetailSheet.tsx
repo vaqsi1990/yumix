@@ -11,6 +11,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import FavoriteProductButton from "@/components/shop/FavoriteProductButton";
 import CustomizationGroupPicker, {
   customizationSelectionTotal,
   validateCustomizationSelection,
@@ -137,8 +138,9 @@ export default function ProductDetailSheet({
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>{product.name}</SheetTitle>
+        <SheetHeader className="flex-row items-start justify-between gap-3 space-y-0">
+          <SheetTitle className="flex-1 pr-2">{product.name}</SheetTitle>
+          <FavoriteProductButton productId={product.id} className="shrink-0" />
         </SheetHeader>
 
         {product.image && (
