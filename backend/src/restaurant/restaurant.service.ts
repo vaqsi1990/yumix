@@ -392,6 +392,12 @@ export class RestaurantPanelService {
           include: {
             category: true,
             variants: { orderBy: { name: 'asc' } },
+            customizationGroups: {
+              orderBy: { sortOrder: 'asc' },
+              include: {
+                options: { orderBy: { sortOrder: 'asc' } },
+              },
+            },
           },
           orderBy: { name: 'asc' },
         },
@@ -519,6 +525,12 @@ export class RestaurantPanelService {
       include: {
         category: true,
         variants: { orderBy: { name: 'asc' } },
+        customizationGroups: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            options: { orderBy: { sortOrder: 'asc' } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -544,6 +556,7 @@ export class RestaurantPanelService {
       ...input,
       restaurantId: restaurant.id,
       variants: input.variants ?? [],
+      customizationGroups: input.customizationGroups ?? [],
     });
   }
 
@@ -562,6 +575,7 @@ export class RestaurantPanelService {
       ...input,
       restaurantId: restaurant.id,
       variants: input.variants ?? [],
+      customizationGroups: input.customizationGroups ?? [],
     });
   }
 
@@ -855,7 +869,11 @@ export class RestaurantPanelService {
 
   private mapProduct(
     row: Prisma.ProductGetPayload<{
-      include: { category: true; variants: true };
+      include: {
+        category: true;
+        variants: true;
+        customizationGroups: { include: { options: true } };
+      };
     }>,
   ) {
     let availability: ProductWriteInput['availability'] = 'AVAILABLE';
@@ -886,6 +904,22 @@ export class RestaurantPanelService {
           price: v.price,
         })),
       ),
+      customizationGroups: (row.customizationGroups ?? []).map((group) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        required: group.required,
+        minSelections: group.minSelections,
+        maxSelections: group.maxSelections,
+        sortOrder: group.sortOrder,
+        options: group.options.map((option) => ({
+          id: option.id,
+          name: option.name,
+          price: option.price,
+          sortOrder: option.sortOrder,
+          isAvailable: option.isAvailable,
+        })),
+      })),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

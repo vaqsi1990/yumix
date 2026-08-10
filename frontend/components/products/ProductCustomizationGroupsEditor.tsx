@@ -218,7 +218,7 @@ export default function ProductCustomizationGroupsEditor({
 
       <Button type="button" variant="outline" onClick={addGroup}>
         <Plus className="mr-1 size-4" />
-        კასტომიზაციის ჯგუფის დამატება
+        კოსტუმიზაციის დამატება
       </Button>
     </div>
   );

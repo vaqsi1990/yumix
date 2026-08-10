@@ -517,7 +517,7 @@ export default function ProductFormView({
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-bold">
-              კასტომიზაციის ჯგუფები
+              კოსტუმიზაციის ჯგუფები
             </CardTitle>
             <p className="text-[14px] text-muted-foreground md:text-[16px]">
               სოუსები, დამატებითი, სასმელები და სხვა — Wolt-ის მსგავსი არჩევანი

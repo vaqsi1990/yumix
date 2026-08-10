@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import ProductImageUpload from "@/components/restaurant/products/ProductImageUpload";
 import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
+import ProductCustomizationGroupsEditor from "@/components/products/ProductCustomizationGroupsEditor";
+import type { ProductCustomizationGroup } from "@/components/admin/products/types";
 import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
 import {
   normalizeProductVariants,
@@ -30,6 +32,7 @@ import {
   isSchemaValid,
   parseWithSchema,
   productDialogSchema,
+  restaurantProductWriteSchema,
 } from "@/lib/validation/product";
 import type {
   ProductAvailability,
@@ -54,6 +57,76 @@ function mapVariantsFromProduct(
   product?: RestaurantProduct | null,
 ): ProductSizeVariant[] {
   return normalizeProductVariants(product?.variants ?? []);
+}
+
+function mapCustomizationGroupsFromProduct(
+  product?: RestaurantProduct | null,
+): ProductCustomizationGroup[] {
+  return (product?.customizationGroups ?? []).map((group) => ({
+    id: group.id,
+    name: group.name,
+    description: group.description ?? "",
+    required: group.required,
+    minSelections: group.minSelections,
+    maxSelections: group.maxSelections,
+    sortOrder: group.sortOrder,
+    options: group.options.map((option) => ({
+      id: option.id,
+      name: option.name,
+      price: option.price,
+      sortOrder: option.sortOrder,
+      isAvailable: option.isAvailable,
+    })),
+  }));
+}
+
+function sanitizeCustomizationGroupsForSubmit(
+  groups: ProductCustomizationGroup[],
+): ProductCustomizationGroup[] {
+  return groups
+    .map((group, groupIndex) => {
+      const name = group.name.trim();
+      if (!name) return null;
+
+      const options = group.options
+        .map((option, optionIndex) => {
+          const optionName = option.name.trim();
+          if (!optionName) return null;
+          return {
+            ...(option.id ? { id: option.id } : {}),
+            name: optionName,
+            price: Math.max(0, Number(option.price) || 0),
+            sortOrder: option.sortOrder ?? optionIndex,
+            isAvailable: option.isAvailable !== false,
+          };
+        })
+        .filter(Boolean) as ProductCustomizationGroup["options"];
+
+      if (options.length === 0) return null;
+
+      const required = Boolean(group.required);
+      const minSelections = Math.max(
+        0,
+        Math.min(20, group.minSelections ?? (required ? 1 : 0)),
+      );
+      let maxSelections = Math.max(
+        1,
+        Math.min(20, group.maxSelections ?? 1),
+      );
+      if (maxSelections < minSelections) maxSelections = minSelections;
+
+      return {
+        ...(group.id ? { id: group.id } : {}),
+        name,
+        description: group.description?.trim() || null,
+        required,
+        minSelections,
+        maxSelections,
+        sortOrder: group.sortOrder ?? groupIndex,
+        options,
+      };
+    })
+    .filter(Boolean) as ProductCustomizationGroup[];
 }
 
 export default function ProductDialog({
@@ -86,6 +159,9 @@ export default function ProductDialog({
   const [variants, setVariants] = useState<ProductSizeVariant[]>(() =>
     mapVariantsFromProduct(product),
   );
+  const [customizationGroups, setCustomizationGroups] = useState<
+    ProductCustomizationGroup[]
+  >(() => mapCustomizationGroupsFromProduct(product));
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -113,6 +189,7 @@ export default function ProductDialog({
       );
       setAvailability(product?.availability ?? "AVAILABLE");
       setVariants(mapVariantsFromProduct(product));
+      setCustomizationGroups(mapCustomizationGroupsFromProduct(product));
     }
     onOpenChange(next);
   }
@@ -143,7 +220,7 @@ export default function ProductDialog({
       return;
     }
 
-    onSave({
+    const payload = {
       name: validation.data.name,
       description: validation.data.description ?? null,
       image: validation.data.image,
@@ -153,7 +230,18 @@ export default function ProductDialog({
       preparationTime: validation.data.preparationTime ?? null,
       availability: validation.data.availability,
       variants: normalizeProductVariants(variants),
-    });
+      customizationGroups: sanitizeCustomizationGroupsForSubmit(
+        customizationGroups,
+      ),
+    };
+
+    const writeValidation = parseWithSchema(restaurantProductWriteSchema, payload);
+    if (!writeValidation.success) {
+      setFormError(writeValidation.message);
+      return;
+    }
+
+    onSave(writeValidation.data);
     onOpenChange(false);
   }
 
@@ -170,7 +258,7 @@ export default function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -347,6 +435,21 @@ export default function ProductDialog({
                 onChange={setVariants}
                 emptyHint={KA.products.variantsEmpty}
                 numberInputClass={numberInputClass}
+              />
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
+              <div>
+                <Label className="text-sm font-semibold">
+                  {KA.products.customizationGroups}
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {KA.products.customizationGroupsHint}
+                </p>
+              </div>
+              <ProductCustomizationGroupsEditor
+                value={customizationGroups}
+                onChange={setCustomizationGroups}
               />
             </div>
           </div>
