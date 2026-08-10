@@ -78,48 +78,79 @@ export const productDialogSchema = productCoreSchema
     path: [...discountPriceRefine.path],
   });
 
-export const productWriteSchema = z
-  .object({
-    restaurantId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.restaurant),
-    categoryId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.category),
-    name: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.name),
-    image: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.image),
-    price: z.number().gt(0, PRODUCT_VALIDATION_MESSAGES.price),
-    description: z.string().nullable().optional(),
-    gallery: z.array(z.string()).optional(),
-    discountPrice: z.number().nullable().optional(),
-    calories: z.number().nullable().optional(),
-    preparationTime: z.number().nullable().optional(),
-    weight: z.number().nullable().optional(),
-    foodType: z.string().nullable().optional(),
-    spicinessLevel: z.string().nullable().optional(),
-    availability: productAvailabilitySchema,
-    allergens: z
-      .object({
-        gluten: z.boolean(),
-        milk: z.boolean(),
-        eggs: z.boolean(),
-        fish: z.boolean(),
-        nuts: z.boolean(),
-        soy: z.boolean(),
-        vegan: z.boolean(),
-        vegetarian: z.boolean(),
-      })
-      .optional(),
-    variants: z.preprocess(
-      (value) =>
-        normalizeProductVariants(Array.isArray(value) ? value : []),
-      z.array(productVariantSchema).default([]),
-    ),
-  })
+const productWriteBaseSchema = z.object({
+  restaurantId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.restaurant),
+  categoryId: z.string().min(1, PRODUCT_VALIDATION_MESSAGES.category),
+  name: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.name),
+  image: z.string().trim().min(1, PRODUCT_VALIDATION_MESSAGES.image),
+  price: z.number().gt(0, PRODUCT_VALIDATION_MESSAGES.price),
+  description: z.string().nullable().optional(),
+  gallery: z.array(z.string()).optional(),
+  discountPrice: z.number().nullable().optional(),
+  calories: z.number().nullable().optional(),
+  preparationTime: z.number().nullable().optional(),
+  weight: z.number().nullable().optional(),
+  foodType: z.string().nullable().optional(),
+  spicinessLevel: z.string().nullable().optional(),
+  availability: productAvailabilitySchema,
+  allergens: z
+    .object({
+      gluten: z.boolean(),
+      milk: z.boolean(),
+      eggs: z.boolean(),
+      fish: z.boolean(),
+      nuts: z.boolean(),
+      soy: z.boolean(),
+      vegan: z.boolean(),
+      vegetarian: z.boolean(),
+    })
+    .optional(),
+  variants: z.preprocess(
+    (value) =>
+      normalizeProductVariants(Array.isArray(value) ? value : []),
+    z.array(productVariantSchema).default([]),
+  ),
+  customizationGroups: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string().trim().min(1),
+        description: z.string().nullable().optional(),
+        required: z.boolean().optional(),
+        minSelections: z.number().int().min(0).max(20).optional(),
+        maxSelections: z.number().int().min(1).max(20).optional(),
+        sortOrder: z.number().int().optional(),
+        options: z
+          .array(
+            z.object({
+              id: z.string().optional(),
+              name: z.string().trim().min(1),
+              price: z.number().min(0),
+              sortOrder: z.number().int().optional(),
+              isAvailable: z.boolean().optional(),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .optional()
+    .default([]),
+});
+
+export const productWriteSchema = productWriteBaseSchema.refine(
+  discountPriceRefine.check,
+  {
+    message: discountPriceRefine.message,
+    path: [...discountPriceRefine.path],
+  },
+);
+
+export const restaurantProductWriteSchema = productWriteBaseSchema
+  .omit({ restaurantId: true })
   .refine(discountPriceRefine.check, {
     message: discountPriceRefine.message,
     path: [...discountPriceRefine.path],
   });
-
-export const restaurantProductWriteSchema = productWriteSchema.omit({
-  restaurantId: true,
-});
 
 export type ProductFormValues = z.infer<typeof productFormSchema>;
 export type ProductDialogValues = z.infer<typeof productDialogSchema>;
