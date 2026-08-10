@@ -56,9 +56,7 @@ export default function AccountHeader({ defaultAddress }: AccountHeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-        <Link href="/" className="shrink-0">
-          <Logo />
-        </Link>
+        <Logo className="shrink-0" />
 
         <Link
           href="/search"
