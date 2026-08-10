@@ -33,6 +33,12 @@ type OrderDetail = {
     product: { name: string };
     variant: { name: string } | null;
     addOns: Array<{ addon: { name: string }; quantity: number; price: number }>;
+    customizations?: Array<{
+      groupName: string;
+      optionName: string;
+      quantity: number;
+      price: number;
+    }>;
   }>;
 };
 
@@ -90,6 +96,13 @@ export default function OrderDetailClient({
                   {item.addOns.length > 0 && (
                     <p className="text-neutral-400">
                       {item.addOns.map((a) => a.addon.name).join(", ")}
+                    </p>
+                  )}
+                  {(item.customizations?.length ?? 0) > 0 && (
+                    <p className="text-neutral-400">
+                      {(item.customizations ?? [])
+                        .map((c) => `${c.groupName}: ${c.optionName}`)
+                        .join(" · ")}
                     </p>
                   )}
                 </div>

@@ -300,6 +300,15 @@ export class AccountService {
               select: { id: true, name: true, slug: true, logo: true },
             },
             variants: { orderBy: { name: 'asc' } },
+            customizationGroups: {
+              orderBy: { sortOrder: 'asc' },
+              include: {
+                options: {
+                  where: { isAvailable: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
+            },
           },
         },
       },
@@ -318,6 +327,22 @@ export class AccountService {
           outOfStock: row.product.outOfStock,
           restaurant: row.product.restaurant,
           variants: row.product.variants,
+          customizationGroups: row.product.customizationGroups
+            .filter((group) => group.options.length > 0)
+            .map((group) => ({
+              id: group.id,
+              name: group.name,
+              description: group.description,
+              required: group.required,
+              minSelections: group.minSelections,
+              maxSelections: group.maxSelections,
+              sortOrder: group.sortOrder,
+              options: group.options.map((option) => ({
+                id: option.id,
+                name: option.name,
+                price: option.price,
+              })),
+            })),
         })),
     };
   }

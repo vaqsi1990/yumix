@@ -58,6 +58,13 @@ export class OrdersService {
           price: a.price,
           addon: a.addon,
         })),
+        customizations: item.customizations.map((c) => ({
+          id: c.id,
+          quantity: c.quantity,
+          price: c.price,
+          groupName: c.groupName,
+          optionName: c.optionName,
+        })),
       })),
       payment: order.payment
         ? {
@@ -118,7 +125,7 @@ export class OrdersService {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
       include: {
-        items: { include: { addOns: true } },
+        items: { include: { addOns: true, customizations: true } },
       },
     });
     if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
@@ -131,6 +138,10 @@ export class OrdersService {
         addOns: item.addOns.map((a) => ({
           addonId: a.addonId,
           quantity: a.quantity,
+        })),
+        customizations: item.customizations.map((c) => ({
+          optionId: c.optionId,
+          quantity: c.quantity,
         })),
       });
     }
@@ -240,8 +251,13 @@ export class OrdersService {
                 (sum, a) => sum + a.price * a.quantity,
                 0,
               );
+              const customizationTotal = item.customizations.reduce(
+                (sum, c) => sum + c.price * c.quantity,
+                0,
+              );
+              const extrasTotal = addOnTotal + customizationTotal;
               const lineTotal =
-                item.price * item.quantity + addOnTotal * item.quantity;
+                item.price * item.quantity + extrasTotal * item.quantity;
               return {
                 productId: item.productId,
                 variantId: item.variantId,
@@ -253,6 +269,15 @@ export class OrdersService {
                     addonId: a.addonId,
                     quantity: a.quantity,
                     price: a.price,
+                  })),
+                },
+                customizations: {
+                  create: item.customizations.map((c) => ({
+                    optionId: c.optionId,
+                    groupName: c.option.group.name,
+                    optionName: c.option.name,
+                    quantity: c.quantity,
+                    price: c.price,
                   })),
                 },
               };

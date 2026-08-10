@@ -68,6 +68,31 @@ const productWriteBaseSchema = z.object({
       sanitizeProductVariants(Array.isArray(value) ? value : []),
     z.array(productVariantSchema).default([]),
   ),
+  customizationGroups: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string().trim().min(1),
+        description: z.string().nullable().optional(),
+        required: z.boolean().optional(),
+        minSelections: z.number().int().min(0).max(20).optional(),
+        maxSelections: z.number().int().min(1).max(20).optional(),
+        sortOrder: z.number().int().optional(),
+        options: z
+          .array(
+            z.object({
+              id: z.string().optional(),
+              name: z.string().trim().min(1),
+              price: z.number().min(0),
+              sortOrder: z.number().int().optional(),
+              isAvailable: z.boolean().optional(),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export const productWriteSchema = productWriteBaseSchema.refine(

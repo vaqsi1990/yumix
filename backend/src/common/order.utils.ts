@@ -98,12 +98,17 @@ export function cartItemSignature(input: {
   productId: string;
   variantId: string | null;
   addOns: { addonId: string; quantity: number }[];
+  customizations?: { optionId: string; quantity: number }[];
 }) {
   const addons = [...input.addOns]
     .sort((a, b) => a.addonId.localeCompare(b.addonId))
     .map((a) => addonKey(a.addonId, a.quantity))
     .join('|');
-  return `${input.productId}:${input.variantId ?? 'base'}:${addons}`;
+  const customizations = [...(input.customizations ?? [])]
+    .sort((a, b) => a.optionId.localeCompare(b.optionId))
+    .map((c) => `${c.optionId}:${c.quantity}`)
+    .join('|');
+  return `${input.productId}:${input.variantId ?? 'base'}:${addons}:${customizations}`;
 }
 
 export const orderInclude = {
@@ -149,6 +154,17 @@ export const orderInclude = {
       addOns: {
         include: {
           addon: { select: { id: true, name: true } },
+        },
+      },
+      customizations: {
+        include: {
+          option: {
+            select: {
+              id: true,
+              name: true,
+              group: { select: { id: true, name: true } },
+            },
+          },
         },
       },
     },

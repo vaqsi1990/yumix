@@ -29,6 +29,16 @@ export type PublicMenuProduct = {
   discountPrice: number | null;
   outOfStock: boolean;
   variants: { id: string; name: string; price: number }[];
+  customizationGroups?: {
+    id: string;
+    name: string;
+    description?: string | null;
+    required: boolean;
+    minSelections: number;
+    maxSelections: number;
+    sortOrder: number;
+    options: { id: string; name: string; price: number }[];
+  }[];
 };
 
 export type PublicMenuCategory = {

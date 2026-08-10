@@ -1,4 +1,5 @@
 import type { Address } from "@/lib/shop-api";
+import type { PublicMenuProduct } from "@/lib/restaurants";
 
 async function parseError(res: Response) {
   const data = (await res.json().catch(() => ({}))) as {
@@ -109,6 +110,7 @@ export type FavoriteProduct = {
   outOfStock: boolean;
   restaurant: { id: string; name: string; slug: string; logo: string | null };
   variants: Array<{ id: string; name: string; price: number }>;
+  customizationGroups?: PublicMenuProduct["customizationGroups"];
 };
 
 export async function fetchAccountDashboard() {

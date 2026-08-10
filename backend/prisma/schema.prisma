@@ -216,13 +216,44 @@ model Product {
   outOfStock      Boolean         @default(false)
   isAvailable     Boolean         @default(true)
 
-  variants   ProductVariant[]
-  orderItems OrderItem[]
-  cartItems  CartItem[]
-  favorites  FavoriteProduct[]
+  variants            ProductVariant[]
+  customizationGroups ProductCustomizationGroup[]
+  orderItems          OrderItem[]
+  cartItems           CartItem[]
+  favorites           FavoriteProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProductCustomizationGroup {
+  id            String   @id @default(cuid())
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId     String
+  name          String
+  description   String?
+  required      Boolean  @default(false)
+  minSelections Int      @default(0)
+  maxSelections Int      @default(1)
+  sortOrder     Int      @default(0)
+
+  options ProductCustomizationOption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductCustomizationOption {
+  id          String                    @id @default(cuid())
+  group       ProductCustomizationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String
+  name        String
+  price       Float                     @default(0)
+  sortOrder   Int                       @default(0)
+  isAvailable Boolean                   @default(true)
+
+  cartSelections  CartItemCustomization[]
+  orderSelections OrderItemCustomization[]
 }
 
 model ProductVariant {
@@ -273,7 +304,18 @@ model CartItem {
   quantity  Int
   price     Float
 
-  addOns CartAddon[]
+  addOns          CartAddon[]
+  customizations  CartItemCustomization[]
+}
+
+model CartItemCustomization {
+  id         String                     @id @default(cuid())
+  cartItem   CartItem                   @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  cartItemId String
+  option     ProductCustomizationOption @relation(fields: [optionId], references: [id])
+  optionId   String
+  quantity   Int                        @default(1)
+  price      Float
 }
 
 model CartAddon {
@@ -330,7 +372,20 @@ model OrderItem {
   price     Float
   total     Float
 
-  addOns OrderAddon[]
+  addOns          OrderAddon[]
+  customizations  OrderItemCustomization[]
+}
+
+model OrderItemCustomization {
+  id          String                     @id @default(cuid())
+  orderItem   OrderItem                  @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItemId String
+  option      ProductCustomizationOption @relation(fields: [optionId], references: [id])
+  optionId    String
+  groupName   String
+  optionName  String
+  quantity    Int                        @default(1)
+  price       Float
 }
 
 model OrderAddon {

@@ -36,6 +36,25 @@ export type ProductAddOn = {
   price: number;
 };
 
+export type ProductCustomizationOption = {
+  id?: string;
+  name: string;
+  price: number;
+  sortOrder?: number;
+  isAvailable?: boolean;
+};
+
+export type ProductCustomizationGroup = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  required?: boolean;
+  minSelections?: number;
+  maxSelections?: number;
+  sortOrder?: number;
+  options: ProductCustomizationOption[];
+};
+
 export type AdminRestaurant = {
   id: string;
   name: string;
@@ -73,6 +92,7 @@ export type AdminProduct = {
   allergens: ProductAllergens;
   variants: ProductVariant[];
   addOns: ProductAddOn[];
+  customizationGroups: ProductCustomizationGroup[];
   createdAt: string;
   updatedAt: string;
 };
@@ -167,6 +187,7 @@ export function createEmptyProductForm(
     allergens: { ...DEFAULT_ALLERGENS },
     variants: [],
     addOns: [],
+    customizationGroups: [],
   };
 }
 
@@ -177,6 +198,7 @@ export function productToFormData(product: AdminProduct): ProductFormData {
     ...rest,
     foodType: rest.foodType ?? null,
     spicinessLevel: rest.spicinessLevel ?? null,
+    customizationGroups: rest.customizationGroups ?? [],
   };
 }
 

@@ -12,6 +12,10 @@ import {
   normalizeAddonInputs,
   resolveProductUnitPrice,
 } from '../common/order.utils';
+import {
+  normalizeCustomizationInputs,
+  validateProductCustomizations,
+} from '../common/customization.utils';
 import { ensureAddonCarrierProduct } from '../common/addon-carrier';
 
 @Injectable()
@@ -64,6 +68,17 @@ export class CartService {
                 addon: { select: { id: true, name: true } },
               },
             },
+            customizations: {
+              include: {
+                option: {
+                  select: {
+                    id: true,
+                    name: true,
+                    group: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -75,6 +90,7 @@ export class CartService {
       quantity: number;
       price: number;
       addOns: { quantity: number; price: number }[];
+      customizations?: { quantity: number; price: number }[];
     }[],
     deliveryFee: number | null | undefined,
     discount = 0,
@@ -84,7 +100,11 @@ export class CartService {
         (a, addon) => a + addon.price * addon.quantity,
         0,
       );
-      return sum + item.price * item.quantity + addOnsTotal;
+      const customizationTotal = (item.customizations ?? []).reduce(
+        (c, row) => c + row.price * row.quantity,
+        0,
+      );
+      return sum + item.price * item.quantity + addOnsTotal + customizationTotal;
     }, 0);
 
     const fee = deliveryFee ?? 0;
@@ -259,12 +279,19 @@ export class CartService {
   async addItem(userId: string, input: AddCartItemDto) {
     const quantity = input.quantity ?? 1;
     const addOnInputs = normalizeAddonInputs(input.addOns);
+    const customizationInputs = normalizeCustomizationInputs(input.customizations);
 
     const product = await this.prisma.product.findUnique({
       where: { id: input.productId },
       include: {
         restaurant: true,
         variants: true,
+        customizationGroups: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            options: { orderBy: { sortOrder: 'asc' } },
+          },
+        },
       },
     });
     if (!product) throw new NotFoundException('პროდუქტი ვერ მოიძებნა');
@@ -291,6 +318,32 @@ export class CartService {
     });
     if (addons.length !== addOnInputs.length) {
       throw new BadRequestException('დამატება არასწორია');
+    }
+
+    const validatedCustomizations = validateProductCustomizations(
+      product.customizationGroups.map((group) => ({
+        id: group.id,
+        name: group.name,
+        required: group.required,
+        minSelections: group.minSelections,
+        maxSelections: group.maxSelections,
+        options: group.options.map((option) => ({
+          id: option.id,
+          isAvailable: option.isAvailable,
+        })),
+      })),
+      customizationInputs,
+    );
+
+    const optionById = new Map(
+      product.customizationGroups.flatMap((group) =>
+        group.options.map((option) => [option.id, { ...option, group }] as const),
+      ),
+    );
+    if (
+      validatedCustomizations.some((row) => !optionById.has(row.optionId))
+    ) {
+      throw new BadRequestException('არჩევანი არასწორია');
     }
 
     const addonById = new Map(addons.map((a) => [a.id, a]));
@@ -337,16 +390,32 @@ export class CartService {
               addOns: {
                 include: { addon: { select: { id: true, name: true } } },
               },
+              customizations: {
+                include: {
+                  option: {
+                    select: {
+                      id: true,
+                      name: true,
+                      group: { select: { id: true, name: true } },
+                    },
+                  },
+                },
+              },
             },
           },
         },
       });
     }
 
+    if (!cart) {
+      throw new BadRequestException('კალათის შექმნა ვერ მოხერხდა');
+    }
+
     const signature = cartItemSignature({
       productId: product.id,
       variantId: variant?.id ?? null,
       addOns: addOnInputs,
+      customizations: validatedCustomizations,
     });
 
     const existing = cart.items.find((item) => {
@@ -354,11 +423,16 @@ export class CartService {
         addonId: a.addonId,
         quantity: a.quantity,
       }));
+      const itemCustomizations = item.customizations.map((c) => ({
+        optionId: c.optionId,
+        quantity: c.quantity,
+      }));
       return (
         cartItemSignature({
           productId: item.productId,
           variantId: item.variantId,
           addOns: itemAddons,
+          customizations: itemCustomizations,
         }) === signature
       );
     });
@@ -385,6 +459,13 @@ export class CartService {
               addonId: row.addonId,
               quantity: row.quantity,
               price: addonById.get(row.addonId)!.price,
+            })),
+          },
+          customizations: {
+            create: validatedCustomizations.map((row) => ({
+              optionId: row.optionId,
+              quantity: row.quantity,
+              price: optionById.get(row.optionId)!.price,
             })),
           },
         },

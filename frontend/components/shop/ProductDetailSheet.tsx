@@ -11,16 +11,18 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import AddonPicker, { addonSelectionTotal } from "@/components/shop/AddonPicker";
+import CustomizationGroupPicker, {
+  customizationSelectionTotal,
+  validateCustomizationSelection,
+} from "@/components/shop/CustomizationGroupPicker";
 import { formatGel } from "@/lib/admin/format";
-import { addToCart, type PublicAddOn } from "@/lib/shop-api";
+import { addToCart } from "@/lib/shop-api";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
 import { useAuth } from "@/components/auth-context";
 
 type ProductDetailSheetProps = {
   product: PublicMenuProduct | null;
-  addOns: PublicAddOn[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   restaurantOpen: boolean;
@@ -28,7 +30,6 @@ type ProductDetailSheetProps = {
 
 export default function ProductDetailSheet({
   product,
-  addOns,
   open,
   onOpenChange,
   restaurantOpen,
@@ -37,9 +38,9 @@ export default function ProductDetailSheet({
   const { user } = useAuth();
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>(
-    {},
-  );
+  const [selectedCustomizations, setSelectedCustomizations] = useState<
+    Record<string, number>
+  >({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -47,6 +48,8 @@ export default function ProductDetailSheet({
     () => (product ? sortVariantsBySize(product.variants) : []),
     [product],
   );
+
+  const customizationGroups = product?.customizationGroups ?? [];
 
   const unitPrice = useMemo(() => {
     if (!product) return 0;
@@ -59,17 +62,17 @@ export default function ProductDetailSheet({
     return product.price;
   }, [product, variantId, variants]);
 
-  const addOnTotal = useMemo(
-    () => addonSelectionTotal(addOns, selectedAddons),
-    [selectedAddons, addOns],
+  const customizationTotal = useMemo(
+    () => customizationSelectionTotal(customizationGroups, selectedCustomizations),
+    [customizationGroups, selectedCustomizations],
   );
 
-  const lineTotal = (unitPrice + addOnTotal) * quantity;
+  const lineTotal = (unitPrice + customizationTotal) * quantity;
 
   function resetState() {
     setVariantId(null);
     setQuantity(1);
-    setSelectedAddons({});
+    setSelectedCustomizations({});
     setError("");
   }
 
@@ -97,6 +100,15 @@ export default function ProductDetailSheet({
       return;
     }
 
+    const customizationError = validateCustomizationSelection(
+      customizationGroups,
+      selectedCustomizations,
+    );
+    if (customizationError) {
+      setError(customizationError);
+      return;
+    }
+
     setBusy(true);
     setError("");
     try {
@@ -104,10 +116,12 @@ export default function ProductDetailSheet({
         productId: product.id,
         variantId,
         quantity,
-        addOns: Object.entries(selectedAddons).map(([addonId, qty]) => ({
-          addonId,
-          quantity: qty,
-        })),
+        customizations: Object.entries(selectedCustomizations).map(
+          ([optionId, qty]) => ({
+            optionId,
+            quantity: qty,
+          }),
+        ),
       });
       handleOpenChange(false);
       router.refresh();
@@ -146,29 +160,42 @@ export default function ProductDetailSheet({
         {variants.length > 0 && (
           <div className="mt-5 space-y-2">
             <p className="text-sm font-semibold">ზომა *</p>
-            <div className="flex flex-wrap gap-2">
-              {variants.map((variant) => (
-                <button
-                  key={variant.id}
-                  type="button"
-                  onClick={() => setVariantId(variant.id)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                    variantId === variant.id
-                      ? "border-[#FF0050] bg-[#FF0050]/10 text-[#FF0050]"
-                      : "border-neutral-200 hover:border-neutral-300"
-                  }`}
-                >
-                  {variant.name} · {formatGel(variant.price)}
-                </button>
-              ))}
+            <div className="space-y-2">
+              {variants.map((variant) => {
+                const selected = variantId === variant.id;
+                return (
+                  <label
+                    key={variant.id}
+                    className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-2.5 transition ${
+                      selected
+                        ? "border-[#FF0050] bg-[#FF0050]/5"
+                        : "border-neutral-200 hover:border-neutral-300"
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="product-size"
+                        checked={selected}
+                        onChange={() => setVariantId(variant.id)}
+                        className="size-4 accent-[#FF0050]"
+                      />
+                      <span className="text-sm font-medium">{variant.name}</span>
+                    </span>
+                    <span className="text-sm text-neutral-600">
+                      {formatGel(variant.price)}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}
 
-        <AddonPicker
-          addOns={addOns}
-          selected={selectedAddons}
-          onChange={setSelectedAddons}
+        <CustomizationGroupPicker
+          groups={customizationGroups}
+          selected={selectedCustomizations}
+          onChange={setSelectedCustomizations}
         />
 
         <div className="mt-5 flex items-center justify-between">

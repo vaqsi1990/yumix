@@ -12,6 +12,7 @@ export type AddCartItemPayload = {
   variantId?: string | null;
   quantity: number;
   addOns?: { addonId: string; quantity: number }[];
+  customizations?: { optionId: string; quantity: number }[];
 };
 
 export type Address = {

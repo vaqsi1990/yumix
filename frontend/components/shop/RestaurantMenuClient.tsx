@@ -8,18 +8,16 @@ import type {
   PublicMenuCategory,
   PublicRestaurantDetail,
 } from "@/lib/restaurants";
-import type { PublicAddOn } from "@/lib/shop-api";
 
 type RestaurantMenuClientProps = {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
-  addOns: PublicAddOn[];
+  addOns?: unknown;
 };
 
 export default function RestaurantMenuClient({
   restaurant,
   menu,
-  addOns,
 }: RestaurantMenuClientProps) {
   const [selectedProduct, setSelectedProduct] =
     useState<PublicMenuProduct | null>(null);
@@ -39,7 +37,6 @@ export default function RestaurantMenuClient({
       />
       <ProductDetailSheet
         product={selectedProduct}
-        addOns={addOns}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         restaurantOpen={restaurant.isOpen}

@@ -10,7 +10,7 @@ import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
 import AccountEmptyState from "@/components/account/AccountEmptyState";
 import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { formatGel } from "@/lib/admin/format";
-import type { PublicAddOn } from "@/lib/shop-api";
+import type { PublicMenuProduct } from "@/lib/restaurants";
 import {
   removeFavoriteProduct,
   removeFavoriteRestaurant,
@@ -58,11 +58,9 @@ function FavoriteRestaurantCard({
 export default function AccountFavoritesClient({
   restaurants: initialRestaurants,
   products: initialProducts,
-  restaurantAddOns,
 }: {
   restaurants: RestaurantCard[];
   products: FavoriteProduct[];
-  restaurantAddOns: Record<string, PublicAddOn[]>;
 }) {
   const [restaurants, setRestaurants] = useState(initialRestaurants);
   const [products, setProducts] = useState(initialProducts);
@@ -84,7 +82,7 @@ export default function AccountFavoritesClient({
     setSheetOpen(true);
   }
 
-  const sheetProduct = selectedProduct
+  const sheetProduct: PublicMenuProduct | null = selectedProduct
     ? {
         id: selectedProduct.id,
         name: selectedProduct.name,
@@ -94,12 +92,9 @@ export default function AccountFavoritesClient({
         discountPrice: selectedProduct.discountPrice,
         outOfStock: selectedProduct.outOfStock,
         variants: selectedProduct.variants,
+        customizationGroups: selectedProduct.customizationGroups ?? [],
       }
     : null;
-
-  const sheetAddOns = selectedProduct
-    ? restaurantAddOns[selectedProduct.restaurant.id] ?? []
-    : [];
 
   return (
     <div>
@@ -204,7 +199,6 @@ export default function AccountFavoritesClient({
 
       <ProductDetailSheet
         product={sheetProduct}
-        addOns={sheetAddOns}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         restaurantOpen

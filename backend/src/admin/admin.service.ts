@@ -11,6 +11,7 @@ import {
   sanitizeProductVariants,
   sortVariantsBySize,
 } from '../common/product-sizes';
+import { sanitizeCustomizationGroups } from '../common/customization.utils';
 import { orderInclude } from '../common/order.utils';
 import { parseAddonCategory } from '../common/addon-categories';
 import type { OrderStatus } from '../generated/prisma/client';
@@ -46,6 +47,12 @@ const DEFAULT_ALLERGENS = {
 
 const productInclude = {
   variants: { orderBy: { name: 'asc' as const } },
+  customizationGroups: {
+    orderBy: { sortOrder: 'asc' as const },
+    include: {
+      options: { orderBy: { sortOrder: 'asc' as const } },
+    },
+  },
   category: true,
   restaurant: { select: { id: true, name: true, slug: true } },
 } satisfies Prisma.ProductInclude;
@@ -74,6 +81,22 @@ export type ProductWriteInput = {
   availability: ProductAvailability;
   allergens?: typeof DEFAULT_ALLERGENS;
   variants: { id?: string; name: string; price: number }[];
+  customizationGroups?: {
+    id?: string;
+    name: string;
+    description?: string | null;
+    required?: boolean;
+    minSelections?: number;
+    maxSelections?: number;
+    sortOrder?: number;
+    options: {
+      id?: string;
+      name: string;
+      price: number;
+      sortOrder?: number;
+      isAvailable?: boolean;
+    }[];
+  }[];
 };
 
 @Injectable()
@@ -1562,6 +1585,22 @@ export class AdminService {
           price: v.price,
         })),
       ),
+      customizationGroups: row.customizationGroups.map((group) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        required: group.required,
+        minSelections: group.minSelections,
+        maxSelections: group.maxSelections,
+        sortOrder: group.sortOrder,
+        options: group.options.map((option) => ({
+          id: option.id,
+          name: option.name,
+          price: option.price,
+          sortOrder: option.sortOrder,
+          isAvailable: option.isAvailable,
+        })),
+      })),
       addOns: [] as { id: string; name: string; price: number }[],
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -1601,6 +1640,27 @@ export class AdminService {
       allergens: (input.allergens ?? DEFAULT_ALLERGENS) as Prisma.InputJsonValue,
       ...status,
     };
+  }
+
+  private buildCustomizationGroupsCreate(input: ProductWriteInput) {
+    return sanitizeCustomizationGroups(input.customizationGroups).map(
+      (group) => ({
+        name: group.name,
+        description: group.description,
+        required: group.required ?? false,
+        minSelections: group.minSelections ?? 0,
+        maxSelections: group.maxSelections ?? 1,
+        sortOrder: group.sortOrder ?? 0,
+        options: {
+          create: group.options.map((option) => ({
+            name: option.name,
+            price: option.price,
+            sortOrder: option.sortOrder ?? 0,
+            isAvailable: option.isAvailable !== false,
+          })),
+        },
+      }),
+    );
   }
 
   async listProducts() {
@@ -1654,6 +1714,9 @@ export class AdminService {
             price: v.price,
           })),
         },
+        customizationGroups: {
+          create: this.buildCustomizationGroupsCreate(input),
+        },
       },
       include: productInclude,
     });
@@ -1671,6 +1734,7 @@ export class AdminService {
 
     const product = await this.prisma.$transaction(async (tx) => {
       await tx.productVariant.deleteMany({ where: { productId: id } });
+      await tx.productCustomizationGroup.deleteMany({ where: { productId: id } });
       return tx.product.update({
         where: { id },
         data: {
@@ -1680,6 +1744,9 @@ export class AdminService {
               name: v.name,
               price: v.price,
             })),
+          },
+          customizationGroups: {
+            create: this.buildCustomizationGroupsCreate(input),
           },
         },
         include: productInclude,
@@ -1709,7 +1776,10 @@ export class AdminService {
   async duplicateProduct(id: string) {
     const source = await this.prisma.product.findUnique({
       where: { id },
-      include: { variants: true },
+      include: {
+        variants: true,
+        customizationGroups: { include: { options: true } },
+      },
     });
     if (!source) throw new NotFoundException('პროდუქტი არ მოიძებნა');
 
@@ -1736,6 +1806,24 @@ export class AdminService {
           create: source.variants.map((v) => ({
             name: v.name,
             price: v.price,
+          })),
+        },
+        customizationGroups: {
+          create: source.customizationGroups.map((group) => ({
+            name: group.name,
+            description: group.description,
+            required: group.required,
+            minSelections: group.minSelections,
+            maxSelections: group.maxSelections,
+            sortOrder: group.sortOrder,
+            options: {
+              create: group.options.map((option) => ({
+                name: option.name,
+                price: option.price,
+                sortOrder: option.sortOrder,
+                isAvailable: option.isAvailable,
+              })),
+            },
           })),
         },
       },

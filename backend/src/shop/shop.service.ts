@@ -279,6 +279,15 @@ export class ShopService {
               orderBy: { name: 'asc' },
               include: {
                 variants: { orderBy: { name: 'asc' } },
+                customizationGroups: {
+                  orderBy: { sortOrder: 'asc' },
+                  include: {
+                    options: {
+                      where: { isAvailable: true },
+                      orderBy: { sortOrder: 'asc' },
+                    },
+                  },
+                },
               },
             },
           },
@@ -348,6 +357,22 @@ export class ShopService {
                 price: variant.price,
               })),
             ),
+            customizationGroups: product.customizationGroups
+              .filter((group) => group.options.length > 0)
+              .map((group) => ({
+                id: group.id,
+                name: group.name,
+                description: group.description,
+                required: group.required,
+                minSelections: group.minSelections,
+                maxSelections: group.maxSelections,
+                sortOrder: group.sortOrder,
+                options: group.options.map((option) => ({
+                  id: option.id,
+                  name: option.name,
+                  price: option.price,
+                })),
+              })),
           })),
       }))
       .filter((category) => category.products.length > 0);

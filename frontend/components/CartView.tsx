@@ -41,6 +41,16 @@ export type CartViewData = {
       price: number;
       addon: { id: string; name: string };
     }[];
+    customizations?: {
+      id: string;
+      quantity: number;
+      price: number;
+      option: {
+        id: string;
+        name: string;
+        group: { id: string; name: string };
+      };
+    }[];
   }[];
   addOns?: {
     id: string;
@@ -67,7 +77,11 @@ function itemLineTotal(item: CartViewData["items"][number]) {
     (sum, addon) => sum + addon.price * addon.quantity,
     0,
   );
-  return item.price * item.quantity + addOns;
+  const customizations = (item.customizations ?? []).reduce(
+    (sum, row) => sum + row.price * row.quantity,
+    0,
+  );
+  return item.price * item.quantity + addOns + customizations;
 }
 
 function getItemTitle(item: CartViewData["items"][number]) {
@@ -279,6 +293,17 @@ export default function CartView({
                               : a.addon.name,
                           )
                           .join(", ")}
+                      </p>
+                    )}
+                    {item.product.name !== ADDON_CARRIER_PRODUCT_NAME &&
+                      (item.customizations?.length ?? 0) > 0 && (
+                      <p className="mt-0.5 text-sm text-neutral-400">
+                        {(item.customizations ?? [])
+                          .map((c) => {
+                            const label = `${c.option.group.name}: ${c.option.name}`;
+                            return c.quantity > 1 ? `${label} ×${c.quantity}` : label;
+                          })
+                          .join(" · ")}
                       </p>
                     )}
                     {!item.product.isAvailable && (

@@ -35,6 +35,7 @@ import { productFormSchema } from "@/lib/validation/admin";
 import { isSchemaValid, parseWithSchema } from "@/lib/validation/product";
 import { normalizeProductVariants } from "@/lib/product-sizes";
 import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
+import ProductCustomizationGroupsEditor from "@/components/products/ProductCustomizationGroupsEditor";
 
 type ProductFormViewProps = {
   product: AdminProduct | null;
@@ -509,6 +510,26 @@ export default function ProductFormView({
                 )
               }
               emptyHint="ზომები არ არის მითითებული — სურვილისამებრ შეიყვანეთ ფასი"
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-bold">
+              კასტომიზაციის ჯგუფები
+            </CardTitle>
+            <p className="text-[14px] text-muted-foreground md:text-[16px]">
+              სოუსები, დამატებითი, სასმელები და სხვა — Wolt-ის მსგავსი არჩევანი
+              პროდუქტის გვერდზე.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ProductCustomizationGroupsEditor
+              value={form.customizationGroups}
+              onChange={(customizationGroups) =>
+                updateField("customizationGroups", customizationGroups)
+              }
             />
           </CardContent>
         </Card>
