@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import type { CartViewData } from "@/components/CartView";
 import {
   createAddress,
   createOrder,
+  fetchCartQuote,
   type Address,
 } from "@/lib/shop-api";
 import dynamic from "next/dynamic";
@@ -38,7 +39,7 @@ type Totals = {
 
 export default function CheckoutView({
   cart,
-  totals,
+  totals: initialTotals,
   addresses: initialAddresses,
 }: {
   cart: CartViewData;
@@ -69,10 +70,32 @@ export default function CheckoutView({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [totals, setTotals] = useState(initialTotals);
+  const [outOfRange, setOutOfRange] = useState(false);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
   const belowMinimum =
     cart.restaurant.minimumOrder != null &&
     totals.subtotal < cart.restaurant.minimumOrder;
+
+  useEffect(() => {
+    if (!addressId) return;
+    let cancelled = false;
+    void fetchCartQuote(addressId)
+      .then((data) => {
+        if (cancelled) return;
+        if (data.totals) setTotals(data.totals);
+        setOutOfRange(Boolean(data.delivery?.outOfRange));
+        setDistanceKm(data.delivery?.distanceKm ?? null);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "მიწოდების გაანგარიშება ვერ მოხერხდა");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [addressId]);
 
   function mapCoords() {
     const latitude = Number(newAddress.latitude);
@@ -120,7 +143,7 @@ export default function CheckoutView({
   }
 
   async function handleSubmit() {
-    if (belowMinimum) return;
+    if (belowMinimum || outOfRange) return;
     if (!addressId && !showNewAddress) {
       setError("აირჩიე მიწოდების მისამართი");
       return;
@@ -323,7 +346,14 @@ export default function CheckoutView({
             <dd>{formatGel(totals.subtotal)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt>მიწოდება</dt>
+            <dt>
+              მიწოდება
+              {distanceKm != null ? (
+                <span className="ml-1 font-normal text-neutral-500">
+                  ({distanceKm.toFixed(1)} კმ)
+                </span>
+              ) : null}
+            </dt>
             <dd>
               {totals.deliveryFee === 0
                 ? "უფასო"
@@ -349,11 +379,16 @@ export default function CheckoutView({
             მინიმალური შეკვეთა: {formatGel(cart.restaurant.minimumOrder ?? 0)}
           </p>
         )}
+        {outOfRange && (
+          <p className="mt-3 text-sm text-[#FF0050]">
+            ეს მისამართი მიწოდების რადიუსს სცდება
+          </p>
+        )}
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         <Button
           type="button"
           className="mt-5 w-full bg-[#FF0050] hover:bg-[#e00048]"
-          disabled={busy || belowMinimum}
+          disabled={busy || belowMinimum || outOfRange}
           onClick={() => void handleSubmit()}
         >
           {busy ? "იგზავნება..." : "შეკვეთის გაფორმება"}

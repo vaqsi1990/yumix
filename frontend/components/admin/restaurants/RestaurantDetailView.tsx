@@ -226,6 +226,10 @@ export default function RestaurantDetailView({
                   value={formatGel(restaurant.deliveryFee)}
                 />
                 <Row
+                  label="ტარიფი კილომეტრზე"
+                  value={formatGel(restaurant.deliveryFeePerKm)}
+                />
+                <Row
                   label="მინ. შეკვეთა"
                   value={formatGel(restaurant.minimumOrder)}
                 />

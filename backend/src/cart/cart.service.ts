@@ -12,6 +12,7 @@ import {
   normalizeAddonInputs,
   resolveProductUnitPrice,
 } from '../common/order.utils';
+import { quoteDeliveryFee } from '../common/delivery.utils';
 import {
   normalizeCustomizationInputs,
   validateProductCustomizations,
@@ -22,19 +23,25 @@ import { ensureAddonCarrierProduct } from '../common/addon-carrier';
 export class CartService {
   constructor(private prisma: PrismaService) {}
 
+  private readonly restaurantSelect = {
+    id: true,
+    name: true,
+    slug: true,
+    deliveryFee: true,
+    deliveryFeePerKm: true,
+    deliveryRadius: true,
+    latitude: true,
+    longitude: true,
+    minimumOrder: true,
+    logo: true,
+  } as const;
+
   async getUserCart(userId: string) {
     return this.prisma.cart.findUnique({
       where: { userId },
       include: {
         restaurant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            deliveryFee: true,
-            minimumOrder: true,
-            logo: true,
-          },
+          select: this.restaurantSelect,
         },
         coupon: {
           select: {
@@ -124,6 +131,32 @@ export class CartService {
     };
   }
 
+  async getDeliveryDestination(
+    userId: string,
+    addressId?: string | null,
+  ) {
+    if (addressId) {
+      return this.prisma.address.findFirst({
+        where: { id: addressId, userId },
+        select: { latitude: true, longitude: true },
+      });
+    }
+    return this.prisma.address.findFirst({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+      select: { latitude: true, longitude: true },
+    });
+  }
+
+  async quoteDelivery(
+    userId: string,
+    restaurant: Parameters<typeof quoteDeliveryFee>[0],
+    addressId?: string | null,
+  ) {
+    const dest = await this.getDeliveryDestination(userId, addressId);
+    return quoteDeliveryFee(restaurant, dest);
+  }
+
   isCouponExpired(expiresAt: Date | null | undefined) {
     if (!expiresAt) return false;
     return expiresAt.getTime() < Date.now();
@@ -137,9 +170,9 @@ export class CartService {
     return Math.min(remainingBalance, orderAmountWithDelivery);
   }
 
-  async getCart(userId: string) {
+  async getCart(userId: string, addressId?: string | null) {
     const cart = await this.getUserCart(userId);
-    if (!cart) return { cart: null, totals: null };
+    if (!cart) return { cart: null, totals: null, delivery: null };
 
     const addOns = await this.prisma.productAddon.findMany({
       where: { restaurantId: cart.restaurantId },
@@ -152,9 +185,15 @@ export class CartService {
       },
     });
 
+    const delivery = await this.quoteDelivery(
+      userId,
+      cart.restaurant,
+      addressId,
+    );
+
     let discount = 0;
     if (cart.coupon) {
-      const base = this.calcCartTotals(cart.items, cart.restaurant.deliveryFee);
+      const base = this.calcCartTotals(cart.items, delivery.fee);
       const c = cart.coupon;
       const valid =
         c.isActive &&
@@ -167,12 +206,8 @@ export class CartService {
       }
     }
 
-    const totals = this.calcCartTotals(
-      cart.items,
-      cart.restaurant.deliveryFee,
-      discount,
-    );
-    return { cart: { ...cart, addOns }, totals };
+    const totals = this.calcCartTotals(cart.items, delivery.fee, discount);
+    return { cart: { ...cart, addOns }, totals, delivery };
   }
 
   async clearCart(userId: string) {
@@ -298,7 +333,8 @@ export class CartService {
       throw new BadRequestException('კალათა ცარიელია');
     }
 
-    const totals = this.calcCartTotals(cart.items, cart.restaurant.deliveryFee);
+    const delivery = await this.quoteDelivery(userId, cart.restaurant);
+    const totals = this.calcCartTotals(cart.items, delivery.fee);
     const coupon = await this.prisma.coupon.findUnique({
       where: { code: code.toUpperCase() },
     });
@@ -442,14 +478,7 @@ export class CartService {
         },
         include: {
           restaurant: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              deliveryFee: true,
-              minimumOrder: true,
-              logo: true,
-            },
+            select: this.restaurantSelect,
           },
           coupon: true,
           items: {

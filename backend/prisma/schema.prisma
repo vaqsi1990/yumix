@@ -144,11 +144,12 @@ model Restaurant {
   email          String? @unique
   city           String
   address        String
-  latitude       Float?
-  longitude      Float?
-  deliveryRadius Float?
-  minimumOrder   Float?
-  deliveryFee    Float?
+  latitude         Float?
+  longitude        Float?
+  deliveryRadius   Float?
+  minimumOrder     Float?
+  deliveryFee      Float?
+  deliveryFeePerKm Float?
   isOpen         Boolean @default(true)
   isApproved     Boolean @default(false)
 

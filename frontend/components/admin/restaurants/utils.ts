@@ -190,6 +190,7 @@ export type ApiRestaurantRow = {
   longitude: number | null;
   deliveryRadius: number | null;
   deliveryFee: number | null;
+  deliveryFeePerKm: number | null;
   minimumOrder: number | null;
   phone: string;
   email: string | null;
@@ -270,6 +271,7 @@ export function mapApiRestaurant(row: ApiRestaurantRow): AdminRestaurant {
     categories: row.categories?.map((c) => c.category.name) ?? [],
     deliveryRadius: row.deliveryRadius,
     deliveryFee: row.deliveryFee ?? 0,
+    deliveryFeePerKm: row.deliveryFeePerKm ?? 0,
     minimumOrder: row.minimumOrder ?? 0,
     estimatedDeliveryMinutes: 35,
     phone: row.phone,
@@ -346,6 +348,7 @@ export function restaurantToFormValues(
         ? String(restaurant.longitude)
         : "",
     deliveryFee: restaurant.deliveryFee,
+    deliveryFeePerKm: restaurant.deliveryFeePerKm,
     minimumOrder: restaurant.minimumOrder,
     deliveryRadius: restaurant.deliveryRadius ?? 5,
     estimatedDeliveryMinutes: restaurant.estimatedDeliveryMinutes,

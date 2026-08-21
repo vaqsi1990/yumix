@@ -6,6 +6,12 @@ import {
   tasteKeywordsForSlugs,
   tasteLabel,
 } from './food-taste';
+import {
+  formatDeliveryFeeLabel,
+  formatDistanceKm,
+  formatMoneyLabel,
+  haversineKm,
+} from '../common/delivery.utils';
 
 export type PublicRestaurant = {
   id: string;
@@ -95,32 +101,6 @@ export const DEMO_RESTAURANTS: PublicRestaurant[] = [
 export class ShopService {
   constructor(private prisma: PrismaService) {}
 
-  private formatFee(fee: number | null | undefined) {
-    if (fee == null) return '—';
-    if (fee === 0) return 'უფასო';
-    return `₾${fee.toFixed(2)}`;
-  }
-
-  private haversineKm(
-    lat1: number,
-    lng1: number,
-    lat2: number,
-    lng2: number,
-  ) {
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return 2 * 6371 * Math.asin(Math.sqrt(a));
-  }
-
-  private formatDistance(km: number) {
-    if (km < 1) return `${Math.round(km * 1000)} მ`;
-    return `${km.toFixed(1)} კმ`;
-  }
-
   private mapRestaurantRow(
     restaurant: {
       id: string;
@@ -129,6 +109,7 @@ export class ShopService {
       city: string;
       isOpen: boolean;
       deliveryFee: number | null;
+      deliveryFeePerKm?: number | null;
       coverImage: string | null;
       logo: string | null;
       categories: { category: { name: string } }[];
@@ -154,7 +135,10 @@ export class ShopService {
       rating: Number(rating.toFixed(1)),
       reviews: reviewCount,
       time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
-      deliveryFeeLabel: this.formatFee(restaurant.deliveryFee),
+      deliveryFeeLabel: formatDeliveryFeeLabel(
+        restaurant.deliveryFee,
+        restaurant.deliveryFeePerKm,
+      ),
       image: restaurant.coverImage || restaurant.logo || fallbackImage,
       logo: restaurant.logo || restaurant.coverImage || fallbackImage,
       city: restaurant.city,
@@ -325,7 +309,7 @@ export class ShopService {
         if (restaurant.latitude == null || restaurant.longitude == null) {
           return null;
         }
-        const distanceKm = this.haversineKm(
+        const distanceKm = haversineKm(
           lat,
           lng,
           restaurant.latitude,
@@ -336,7 +320,7 @@ export class ShopService {
         return {
           ...this.mapRestaurantRow(restaurant, index),
           distanceKm: Number(distanceKm.toFixed(2)),
-          distanceLabel: this.formatDistance(distanceKm),
+          distanceLabel: formatDistanceKm(distanceKm),
         };
       })
       .filter((row): row is NonNullable<typeof row> => row != null)
@@ -413,8 +397,11 @@ export class ShopService {
       rating: Number(rating.toFixed(1)),
       reviews: reviewCount,
       time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
-      deliveryFeeLabel: this.formatFee(restaurant.deliveryFee),
-      minimumOrderLabel: this.formatFee(restaurant.minimumOrder),
+      deliveryFeeLabel: formatDeliveryFeeLabel(
+        restaurant.deliveryFee,
+        restaurant.deliveryFeePerKm,
+      ),
+      minimumOrderLabel: formatMoneyLabel(restaurant.minimumOrder),
       image: restaurant.coverImage || restaurant.logo || fallbackImage,
       logo: restaurant.logo || restaurant.coverImage || fallbackImage,
       city: restaurant.city,
@@ -494,6 +481,7 @@ export class ShopService {
             city: true,
             isOpen: true,
             deliveryFee: true,
+            deliveryFeePerKm: true,
             coverImage: true,
             logo: true,
             categories: {

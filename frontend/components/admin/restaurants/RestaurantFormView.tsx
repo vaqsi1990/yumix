@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Building2,
   Clock,
   CreditCard,
   Globe,
@@ -36,7 +35,6 @@ import {
   type RestaurantFormValues,
 } from "./form-schema";
 import CategoryMultiSelect from "./form/CategoryMultiSelect";
-import DeliveryZonesEditor from "./form/DeliveryZonesEditor";
 import FormField from "./form/FormField";
 import FormSectionCard from "./form/FormSectionCard";
 import ImageUploadField from "./form/ImageUploadField";
@@ -470,18 +468,48 @@ export default function RestaurantFormView({
       </FormSectionCard>
 
       <FormSectionCard
-        title="ბიზნეს პარამეტრები"
-        description="მიწოდება, ფასები და დრო"
+        title="მიწოდება"
+        description="საფასურს, კილომეტრზე ტარიფს და რადიუსს მხოლოდ ადმინისტრატორი განსაზღვრავს"
         icon={<Truck className="size-4" />}
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="მიწოდების ფასი (₾)" htmlFor="deliveryFee">
+          <FormField
+            label="მიწოდების საფასური (₾)"
+            htmlFor="deliveryFee"
+            hint="ფიქსირებული საფასური, მანძილის მიუხედავად"
+          >
             <Input
               id="deliveryFee"
               type="number"
               min={0}
               step="0.5"
               {...register("deliveryFee", { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField
+            label="ტარიფი კილომეტრზე (₾)"
+            htmlFor="deliveryFeePerKm"
+            hint="ემატება საფასურს რეალური მანძილის მიხედვით"
+          >
+            <Input
+              id="deliveryFeePerKm"
+              type="number"
+              min={0}
+              step="0.1"
+              {...register("deliveryFeePerKm", { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField
+            label="მიწოდების რადიუსი (კმ)"
+            htmlFor="deliveryRadius"
+            hint="რამდენ კილომეტრში მიეწოდება მომხმარებელს"
+          >
+            <Input
+              id="deliveryRadius"
+              type="number"
+              min={0}
+              step="0.5"
+              {...register("deliveryRadius", { valueAsNumber: true })}
             />
           </FormField>
           <FormField label="მინ. შეკვეთა (₾)" htmlFor="minimumOrder">
@@ -491,15 +519,6 @@ export default function RestaurantFormView({
               min={0}
               step="1"
               {...register("minimumOrder", { valueAsNumber: true })}
-            />
-          </FormField>
-          <FormField label="რადიუსი (კმ)" htmlFor="deliveryRadius">
-            <Input
-              id="deliveryRadius"
-              type="number"
-              min={0}
-              step="0.5"
-              {...register("deliveryRadius", { valueAsNumber: true })}
             />
           </FormField>
           <FormField label="მიწოდების დრო (წთ)" htmlFor="estimatedDeliveryMinutes">
@@ -546,14 +565,6 @@ export default function RestaurantFormView({
         icon={<Clock className="size-4" />}
       >
         <WorkingHoursEditor />
-      </FormSectionCard>
-
-      <FormSectionCard
-        title="მიწოდების ზონები"
-        description="რამდენიმე ზონა სხვადასხვა ფასებით"
-        icon={<Building2 className="size-4" />}
-      >
-        <DeliveryZonesEditor />
       </FormSectionCard>
     </>
   );

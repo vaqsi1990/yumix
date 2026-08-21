@@ -14,6 +14,7 @@ import {
   orderInclude,
 } from '../common/order.utils';
 import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
+import { quoteDeliveryFee } from '../common/delivery.utils';
 import type { CreateOrderDto } from './dto/order.schemas';
 import type { PaymentMethod, PaymentStatus } from '../generated/prisma/client';
 import { AddressesService } from './addresses.service';
@@ -186,6 +187,18 @@ export class OrdersService {
 
     const address = await this.addresses.getOwned(userId, input.addressId);
 
+    const delivery = quoteDeliveryFee(restaurant, address);
+    if (delivery.outOfRange) {
+      const maxKm = restaurant.deliveryRadius;
+      throw new BadRequestException(
+        maxKm != null
+          ? `მიწოდება ამ მისამართზე არ ხდება (${maxKm} კმ რადიუსი)`
+          : 'მიწოდება ამ მისამართზე არ ხდება',
+      );
+    }
+
+    const deliveryFee = delivery.fee;
+
     let discount = totals.discount;
     let couponId: string | null = cart.couponId;
 
@@ -196,17 +209,16 @@ export class OrdersService {
         cart.coupon.remainingBalance > 0 &&
         (!cart.coupon.assignedToId || cart.coupon.assignedToId === userId) &&
         (cart.coupon.minimumOrder == null ||
-          totals.subtotal + totals.deliveryFee >= cart.coupon.minimumOrder);
+          totals.subtotal + deliveryFee >= cart.coupon.minimumOrder);
       if (!valid) {
         throw new BadRequestException('კუპონი აღარ არის ვალიდური');
       }
       discount = this.cartService.calcCouponDiscount(
         cart.coupon.remainingBalance,
-        totals.subtotal + totals.deliveryFee,
+        totals.subtotal + deliveryFee,
       );
     }
 
-    const deliveryFee = totals.deliveryFee;
     const subtotal = totals.subtotal;
     const total = Math.max(0, subtotal + deliveryFee - discount);
     const estimatedTime = estimateDeliveryMinutes(

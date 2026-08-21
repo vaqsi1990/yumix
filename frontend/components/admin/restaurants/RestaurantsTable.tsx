@@ -151,6 +151,9 @@ function RestaurantDetails({
         <DetailItem label="მიწ. საფასური">
           {formatGel(restaurant.deliveryFee)}
         </DetailItem>
+        <DetailItem label="კმ ტარიფი">
+          {formatGel(restaurant.deliveryFeePerKm)}
+        </DetailItem>
         <DetailItem label="მინ. შეკვეთა">
           {formatGel(restaurant.minimumOrder)}
         </DetailItem>

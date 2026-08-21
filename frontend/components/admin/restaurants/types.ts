@@ -63,6 +63,7 @@ export type AdminRestaurant = {
   categories: string[];
   deliveryRadius: number | null;
   deliveryFee: number;
+  deliveryFeePerKm: number;
   minimumOrder: number;
   estimatedDeliveryMinutes: number;
   phone: string;

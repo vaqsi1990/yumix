@@ -125,8 +125,13 @@ export class RestaurantPanelService {
       throw new BadRequestException('თქვენს ანგარიშს უკვე აქვს რესტორანი');
     }
 
+    const sellerBody = { ...body };
+    delete sellerBody.deliveryFee;
+    delete sellerBody.deliveryRadius;
+    delete sellerBody.deliveryFeePerKm;
+
     return this.admin.createRestaurant({
-      ...body,
+      ...sellerBody,
       ownerId: userId,
       approved: false,
       acceptingOrders: false,
@@ -777,10 +782,6 @@ export class RestaurantPanelService {
         : undefined;
     const minimumOrder =
       body.minimumOrder != null ? Number(body.minimumOrder) : undefined;
-    const deliveryFee =
-      body.deliveryFee != null ? Number(body.deliveryFee) : undefined;
-    const deliveryRadius =
-      body.deliveryRadius != null ? Number(body.deliveryRadius) : undefined;
     const isOpen =
       typeof body.isOpen === 'boolean' ? body.isOpen : undefined;
     const latitude =
@@ -812,8 +813,6 @@ export class RestaurantPanelService {
           ...(logo !== undefined ? { logo } : {}),
           ...(coverImage !== undefined ? { coverImage } : {}),
           ...(minimumOrder !== undefined ? { minimumOrder } : {}),
-          ...(deliveryFee !== undefined ? { deliveryFee } : {}),
-          ...(deliveryRadius !== undefined ? { deliveryRadius } : {}),
           ...(isOpen !== undefined ? { isOpen } : {}),
           ...(latitude !== undefined ? { latitude } : {}),
           ...(longitude !== undefined ? { longitude } : {}),
@@ -1073,6 +1072,7 @@ export class RestaurantPanelService {
       longitude: restaurant.longitude,
       minimumOrder: restaurant.minimumOrder ?? 0,
       deliveryFee: restaurant.deliveryFee ?? 0,
+      deliveryFeePerKm: restaurant.deliveryFeePerKm ?? 0,
       deliveryRadius: restaurant.deliveryRadius,
       isOpen: restaurant.isOpen,
       workingHours: DAY_NAMES.map((name, idx) => {

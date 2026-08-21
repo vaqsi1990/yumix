@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
@@ -27,8 +28,11 @@ export class CartController {
   constructor(private cart: CartService) {}
 
   @Get()
-  getCart(@CurrentUser() user: AuthUser) {
-    return this.cart.getCart(user.id);
+  getCart(
+    @CurrentUser() user: AuthUser,
+    @Query('addressId') addressId?: string,
+  ) {
+    return this.cart.getCart(user.id, addressId);
   }
 
   @Post('items')

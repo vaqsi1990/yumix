@@ -252,7 +252,7 @@ export const KA = {
   },
   settings: {
     title: "რესტორნის პარამეტრები",
-    subtitle: "მართეთ რესტორნის პროფილი, მიწოდება და სამუშაო საათები.",
+    subtitle: "მართეთ რესტორნის პროფილი, მინიმალური შეკვეთა და სამუშაო საათები.",
     general: "ზოგადი",
     delivery: "მიწოდება",
     hours: "სამუშაო საათები",
@@ -269,8 +269,11 @@ export const KA = {
     acceptingOrders: "შეკვეთების მიღება",
     acceptingOrdersDesc: "რესტორანი ღიაა თუ დაკეტილი",
     deliverySettings: "მიწოდების პარამეტრები",
+    deliveryAdminNote:
+      "მიწოდების საფასურს, კილომეტრზე ტარიფს და რადიუსს ადმინისტრატორი განსაზღვრავს.",
     minOrder: "მინ. შეკვეთა",
     deliveryFee: "მიწოდების საფასური",
+    deliveryFeePerKm: "ტარიფი კილომეტრზე",
     deliveryRadius: "მიწოდების რადიუსი (კმ)",
     workingHours: "სამუშაო საათები",
     noWorkingHours: "სამუშაო საათები არ არის მითითებული",

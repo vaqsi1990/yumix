@@ -112,8 +112,14 @@ export default function RestaurantSettingsForm() {
     e.preventDefault();
     if (!settings) return;
     try {
+      const {
+        deliveryFee: _deliveryFee,
+        deliveryFeePerKm: _deliveryFeePerKm,
+        deliveryRadius: _deliveryRadius,
+        ...ownerSettings
+      } = settings;
       const res = await restaurantApi.updateSettings({
-        ...settings,
+        ...ownerSettings,
         workingHours: withFullWeek(settings.workingHours),
       });
       setSettings({
@@ -296,6 +302,9 @@ export default function RestaurantSettingsForm() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  {KA.settings.deliveryAdminNote}
+                </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="min-order">{KA.settings.minOrder}</Label>
@@ -311,33 +320,27 @@ export default function RestaurantSettingsForm() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-fee">{KA.settings.deliveryFee}</Label>
+                    <Label>{KA.settings.deliveryFee}</Label>
                     <Input
-                      id="delivery-fee"
-                      type="number"
-                      min={0}
-                      step={0.5}
+                      readOnly
+                      disabled
                       value={settings.deliveryFee}
-                      onChange={(e) =>
-                        updateField("deliveryFee", Number(e.target.value))
-                      }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-radius">
-                      {KA.settings.deliveryRadius}
-                    </Label>
+                    <Label>{KA.settings.deliveryFeePerKm}</Label>
                     <Input
-                      id="delivery-radius"
-                      type="number"
-                      min={0}
-                      value={settings.deliveryRadius ?? ""}
-                      onChange={(e) =>
-                        updateField(
-                          "deliveryRadius",
-                          e.target.value ? Number(e.target.value) : null,
-                        )
-                      }
+                      readOnly
+                      disabled
+                      value={settings.deliveryFeePerKm}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{KA.settings.deliveryRadius}</Label>
+                    <Input
+                      readOnly
+                      disabled
+                      value={settings.deliveryRadius ?? "—"}
                     />
                   </div>
                 </div>

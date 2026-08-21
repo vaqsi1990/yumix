@@ -165,6 +165,7 @@ export type RestaurantSettings = {
   longitude: number | null;
   minimumOrder: number;
   deliveryFee: number;
+  deliveryFeePerKm: number;
   deliveryRadius: number | null;
   isOpen: boolean;
   workingHours: WorkingHour[];

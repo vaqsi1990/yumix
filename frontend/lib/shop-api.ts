@@ -75,6 +75,28 @@ export async function fetchCartSummary() {
   return { itemCount: countCartLineItems(data) };
 }
 
+export async function fetchCartQuote(addressId?: string) {
+  const params = addressId
+    ? `?addressId=${encodeURIComponent(addressId)}`
+    : "";
+  const res = await fetch(`/api/backend/cart${params}`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{
+    totals: {
+      subtotal: number;
+      deliveryFee: number;
+      discount: number;
+      total: number;
+      itemCount: number;
+    } | null;
+    delivery: {
+      fee: number;
+      distanceKm: number | null;
+      outOfRange: boolean;
+    } | null;
+  }>;
+}
+
 /** Unique cart lines (not total quantity). */
 export function countCartLineItems(data: {
   totals?: { itemCount?: number } | null;

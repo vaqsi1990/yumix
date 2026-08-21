@@ -490,6 +490,7 @@ export class AdminService {
     const latitude = this.parseOptionalFloat(body.latitude);
     const longitude = this.parseOptionalFloat(body.longitude);
     const deliveryFee = this.parseOptionalFloat(body.deliveryFee);
+    const deliveryFeePerKm = this.parseOptionalFloat(body.deliveryFeePerKm);
     const minimumOrder = this.parseOptionalFloat(body.minimumOrder);
     const deliveryRadius = this.parseOptionalFloat(body.deliveryRadius);
     const isOpen =
@@ -549,6 +550,7 @@ export class AdminService {
           deliveryRadius,
           minimumOrder,
           deliveryFee,
+          deliveryFeePerKm,
           isOpen,
           isApproved,
           categories: {
@@ -701,6 +703,7 @@ export class AdminService {
     const latitude = this.parseOptionalFloat(body.latitude);
     const longitude = this.parseOptionalFloat(body.longitude);
     const deliveryFee = this.parseOptionalFloat(body.deliveryFee);
+    const deliveryFeePerKm = this.parseOptionalFloat(body.deliveryFeePerKm);
     const minimumOrder = this.parseOptionalFloat(body.minimumOrder);
     const deliveryRadius = this.parseOptionalFloat(body.deliveryRadius);
     const isOpen =
@@ -766,6 +769,7 @@ export class AdminService {
           deliveryRadius,
           minimumOrder,
           deliveryFee,
+          deliveryFeePerKm,
           isOpen,
           isApproved,
           categories: {
