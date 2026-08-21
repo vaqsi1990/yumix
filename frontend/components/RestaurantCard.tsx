@@ -18,8 +18,12 @@ function StarIcon({ className }: { className?: string }) {
 
 export default function RestaurantCard({
   restaurant,
+  discountBadge,
+  offersHint,
 }: {
   restaurant: PublicRestaurant;
+  discountBadge?: string;
+  offersHint?: string;
 }) {
   const href = `/restaurants/${restaurant.slug}`;
 
@@ -37,11 +41,18 @@ export default function RestaurantCard({
           restaurantId={restaurant.id}
           className="absolute right-3 top-3"
         />
-        {!restaurant.isOpen && (
-          <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white">
-            დახურულია
-          </span>
-        )}
+        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          {discountBadge && (
+            <span className="rounded-md bg-[#FF0050] px-2 py-1 text-xs font-semibold text-white">
+              {discountBadge}
+            </span>
+          )}
+          {!restaurant.isOpen && (
+            <span className="rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white">
+              დახურულია
+            </span>
+          )}
+        </div>
         <div className="absolute -bottom-6 left-4 size-14 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm">
           <Image
             src={restaurant.logo}
@@ -67,7 +78,17 @@ export default function RestaurantCard({
           </div>
         </div>
 
-        <p className="mt-1 text-sm text-neutral-400">{restaurant.categories}</p>
+        <p className="mt-1 text-sm text-neutral-400">
+          {offersHint ? (
+            <>
+              <span className="font-medium text-[#FF0050]">{offersHint}</span>
+              <span className="mx-1.5 text-neutral-300">·</span>
+              <span>{restaurant.categories}</span>
+            </>
+          ) : (
+            restaurant.categories
+          )}
+        </p>
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <div className="text-sm text-neutral-500">

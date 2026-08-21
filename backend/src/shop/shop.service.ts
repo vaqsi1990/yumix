@@ -401,37 +401,88 @@ export class ShopService {
       },
       include: {
         restaurant: {
-          select: { slug: true, name: true, logo: true, coverImage: true },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            city: true,
+            isOpen: true,
+            deliveryFee: true,
+            coverImage: true,
+            logo: true,
+            categories: {
+              include: { category: { select: { name: true } } },
+            },
+            reviews: { select: { rating: true } },
+          },
         },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    const offers = products
-      .filter(
-        (product) =>
-          product.discountPrice != null &&
-          product.discountPrice > 0 &&
-          product.discountPrice < product.price,
-      )
-      .map((product) => ({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        image: product.image,
-        price: product.price,
-        discountPrice: product.discountPrice as number,
-        outOfStock: product.outOfStock,
-        restaurant: {
-          slug: product.restaurant.slug,
-          name: product.restaurant.name,
-          logo:
-            product.restaurant.logo ||
-            product.restaurant.coverImage ||
-            DEMO_IMAGES[0],
-        },
+    const discounted = products.filter(
+      (product) =>
+        product.discountPrice != null &&
+        product.discountPrice > 0 &&
+        product.discountPrice < product.price,
+    );
+
+    const offers = discounted.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      image: product.image,
+      price: product.price,
+      discountPrice: product.discountPrice as number,
+      outOfStock: product.outOfStock,
+      restaurant: {
+        slug: product.restaurant.slug,
+        name: product.restaurant.name,
+        logo:
+          product.restaurant.logo ||
+          product.restaurant.coverImage ||
+          DEMO_IMAGES[0],
+      },
+    }));
+
+    const byRestaurant = new Map<
+      string,
+      {
+        restaurant: (typeof discounted)[number]['restaurant'];
+        offersCount: number;
+        maxDiscountPercent: number;
+      }
+    >();
+
+    for (const product of discounted) {
+      const percent = Math.round(
+        ((product.price - (product.discountPrice as number)) / product.price) *
+          100,
+      );
+      const existing = byRestaurant.get(product.restaurant.id);
+      if (!existing) {
+        byRestaurant.set(product.restaurant.id, {
+          restaurant: product.restaurant,
+          offersCount: 1,
+          maxDiscountPercent: percent,
+        });
+      } else {
+        existing.offersCount += 1;
+        existing.maxDiscountPercent = Math.max(
+          existing.maxDiscountPercent,
+          percent,
+        );
+      }
+    }
+
+    const restaurants = [...byRestaurant.values()]
+      .sort((a, b) => b.maxDiscountPercent - a.maxDiscountPercent)
+      .map((row, index) => ({
+        ...this.mapRestaurantRow(row.restaurant, index),
+        offersCount: row.offersCount,
+        maxDiscountPercent: row.maxDiscountPercent,
       }));
 
-    return { offers, fromDatabase: true };
+    return { offers, restaurants, fromDatabase: true };
   }
 }

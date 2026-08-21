@@ -1,4 +1,5 @@
 import { serverApiFetch } from "@/lib/session";
+import type { PublicRestaurant } from "@/lib/restaurants";
 
 export type PublicOffer = {
   id: string;
@@ -15,16 +16,23 @@ export type PublicOffer = {
   };
 };
 
+export type OfferRestaurant = PublicRestaurant & {
+  offersCount: number;
+  maxDiscountPercent: number;
+};
+
 export async function getPublicOffers(): Promise<{
   offers: PublicOffer[];
+  restaurants: OfferRestaurant[];
   fromDatabase: boolean;
 }> {
   try {
     return await serverApiFetch<{
       offers: PublicOffer[];
+      restaurants: OfferRestaurant[];
       fromDatabase: boolean;
     }>("/shop/offers");
   } catch {
-    return { offers: [], fromDatabase: false };
+    return { offers: [], restaurants: [], fromDatabase: false };
   }
 }
