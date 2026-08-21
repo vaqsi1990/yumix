@@ -22,11 +22,17 @@ export default function RestaurantMenuClient({
   const [selectedProduct, setSelectedProduct] =
     useState<PublicMenuProduct | null>(null);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
+  const [initialQuantity, setInitialQuantity] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  function openProduct(product: PublicMenuProduct, variantId?: string) {
+  function openProduct(
+    product: PublicMenuProduct,
+    variantId?: string,
+    quantity?: number,
+  ) {
     setSelectedProduct(product);
     setInitialVariantId(variantId ?? null);
+    setInitialQuantity(quantity ?? 1);
     setSheetOpen(true);
   }
 
@@ -43,6 +49,7 @@ export default function RestaurantMenuClient({
         onOpenChange={setSheetOpen}
         restaurantOpen={restaurant.isOpen}
         initialVariantId={initialVariantId}
+        initialQuantity={initialQuantity}
       />
     </>
   );

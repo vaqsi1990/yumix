@@ -29,6 +29,7 @@ type ProductDetailSheetProps = {
   onOpenChange: (open: boolean) => void;
   restaurantOpen: boolean;
   initialVariantId?: string | null;
+  initialQuantity?: number;
 };
 
 export default function ProductDetailSheet({
@@ -37,6 +38,7 @@ export default function ProductDetailSheet({
   onOpenChange,
   restaurantOpen,
   initialVariantId = null,
+  initialQuantity = 1,
 }: ProductDetailSheetProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -58,10 +60,10 @@ export default function ProductDetailSheet({
     if (!open || !product) return;
     const nextVariants = sortVariantsBySize(product.variants);
     setVariantId(initialVariantId ?? nextVariants[0]?.id ?? null);
-    setQuantity(1);
+    setQuantity(Math.min(99, Math.max(1, initialQuantity)));
     setSelectedCustomizations({});
     setError("");
-  }, [open, product, initialVariantId]);
+  }, [open, product, initialVariantId, initialQuantity]);
 
   const customizationGroups = product?.customizationGroups ?? [];
 

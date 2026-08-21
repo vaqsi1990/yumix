@@ -126,6 +126,19 @@ function withItemVariant(
   };
 }
 
+function withItemQuantity(
+  cart: CartViewData,
+  itemId: string,
+  quantity: number,
+): CartViewData {
+  return {
+    ...cart,
+    items: cart.items.map((item) =>
+      item.id === itemId ? { ...item, quantity } : item,
+    ),
+  };
+}
+
 export default function CartView({
   cart,
   totals,
@@ -166,6 +179,11 @@ export default function CartView({
       const nextCart = withItemVariant(localCart, itemId, payload.variantId);
       setLocalCart(nextCart);
       if (localTotals) setLocalTotals(recalcTotals(nextCart, localTotals));
+    } else if (payload.quantity !== undefined && localCart) {
+      const nextCart = withItemQuantity(localCart, itemId, payload.quantity);
+      setLocalCart(nextCart);
+      if (localTotals) setLocalTotals(recalcTotals(nextCart, localTotals));
+      setBusyId(itemId);
     } else {
       setBusyId(itemId);
     }

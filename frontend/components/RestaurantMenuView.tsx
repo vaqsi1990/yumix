@@ -29,7 +29,11 @@ function MenuCategorySection({
 }: {
   category: PublicMenuCategory;
   restaurantOpen: boolean;
-  onProductClick?: (product: PublicMenuProduct, variantId?: string) => void;
+  onProductClick?: (
+    product: PublicMenuProduct,
+    variantId?: string,
+    quantity?: number,
+  ) => void;
 }) {
   return (
     <section id={`category-${category.id}`} className="scroll-mt-28">
@@ -61,7 +65,11 @@ export default function RestaurantMenuView({
 }: {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
-  onProductClick?: (product: PublicMenuProduct, variantId?: string) => void;
+  onProductClick?: (
+    product: PublicMenuProduct,
+    variantId?: string,
+    quantity?: number,
+  ) => void;
 }) {
   const menu = onlyStandardMenuCategories(rawMenu);
 

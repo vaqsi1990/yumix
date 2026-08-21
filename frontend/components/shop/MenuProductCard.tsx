@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Minus, Plus } from "lucide-react";
 import { formatGel } from "@/lib/admin/format";
 import { addToCart } from "@/lib/shop-api";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
@@ -23,7 +24,11 @@ export default function MenuProductCard({
 }: {
   product: PublicMenuProduct;
   restaurantOpen: boolean;
-  onOpenDetails?: (product: PublicMenuProduct, variantId?: string) => void;
+  onOpenDetails?: (
+    product: PublicMenuProduct,
+    variantId?: string,
+    quantity?: number,
+  ) => void;
 }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -35,6 +40,7 @@ export default function MenuProductCard({
   const [variantId, setVariantId] = useState<string | null>(
     variants[0]?.id ?? null,
   );
+  const [quantity, setQuantity] = useState(1);
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +50,8 @@ export default function MenuProductCard({
     product.discountPrice != null && product.discountPrice > 0
       ? product.discountPrice
       : product.price;
-  const displayPrice = selectedVariant?.price ?? basePrice;
+  const unitPrice = selectedVariant?.price ?? basePrice;
+  const lineTotal = unitPrice * quantity;
   const hasDiscount =
     !selectedVariant &&
     product.discountPrice != null &&
@@ -69,7 +76,7 @@ export default function MenuProductCard({
       return;
     }
     if (needsCustomization(product)) {
-      onOpenDetails?.(product, variantId ?? undefined);
+      onOpenDetails?.(product, variantId ?? undefined, quantity);
       return;
     }
 
@@ -78,7 +85,7 @@ export default function MenuProductCard({
       const result = await addToCart({
         productId: product.id,
         variantId,
-        quantity: 1,
+        quantity,
       });
       setItemCount(syncCartFromResponse(result));
       setAdded(true);
@@ -161,22 +168,56 @@ export default function MenuProductCard({
           </div>
           <div className="shrink-0 text-right">
             <p className="font-[family-name:var(--font-inter)] text-[16px] font-bold tabular-nums text-neutral-900 md:text-[18px]">
-              {formatGel(displayPrice)}
+              {formatGel(lineTotal)}
             </p>
+            {quantity > 1 && (
+              <p className="text-[14px] text-neutral-500 md:text-[16px]">
+                {formatGel(unitPrice)} × {quantity}
+              </p>
+            )}
             {hasDiscount && (
               <p className="text-[16px] text-neutral-400 line-through md:text-[18px]">
-                {formatGel(product.price)}
+                {formatGel(product.price * quantity)}
               </p>
             )}
           </div>
         </div>
 
-        <div className="mt-auto flex items-center justify-end gap-3 pt-3">
+        <div className="mt-auto flex flex-wrap items-center justify-end gap-3 pt-3">
           {error ? (
             <p className="min-w-0 flex-1 text-right text-[14px] text-[#FF0050]">
               {error}
             </p>
           ) : null}
+          <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-white">
+            <button
+              type="button"
+              className="px-2.5 py-2 text-neutral-600 transition hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={unavailable || busy || quantity <= 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuantity((q) => Math.max(1, q - 1));
+              }}
+              aria-label="რაოდენობის შემცირება"
+            >
+              <Minus className="size-4" />
+            </button>
+            <span className="min-w-8 text-center font-[family-name:var(--font-inter)] text-[16px] font-medium tabular-nums text-neutral-900 md:text-[18px]">
+              {quantity}
+            </span>
+            <button
+              type="button"
+              className="px-2.5 py-2 text-neutral-600 transition hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={unavailable || busy || quantity >= 99}
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuantity((q) => Math.min(99, q + 1));
+              }}
+              aria-label="რაოდენობის გაზრდა"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
           <button
             type="button"
             disabled={unavailable || busy}
