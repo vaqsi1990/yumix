@@ -73,3 +73,11 @@ export function SettingsIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function FavoriteFoodIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M12 21s-6.5-4.35-9-8.5C1.5 9.5 3.5 6 7 6c1.9 0 3.2 1 5 3 1.8-2 3.1-3 5-3 3.5 0 5.5 3.5 4 6.5-2.5 4.15-9 8.5-9 8.5Z" />
+    </svg>
+  );
+}

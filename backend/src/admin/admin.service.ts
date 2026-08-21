@@ -1831,4 +1831,108 @@ export class AdminService {
     });
     return { product: this.mapProduct(product) };
   }
+
+  async listFavoriteFoods() {
+    const items = await this.prisma.homeFavoriteFood.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    return { items };
+  }
+
+  async createFavoriteFood(body: {
+    slug: string;
+    label: string;
+    image: string;
+    isActive?: boolean;
+  }) {
+    const slug = body.slug.trim();
+    const existing = await this.prisma.homeFavoriteFood.findUnique({
+      where: { slug },
+    });
+    if (existing) {
+      throw new ConflictException('ეს კატეგორია უკვე დამატებულია');
+    }
+
+    const max = await this.prisma.homeFavoriteFood.aggregate({
+      _max: { sortOrder: true },
+    });
+
+    const item = await this.prisma.homeFavoriteFood.create({
+      data: {
+        slug,
+        label: body.label.trim(),
+        image: body.image.trim(),
+        isActive: body.isActive ?? true,
+        sortOrder: (max._max.sortOrder ?? -1) + 1,
+      },
+    });
+    return { item };
+  }
+
+  async updateFavoriteFood(
+    id: string,
+    body: {
+      slug?: string;
+      label?: string;
+      image?: string;
+      isActive?: boolean;
+    },
+  ) {
+    const current = await this.prisma.homeFavoriteFood.findUnique({
+      where: { id },
+    });
+    if (!current) throw new NotFoundException('ჩანაწერი ვერ მოიძებნა');
+
+    if (body.slug && body.slug.trim() !== current.slug) {
+      const clash = await this.prisma.homeFavoriteFood.findUnique({
+        where: { slug: body.slug.trim() },
+      });
+      if (clash) {
+        throw new ConflictException('ეს კატეგორია უკვე დამატებულია');
+      }
+    }
+
+    const item = await this.prisma.homeFavoriteFood.update({
+      where: { id },
+      data: {
+        ...(body.slug != null ? { slug: body.slug.trim() } : {}),
+        ...(body.label != null ? { label: body.label.trim() } : {}),
+        ...(body.image != null ? { image: body.image.trim() } : {}),
+        ...(body.isActive != null ? { isActive: body.isActive } : {}),
+      },
+    });
+    return { item };
+  }
+
+  async deleteFavoriteFood(id: string) {
+    const current = await this.prisma.homeFavoriteFood.findUnique({
+      where: { id },
+    });
+    if (!current) throw new NotFoundException('ჩანაწერი ვერ მოიძებნა');
+    await this.prisma.homeFavoriteFood.delete({ where: { id } });
+    return { ok: true };
+  }
+
+  async reorderFavoriteFoods(ids: string[]) {
+    const existing = await this.prisma.homeFavoriteFood.findMany({
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((row) => row.id));
+    if (
+      ids.length !== existingIds.size ||
+      ids.some((id) => !existingIds.has(id))
+    ) {
+      throw new BadRequestException('რიგის განახლება ვერ მოხერხდა');
+    }
+
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.homeFavoriteFood.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+    return this.listFavoriteFoods();
+  }
 }

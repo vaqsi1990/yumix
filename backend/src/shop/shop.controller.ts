@@ -26,4 +26,9 @@ export class ShopController {
   getOffers() {
     return this.shop.getPublicOffers();
   }
+
+  @Get('favorite-foods')
+  getFavoriteFoods() {
+    return this.shop.getFavoriteFoods();
+  }
 }

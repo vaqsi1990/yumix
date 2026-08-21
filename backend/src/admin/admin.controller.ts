@@ -15,6 +15,14 @@ import {
   productWriteSchema,
 } from './dto/product.schemas';
 import {
+  favoriteFoodPatchSchema,
+  favoriteFoodReorderSchema,
+  favoriteFoodWriteSchema,
+  type FavoriteFoodPatchInput,
+  type FavoriteFoodReorderInput,
+  type FavoriteFoodWriteInput,
+} from './dto/favorite-food.schemas';
+import {
   AdminService,
   type ProductWriteInput,
 } from './admin.service';
@@ -287,5 +295,40 @@ export class AdminController {
   @Post('products/:id/duplicate')
   duplicateProduct(@Param('id') id: string) {
     return this.admin.duplicateProduct(id);
+  }
+
+  @Get('favorite-foods')
+  listFavoriteFoods() {
+    return this.admin.listFavoriteFoods();
+  }
+
+  @Post('favorite-foods')
+  createFavoriteFood(
+    @Body(new ZodValidationPipe(favoriteFoodWriteSchema))
+    body: FavoriteFoodWriteInput,
+  ) {
+    return this.admin.createFavoriteFood(body);
+  }
+
+  @Patch('favorite-foods/reorder')
+  reorderFavoriteFoods(
+    @Body(new ZodValidationPipe(favoriteFoodReorderSchema))
+    body: FavoriteFoodReorderInput,
+  ) {
+    return this.admin.reorderFavoriteFoods(body.ids);
+  }
+
+  @Patch('favorite-foods/:id')
+  updateFavoriteFood(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(favoriteFoodPatchSchema))
+    body: FavoriteFoodPatchInput,
+  ) {
+    return this.admin.updateFavoriteFood(id, body);
+  }
+
+  @Delete('favorite-foods/:id')
+  deleteFavoriteFood(@Param('id') id: string) {
+    return this.admin.deleteFavoriteFood(id);
   }
 }

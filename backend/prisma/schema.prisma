@@ -523,3 +523,16 @@ model WorkingHour {
   closeTime    String
   isClosed     Boolean    @default(false)
 }
+
+/// Homepage “სასურველი საკვები” tiles chosen by admin
+model HomeFavoriteFood {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  label     String
+  image     String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

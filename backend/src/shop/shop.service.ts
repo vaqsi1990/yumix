@@ -485,4 +485,18 @@ export class ShopService {
 
     return { offers, restaurants, fromDatabase: true };
   }
+
+  async getFavoriteFoods() {
+    const items = await this.prisma.homeFavoriteFood.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        slug: true,
+        label: true,
+        image: true,
+      },
+    });
+    return { items };
+  }
 }

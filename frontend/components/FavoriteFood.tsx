@@ -1,56 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import HorizontalScroll from "@/components/HorizontalScroll";
+import { getPublicFavoriteFoods } from "@/lib/favorite-food";
 
-const foods = [
-  {
-    href: "/categories/khinkali",
-    label: "ხინკალი",
-    image: "/rest/5.jpg",
-  },
-  {
-    href: "/categories/khachapuri",
-    label: "ხაჭაპური",
-    image: "/rest/2.jpg",
-  },
-  {
-    href: "/categories/pizza",
-    label: "პიცა",
-    image: "/rest/1.jpg",
-  },
-  {
-    href: "/categories/sushi",
-    label: "სუში",
-    image: "/rest/4.jpg",
-  },
-  {
-    href: "/categories/burger",
-    label: "ბურგერები",
-    image: "/rest/3.jpg",
-  },
-  {
-    href: "/categories/salads",
-    label: "სალათები",
-    image: "/rest/2.jpg",
-  },
-  {
-    href: "/categories/soups",
-    label: "სუპები",
-    image: "/rest/5.jpg",
-  },
-  {
-    href: "/categories/desserts",
-    label: "დესერტები",
-    image: "/rest/1.jpg",
-  },
-  {
-    href: "/categories/drinks",
-    label: "სასმელები",
-    image: "/rest/3.jpg",
-  },
-];
+export default async function FavoriteFood() {
+  const { items } = await getPublicFavoriteFoods();
+  if (items.length === 0) return null;
 
-export default function FavoriteFood() {
   return (
     <section className="w-full bg-white py-5">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-8">
@@ -59,10 +15,10 @@ export default function FavoriteFood() {
         </h2>
 
         <HorizontalScroll className="flex gap-3 pb-2 sm:gap-4">
-          {foods.map((food) => (
-            <li key={food.href} className="w-[150px] shrink-0 sm:w-[168px]">
+          {items.map((food) => (
+            <li key={food.id} className="w-[150px] shrink-0 sm:w-[168px]">
               <Link
-                href={food.href}
+                href={`/categories/${food.slug}`}
                 className="block overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:shadow-[0_0_4px_0_rgba(0,0,0,0.12)]"
               >
                 <div className="relative aspect-square w-full">

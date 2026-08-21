@@ -3,6 +3,7 @@ import PanelShell from "@/components/panels/PanelShell";
 import {
   ActiveOrdersIcon,
   CourierIcon,
+  FavoriteFoodIcon,
   OrdersIcon,
   ProductsIcon,
   RestaurantIcon,
@@ -32,16 +33,20 @@ export default async function AdminDashboardPage() {
   };
   let couponsCount = 0;
   let productsCount = 0;
+  let favoriteFoodsCount = 0;
 
   try {
-    const [statsData, couponsData, productsData] = await Promise.all([
+    const [statsData, couponsData, productsData, favoriteFoodsData] =
+      await Promise.all([
       serverApiFetch<AdminStats>("/admin/stats"),
       serverApiFetch<{ coupons: { isActive: boolean }[] }>("/admin/coupons"),
       serverApiFetch<{ products: unknown[] }>("/admin/products"),
+      serverApiFetch<{ items: unknown[] }>("/admin/favorite-foods"),
     ]);
     stats = statsData;
     couponsCount = couponsData.coupons.filter((c) => c.isActive).length;
     productsCount = productsData.products.length;
+    favoriteFoodsCount = favoriteFoodsData.items.length;
   } catch {
     // empty dashboard counts on failure
   }
@@ -101,6 +106,13 @@ export default async function AdminDashboardPage() {
           count={productsCount}
           iconBg="bg-[#E0E7FF] text-[#4338CA]"
           icon={<ProductsIcon className="size-7" />}
+        />
+        <PanelCard
+          href="/admin/favorite-foods"
+          title="სასურველი საკვები"
+          count={favoriteFoodsCount}
+          iconBg="bg-[#FEE2E2] text-[#B91C1C]"
+          icon={<FavoriteFoodIcon className="size-7" />}
         />
         <PanelCard
           href="/admin/settings"
