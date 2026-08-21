@@ -306,6 +306,7 @@ export function translateApiError(message: string): string {
     "Product not found": "პროდუქტი ვერ მოიძებნა",
     "Order not found": "შეკვეთა ვერ მოიძებნა",
     "Review not found": "მიმოხილვა ვერ მოიძებნა",
+    Unauthorized: "სესია ამოიწურა. თავიდან შედი ანგარიშში.",
     "Request failed": KA.failedLoad,
   };
   return map[message] ?? message;

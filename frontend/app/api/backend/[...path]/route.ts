@@ -29,6 +29,7 @@ async function proxy(request: NextRequest, path: string[]) {
     status: res.status,
     headers: {
       "content-type": res.headers.get("content-type") ?? "application/json",
+      "cache-control": "no-store, private",
     },
   });
 

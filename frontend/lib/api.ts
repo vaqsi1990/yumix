@@ -51,6 +51,7 @@ export async function apiFetch<T = unknown>(
   const url = `/api/backend${path.startsWith("/") ? path : `/${path}`}`;
   const res = await fetch(url, {
     ...init,
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),

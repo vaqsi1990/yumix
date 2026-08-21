@@ -15,9 +15,12 @@ type JwtPayload = {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
+    const expiresIn = config.get<string>('JWT_EXPIRES_IN')?.trim();
+    const neverExpires =
+      !expiresIn || expiresIn === 'never' || expiresIn === '0';
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
+      ignoreExpiration: neverExpires,
       secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
     });
   }
