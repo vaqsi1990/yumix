@@ -59,9 +59,10 @@ export class CartController {
   updateItem(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(updateCartItemSchema)) body: { quantity: number },
+    @Body(new ZodValidationPipe(updateCartItemSchema))
+    body: { quantity?: number; variantId?: string },
   ) {
-    return this.cart.updateItemQuantity(user.id, id, body.quantity);
+    return this.cart.updateItem(user.id, id, body);
   }
 
   @Delete('items/:id')

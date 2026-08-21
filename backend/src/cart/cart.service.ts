@@ -58,6 +58,9 @@ export class CartService {
                 price: true,
                 discountPrice: true,
                 isAvailable: true,
+                variants: {
+                  select: { id: true, name: true, price: true },
+                },
               },
             },
             variant: {
@@ -177,21 +180,95 @@ export class CartService {
     return { cleared: true };
   }
 
-  async updateItemQuantity(userId: string, itemId: string, quantity: number) {
-    if (!quantity || quantity < 1 || quantity > 99) {
-      throw new BadRequestException('რაოდენობა არასწორია');
-    }
-
+  async updateItem(
+    userId: string,
+    itemId: string,
+    input: { quantity?: number; variantId?: string },
+  ) {
     const item = await this.prisma.cartItem.findFirst({
       where: { id: itemId, cart: { userId } },
+      include: {
+        product: { include: { variants: true } },
+        addOns: true,
+        customizations: true,
+      },
     });
     if (!item) throw new NotFoundException('პროდუქტი არ მოიძებნა');
 
-    const updated = await this.prisma.cartItem.update({
+    const data: { quantity?: number; variantId?: string; price?: number } = {};
+
+    if (input.quantity != null) {
+      if (input.quantity < 1 || input.quantity > 99) {
+        throw new BadRequestException('რაოდენობა არასწორია');
+      }
+      data.quantity = input.quantity;
+    }
+
+    if (input.variantId && input.variantId !== item.variantId) {
+      const variant = item.product.variants.find((row) => row.id === input.variantId);
+      if (!variant) {
+        throw new BadRequestException('არჩეული ზომა არასწორია');
+      }
+
+      const signature = cartItemSignature({
+        productId: item.productId,
+        variantId: variant.id,
+        addOns: item.addOns.map((row) => ({
+          addonId: row.addonId,
+          quantity: row.quantity,
+        })),
+        customizations: item.customizations.map((row) => ({
+          optionId: row.optionId,
+          quantity: row.quantity,
+        })),
+      });
+
+      const cart = await this.getUserCart(userId);
+      const duplicate = cart?.items.find((row) => {
+        if (row.id === item.id) return false;
+        return (
+          cartItemSignature({
+            productId: row.productId,
+            variantId: row.variantId,
+            addOns: row.addOns.map((addon) => ({
+              addonId: addon.addonId,
+              quantity: addon.quantity,
+            })),
+            customizations: row.customizations.map((customization) => ({
+              optionId: customization.optionId,
+              quantity: customization.quantity,
+            })),
+          }) === signature
+        );
+      });
+
+      if (duplicate) {
+        const nextQty = duplicate.quantity + (data.quantity ?? item.quantity);
+        if (nextQty > 99) {
+          throw new BadRequestException('მაქსიმუმ რაოდენობა 99');
+        }
+        await this.prisma.$transaction([
+          this.prisma.cartItem.update({
+            where: { id: duplicate.id },
+            data: { quantity: nextQty },
+          }),
+          this.prisma.cartItem.delete({ where: { id: item.id } }),
+        ]);
+        return this.getCart(userId);
+      }
+
+      data.variantId = variant.id;
+      data.price = resolveProductUnitPrice(item.product, variant);
+    }
+
+    if (Object.keys(data).length === 0) {
+      return this.getCart(userId);
+    }
+
+    await this.prisma.cartItem.update({
       where: { id: itemId },
-      data: { quantity },
+      data,
     });
-    void updated;
     return this.getCart(userId);
   }
 

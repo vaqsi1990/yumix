@@ -24,9 +24,14 @@ export const addCartItemSchema = z.object({
     .default([]),
 });
 
-export const updateCartItemSchema = z.object({
-  quantity: z.number().int().min(1).max(99),
-});
+export const updateCartItemSchema = z
+  .object({
+    quantity: z.number().int().min(1).max(99).optional(),
+    variantId: z.string().min(1).optional(),
+  })
+  .refine((data) => data.quantity != null || data.variantId != null, {
+    message: 'რაოდენობა ან ზომა სავალდებულოა',
+  });
 
 export const addCartExtraSchema = z.object({
   addonId: z.string().min(1),

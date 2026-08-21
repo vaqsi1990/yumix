@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import FavoriteRestaurantButton from "@/components/shop/FavoriteRestaurantButton";
-import { formatGel } from "@/lib/admin/format";
-import { sortVariantsBySize } from "@/lib/product-sizes";
+import MenuProductCard from "@/components/shop/MenuProductCard";
 import type {
   PublicMenuCategory,
   PublicMenuProduct,
@@ -22,96 +21,14 @@ function StarIcon({ className }: { className?: string }) {
   );
 }
 
-function ProductCard({
-  product,
-  onSelect,
-}: {
-  product: PublicMenuProduct;
-  onSelect?: (product: PublicMenuProduct) => void;
-}) {
-  const displayPrice =
-    product.discountPrice != null && product.discountPrice > 0
-      ? product.discountPrice
-      : product.price;
-  const hasDiscount =
-    product.discountPrice != null && product.discountPrice > 0;
-  const unavailable = product.outOfStock;
-
-  return (
-    <article className="flex w-full gap-4 rounded-2xl border border-neutral-100 bg-white p-4 shadow-[0_0_4px_0_rgba(0,0,0,0.06)] sm:p-5">
-      <div className="relative size-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100 sm:size-32">
-        {product.image ? (
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            sizes="112px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-[16px] text-neutral-400">
-            —
-          </div>
-        )}
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="font-[family-name:var(--font-inter)] text-[16px] font-bold text-neutral-900 md:text-[18px]">
-              {product.name}
-            </h3>
-            {product.description && (
-              <p className="mt-1 line-clamp-2 text-[16px] text-neutral-500 md:text-[18px]">
-                {product.description}
-              </p>
-            )}
-            {product.variants.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {sortVariantsBySize(product.variants).map((variant) => (
-                  <span
-                    key={variant.id}
-                    className="rounded-md border border-neutral-200 px-2 py-0.5 text-[14px] font-medium text-neutral-700 md:text-[16px]"
-                  >
-                    {variant.name} · {formatGel(variant.price)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="font-[family-name:var(--font-inter)] text-[16px] font-bold tabular-nums text-neutral-900 md:text-[18px]">
-              {formatGel(displayPrice)}
-            </p>
-            {hasDiscount && (
-              <p className="text-[16px] text-neutral-400 line-through md:text-[18px]">
-                {formatGel(product.price)}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-auto flex items-center justify-end pt-3">
-          <button
-            type="button"
-            disabled={unavailable}
-            onClick={() => onSelect?.(product)}
-            className="rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] disabled:cursor-not-allowed disabled:bg-neutral-300 md:text-[18px]"
-          >
-            {unavailable ? "ამოწურული" : "კალათაში"}
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function MenuCategorySection({
   category,
+  restaurantOpen,
   onProductClick,
 }: {
   category: PublicMenuCategory;
-  onProductClick?: (product: PublicMenuProduct) => void;
+  restaurantOpen: boolean;
+  onProductClick?: (product: PublicMenuProduct, variantId?: string) => void;
 }) {
   return (
     <section id={`category-${category.id}`} className="scroll-mt-28">
@@ -121,7 +38,11 @@ function MenuCategorySection({
       <ul className="grid w-full gap-4">
         {category.products.map((product) => (
           <li key={product.id}>
-            <ProductCard product={product} onSelect={onProductClick} />
+            <MenuProductCard
+              product={product}
+              restaurantOpen={restaurantOpen}
+              onOpenDetails={onProductClick}
+            />
           </li>
         ))}
       </ul>
@@ -139,7 +60,7 @@ export default function RestaurantMenuView({
 }: {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
-  onProductClick?: (product: PublicMenuProduct) => void;
+  onProductClick?: (product: PublicMenuProduct, variantId?: string) => void;
 }) {
   return (
     <div className="pb-12">
@@ -265,6 +186,7 @@ export default function RestaurantMenuView({
               <MenuCategorySection
                 key={category.id}
                 category={category}
+                restaurantOpen={restaurant.isOpen}
                 onProductClick={onProductClick}
               />
             ))

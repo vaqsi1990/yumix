@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CartQuickExtras from "@/components/shop/CartQuickExtras";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
 import { ADDON_CARRIER_PRODUCT_NAME } from "@/lib/addon-categories";
 import type { AddonCategory } from "@/lib/addon-categories";
+import { sortVariantsBySize } from "@/lib/product-sizes";
 
 export type CartViewData = {
   id: string;
@@ -34,6 +35,7 @@ export type CartViewData = {
       name: string;
       image: string | null;
       isAvailable: boolean;
+      variants?: { id: string; name: string; price: number }[];
     };
     variant: { id: string; name: string; price: number } | null;
     addOns: {
@@ -95,6 +97,35 @@ function getItemTitle(item: CartViewData["items"][number]) {
   return item.product.name;
 }
 
+function recalcTotals(cart: CartViewData, previous: Totals): Totals {
+  const subtotal = cart.items.reduce((sum, item) => sum + itemLineTotal(item), 0);
+  const deliveryFee = previous.deliveryFee;
+  const discount = Math.min(previous.discount, subtotal + deliveryFee);
+  return {
+    subtotal,
+    deliveryFee,
+    discount,
+    total: Math.max(0, subtotal + deliveryFee - discount),
+    itemCount: cart.items.length,
+  };
+}
+
+function withItemVariant(
+  cart: CartViewData,
+  itemId: string,
+  variantId: string,
+): CartViewData {
+  return {
+    ...cart,
+    items: cart.items.map((item) => {
+      if (item.id !== itemId) return item;
+      const variant = item.product.variants?.find((row) => row.id === variantId);
+      if (!variant) return item;
+      return { ...item, variant, price: variant.price };
+    }),
+  };
+}
+
 export default function CartView({
   cart,
   totals,
@@ -104,26 +135,61 @@ export default function CartView({
 }) {
   const router = useRouter();
   const { setItemCount } = useCart();
+  const [localCart, setLocalCart] = useState(cart);
+  const [localTotals, setLocalTotals] = useState(totals);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponBusy, setCouponBusy] = useState(false);
   const [couponError, setCouponError] = useState("");
+  const requestSeq = useRef(0);
 
-  async function updateQuantity(itemId: string, quantity: number) {
-    setBusyId(itemId);
+  useEffect(() => {
+    setLocalCart(cart);
+    setLocalTotals(totals);
+  }, [cart, totals]);
+
+  function applyCartPayload(data: {
+    cart?: CartViewData | null;
+    totals?: Totals | null;
+  }) {
+    if (data.cart !== undefined) setLocalCart(data.cart);
+    if (data.totals !== undefined) setLocalTotals(data.totals);
+    setItemCount(syncCartFromResponse(data));
+  }
+
+  async function updateItem(
+    itemId: string,
+    payload: { quantity?: number; variantId?: string },
+  ) {
+    if (payload.variantId && localCart) {
+      const nextCart = withItemVariant(localCart, itemId, payload.variantId);
+      setLocalCart(nextCart);
+      if (localTotals) setLocalTotals(recalcTotals(nextCart, localTotals));
+    } else {
+      setBusyId(itemId);
+    }
+
+    const seq = ++requestSeq.current;
     try {
       const res = await fetch(`/api/backend/cart/items/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) return;
-      const data = await res.json();
-      setItemCount(syncCartFromResponse(data));
-      router.refresh();
+      if (!res.ok) {
+        setLocalCart(cart);
+        setLocalTotals(totals);
+        return;
+      }
+      const data = (await res.json()) as {
+        cart?: CartViewData | null;
+        totals?: Totals | null;
+      };
+      if (seq !== requestSeq.current) return;
+      applyCartPayload(data);
     } finally {
-      setBusyId(null);
+      if (seq === requestSeq.current) setBusyId(null);
     }
   }
 
@@ -188,7 +254,7 @@ export default function CartView({
     }
   }
 
-  if (!cart || cart.items.length === 0 || !totals) {
+  if (!localCart || localCart.items.length === 0 || !localTotals) {
     return (
       <div className="rounded-2xl bg-[#F5F5F5] px-6 py-16 text-center">
         <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-white text-[#FF0050]">
@@ -226,8 +292,8 @@ export default function CartView({
   }
 
   const belowMinimum =
-    cart.restaurant.minimumOrder != null &&
-    totals.subtotal < cart.restaurant.minimumOrder;
+    localCart.restaurant.minimumOrder != null &&
+    localTotals.subtotal < localCart.restaurant.minimumOrder;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
@@ -236,10 +302,10 @@ export default function CartView({
           <div>
             <p className="text-sm text-neutral-500">რესტორანი</p>
             <Link
-              href={`/restaurants/${cart.restaurant.slug}`}
+              href={`/restaurants/${localCart.restaurant.slug}`}
               className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 hover:text-[#FF0050] md:text-[20px]"
             >
-              {cart.restaurant.name}
+              {localCart.restaurant.name}
             </Link>
           </div>
           <button
@@ -253,7 +319,7 @@ export default function CartView({
         </div>
 
         <ul className="divide-y divide-neutral-100 rounded-2xl border border-neutral-200 bg-white">
-          {cart.items.map((item) => (
+          {localCart.items.map((item) => (
             <li key={item.id} className="flex gap-3 px-4 py-4 sm:gap-4">
               <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#F5F5F5] sm:size-20">
                 {item.product.image ? (
@@ -285,6 +351,36 @@ export default function CartView({
                       {getItemTitle(item)}
                     </h3>
                     {item.product.name !== ADDON_CARRIER_PRODUCT_NAME &&
+                      (item.product.variants?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {sortVariantsBySize(item.product.variants ?? []).map(
+                          (variant) => {
+                            const selected = item.variant?.id === variant.id;
+                            return (
+                              <button
+                                key={variant.id}
+                                type="button"
+                                disabled={selected}
+                                onClick={() =>
+                                  updateItem(item.id, {
+                                    variantId: variant.id,
+                                  })
+                                }
+                                className={`rounded-md border px-2 py-0.5 text-[14px] font-medium transition md:text-[16px] ${
+                                  selected
+                                    ? "border-[#FF0050] bg-[#FF0050] text-white"
+                                    : "border-neutral-200 bg-white text-neutral-700 hover:border-[#FF0050]/50"
+                                }`}
+                              >
+                                {variant.name}
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+                    {item.product.name !== ADDON_CARRIER_PRODUCT_NAME &&
+                      !item.product.variants?.length &&
                       item.variant && (
                       <p className="mt-0.5 text-sm text-neutral-500">
                         {item.variant.name}
@@ -330,7 +426,7 @@ export default function CartView({
                       type="button"
                       disabled={busyId === item.id || item.quantity <= 1}
                       onClick={() =>
-                        updateQuantity(item.id, item.quantity - 1)
+                        updateItem(item.id, { quantity: item.quantity - 1 })
                       }
                       className="px-3 py-1.5 text-lg leading-none text-neutral-700 disabled:opacity-40"
                       aria-label="შემცირება"
@@ -344,7 +440,7 @@ export default function CartView({
                       type="button"
                       disabled={busyId === item.id || item.quantity >= 99}
                       onClick={() =>
-                        updateQuantity(item.id, item.quantity + 1)
+                        updateItem(item.id, { quantity: item.quantity + 1 })
                       }
                       className="px-3 py-1.5 text-lg leading-none text-neutral-700 disabled:opacity-40"
                       aria-label="გაზრდა"
@@ -381,8 +477,8 @@ export default function CartView({
           ))}
         </ul>
 
-        {cart.addOns && cart.addOns.length > 0 && (
-          <CartQuickExtras addOns={cart.addOns} />
+        {localCart.addOns && localCart.addOns.length > 0 && (
+          <CartQuickExtras addOns={localCart.addOns} />
         )}
       </div>
 
@@ -393,14 +489,14 @@ export default function CartView({
 
         <div className="mt-4">
           <p className="mb-2 text-sm text-neutral-500">კუპონი</p>
-          {cart.coupon ? (
+          {localCart.coupon ? (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2.5">
               <div className="min-w-0">
                 <p className="truncate font-semibold text-neutral-900">
-                  {cart.coupon.code}
+                  {localCart.coupon.code}
                 </p>
                 <p className="text-sm text-neutral-500">
-                  ბალანსი: {formatGel(cart.coupon.remainingBalance)}
+                  ბალანსი: {formatGel(localCart.coupon.remainingBalance)}
                 </p>
               </div>
               <button
@@ -438,33 +534,33 @@ export default function CartView({
 
         <dl className="mt-4 space-y-2 text-[16px] md:text-[18px]">
           <div className="flex justify-between gap-3 text-neutral-600">
-            <dt>ქვეჯამი ({totals.itemCount})</dt>
-            <dd>{formatGel(totals.subtotal)}</dd>
+            <dt>ქვეჯამი ({localTotals.itemCount})</dt>
+            <dd>{formatGel(localTotals.subtotal)}</dd>
           </div>
           <div className="flex justify-between gap-3 text-neutral-600">
             <dt>მიწოდება</dt>
             <dd>
-              {totals.deliveryFee === 0
+              {localTotals.deliveryFee === 0
                 ? "უფასო"
-                : formatGel(totals.deliveryFee)}
+                : formatGel(localTotals.deliveryFee)}
             </dd>
           </div>
-          {totals.discount > 0 && (
+          {localTotals.discount > 0 && (
             <div className="flex justify-between gap-3 text-[#15803D]">
               <dt>კუპონის ფასდაკლება</dt>
-              <dd>−{formatGel(totals.discount)}</dd>
+              <dd>−{formatGel(localTotals.discount)}</dd>
             </div>
           )}
           <div className="flex justify-between gap-3 border-t border-neutral-200 pt-3 font-bold text-neutral-900">
             <dt>სულ</dt>
-            <dd>{formatGel(totals.total)}</dd>
+            <dd>{formatGel(localTotals.total)}</dd>
           </div>
         </dl>
 
         {belowMinimum && (
           <p className="mt-3 text-sm text-[#FF0050]">
             მინიმალური შეკვეთა:{" "}
-            {formatGel(cart.restaurant.minimumOrder ?? 0)}
+            {formatGel(localCart.restaurant.minimumOrder ?? 0)}
           </p>
         )}
 

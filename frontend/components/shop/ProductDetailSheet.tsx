@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import {
   Sheet,
@@ -28,6 +28,7 @@ type ProductDetailSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   restaurantOpen: boolean;
+  initialVariantId?: string | null;
 };
 
 export default function ProductDetailSheet({
@@ -35,6 +36,7 @@ export default function ProductDetailSheet({
   open,
   onOpenChange,
   restaurantOpen,
+  initialVariantId = null,
 }: ProductDetailSheetProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -51,6 +53,15 @@ export default function ProductDetailSheet({
     () => (product ? sortVariantsBySize(product.variants) : []),
     [product],
   );
+
+  useEffect(() => {
+    if (!open || !product) return;
+    const nextVariants = sortVariantsBySize(product.variants);
+    setVariantId(initialVariantId ?? nextVariants[0]?.id ?? null);
+    setQuantity(1);
+    setSelectedCustomizations({});
+    setError("");
+  }, [open, product, initialVariantId]);
 
   const customizationGroups = product?.customizationGroups ?? [];
 
