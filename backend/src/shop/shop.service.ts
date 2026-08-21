@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { sortVariantsBySize } from '../common/product-sizes';
+import {
+  collectTasteSlugs,
+  tasteKeywordsForSlugs,
+  tasteLabel,
+} from './food-taste';
 
 export type PublicRestaurant = {
   id: string;
@@ -498,5 +503,303 @@ export class ShopService {
       },
     });
     return { items };
+  }
+
+  async getRecommendations(userId: string) {
+    const [orders, favoriteRestaurants, favoriteProducts] = await Promise.all([
+      this.prisma.order.findMany({
+        where: { userId, status: { not: 'CANCELLED' } },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          restaurantId: true,
+          restaurant: {
+            select: {
+              categories: { include: { category: { select: { name: true } } } },
+            },
+          },
+          items: {
+            select: {
+              quantity: true,
+              productId: true,
+              product: {
+                select: {
+                  name: true,
+                  foodType: true,
+                  category: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.favoriteRestaurant.findMany({
+        where: { userId },
+        select: { restaurantId: true },
+      }),
+      this.prisma.favoriteProduct.findMany({
+        where: { userId },
+        select: { productId: true },
+      }),
+    ]);
+
+    const categoryCounts = new Map<string, number>();
+    const restaurantOrderCounts = new Map<string, number>();
+    const productOrderCounts = new Map<string, number>();
+
+    for (const order of orders) {
+      const restaurantCategoryNames = order.restaurant.categories
+        .map((row) => row.category.name)
+        .join(' ');
+
+      for (const item of order.items) {
+        const qty = Math.max(1, item.quantity);
+        restaurantOrderCounts.set(
+          order.restaurantId,
+          (restaurantOrderCounts.get(order.restaurantId) ?? 0) + qty,
+        );
+        productOrderCounts.set(
+          item.productId,
+          (productOrderCounts.get(item.productId) ?? 0) + qty,
+        );
+
+        const slugs = collectTasteSlugs([
+          item.product.foodType,
+          item.product.name,
+          item.product.category.name,
+          restaurantCategoryNames,
+        ]);
+        for (const slug of slugs) {
+          categoryCounts.set(slug, (categoryCounts.get(slug) ?? 0) + qty);
+        }
+      }
+    }
+
+    const topCategories = [...categoryCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([slug, count]) => ({
+        slug,
+        label: tasteLabel(slug),
+        count,
+      }));
+
+    const favoriteRestaurantIds = new Set(
+      favoriteRestaurants.map((row) => row.restaurantId),
+    );
+    const favoriteProductIds = new Set(
+      favoriteProducts.map((row) => row.productId),
+    );
+
+    if (
+      topCategories.length === 0 &&
+      restaurantOrderCounts.size === 0 &&
+      favoriteRestaurantIds.size === 0 &&
+      favoriteProductIds.size === 0
+    ) {
+      return { restaurants: [], products: [], topCategories: [] };
+    }
+
+    const topSlugs = topCategories.map((row) => row.slug);
+    const keywords = tasteKeywordsForSlugs(topSlugs);
+    const keywordFilters =
+      keywords.length > 0 ? this.menuKeywordFilters(keywords) : [];
+
+    const orderedRestaurantIds = [...restaurantOrderCounts.keys()];
+    const orderedProductIds = [...productOrderCounts.keys()];
+
+    const [restaurants, products] = await Promise.all([
+      this.prisma.restaurant.findMany({
+        where: {
+          isApproved: true,
+          OR: [
+            ...(orderedRestaurantIds.length
+              ? [{ id: { in: orderedRestaurantIds } }]
+              : []),
+            ...(favoriteRestaurantIds.size
+              ? [{ id: { in: [...favoriteRestaurantIds] } }]
+              : []),
+            ...(topSlugs.length
+              ? [
+                  {
+                    categories: {
+                      some: {
+                        category: {
+                          name: {
+                            in: topCategories.map((row) => row.label),
+                          },
+                        },
+                      },
+                    },
+                  },
+                ]
+              : []),
+            ...(keywordFilters.length
+              ? [
+                  {
+                    products: {
+                      some: {
+                        isHidden: false,
+                        isAvailable: true,
+                        OR: keywordFilters,
+                      },
+                    },
+                  },
+                ]
+              : []),
+          ],
+        },
+        include: {
+          categories: {
+            include: { category: { select: { name: true } } },
+          },
+          reviews: { select: { rating: true } },
+        },
+      }),
+      this.prisma.product.findMany({
+        where: {
+          isHidden: false,
+          isAvailable: true,
+          outOfStock: false,
+          restaurant: { isApproved: true },
+          OR: [
+            ...(orderedProductIds.length
+              ? [{ id: { in: orderedProductIds } }]
+              : []),
+            ...(favoriteProductIds.size
+              ? [{ id: { in: [...favoriteProductIds] } }]
+              : []),
+            ...(topSlugs.length ? [{ foodType: { in: topSlugs } }] : []),
+            ...(keywordFilters.length ? keywordFilters : []),
+          ],
+        },
+        include: {
+          category: { select: { name: true } },
+          variants: { orderBy: { name: 'asc' } },
+          customizationGroups: {
+            orderBy: { sortOrder: 'asc' },
+            include: {
+              options: {
+                where: { isAvailable: true },
+                orderBy: { sortOrder: 'asc' },
+              },
+            },
+          },
+          restaurant: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              logo: true,
+              coverImage: true,
+              isOpen: true,
+              categories: {
+                include: { category: { select: { name: true } } },
+              },
+            },
+          },
+        },
+        take: 60,
+      }),
+    ]);
+
+    const scoredRestaurants = restaurants
+      .map((restaurant, index) => {
+        const orderQty = restaurantOrderCounts.get(restaurant.id) ?? 0;
+        const restaurantSlugs = collectTasteSlugs(
+          restaurant.categories.map((row) => row.category.name),
+        );
+        const categoryScore = restaurantSlugs.reduce(
+          (sum, slug) => sum + (categoryCounts.get(slug) ?? 0),
+          0,
+        );
+        const favoriteBonus = favoriteRestaurantIds.has(restaurant.id) ? 2 : 0;
+        const score = orderQty * 8 + categoryScore * 3 + favoriteBonus;
+        return {
+          score,
+          restaurant: this.mapRestaurantRow(restaurant, index),
+        };
+      })
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map((row) => row.restaurant);
+
+    const scoredProducts = products
+      .map((product) => {
+        const orderQty = productOrderCounts.get(product.id) ?? 0;
+        const productSlugs = collectTasteSlugs([
+          product.foodType,
+          product.name,
+          product.category.name,
+          ...product.restaurant.categories.map((row) => row.category.name),
+        ]);
+        const categoryScore = productSlugs.reduce(
+          (sum, slug) => sum + (categoryCounts.get(slug) ?? 0),
+          0,
+        );
+        const favoriteBonus = favoriteProductIds.has(product.id) ? 2 : 0;
+        const score = orderQty * 10 + categoryScore * 4 + favoriteBonus;
+        return { score, product };
+      })
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    const perRestaurant = new Map<string, number>();
+    const recommendedProducts = [];
+    for (const row of scoredProducts) {
+      const restaurantId = row.product.restaurant.id;
+      const taken = perRestaurant.get(restaurantId) ?? 0;
+      if (taken >= 3) continue;
+      perRestaurant.set(restaurantId, taken + 1);
+      recommendedProducts.push({
+        id: row.product.id,
+        name: row.product.name,
+        description: row.product.description,
+        image: row.product.image,
+        price: row.product.price,
+        discountPrice: row.product.discountPrice,
+        outOfStock: row.product.outOfStock,
+        variants: sortVariantsBySize(
+          row.product.variants.map((variant) => ({
+            id: variant.id,
+            name: variant.name,
+            price: variant.price,
+          })),
+        ),
+        customizationGroups: row.product.customizationGroups
+          .filter((group) => group.options.length > 0)
+          .map((group) => ({
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            required: group.required,
+            minSelections: group.minSelections,
+            maxSelections: group.maxSelections,
+            sortOrder: group.sortOrder,
+            options: group.options.map((option) => ({
+              id: option.id,
+              name: option.name,
+              price: option.price,
+            })),
+          })),
+        restaurant: {
+          slug: row.product.restaurant.slug,
+          name: row.product.restaurant.name,
+          logo:
+            row.product.restaurant.logo ||
+            row.product.restaurant.coverImage ||
+            DEMO_IMAGES[0],
+          isOpen: row.product.restaurant.isOpen,
+        },
+      });
+      if (recommendedProducts.length >= 8) break;
+    }
+
+    return {
+      restaurants: scoredRestaurants,
+      products: recommendedProducts,
+      topCategories,
+    };
   }
 }

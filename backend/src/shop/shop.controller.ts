@@ -1,9 +1,20 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import {
+  CurrentUser,
+  type AuthUser,
+} from '../common/decorators/current-user.decorator';
 import { ShopService } from './shop.service';
 
 @Controller('shop')
 export class ShopController {
   constructor(private shop: ShopService) {}
+
+  @Get('recommended')
+  @UseGuards(JwtAuthGuard)
+  getRecommended(@CurrentUser() user: AuthUser) {
+    return this.shop.getRecommendations(user.id);
+  }
 
   @Get('restaurants')
   getRestaurants(@Query('q') q?: string, @Query('menu') menu?: string) {
