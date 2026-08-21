@@ -20,6 +20,11 @@ export function isValidLatLng(lat: number, lng: number): boolean {
   );
 }
 
+/** Delivery area — reject ISP/VPN pins that land outside Georgia. */
+export function isInGeorgia(lat: number, lng: number): boolean {
+  return lat >= 40.9 && lat <= 43.9 && lng >= 39.8 && lng <= 46.9;
+}
+
 /** Always return a fresh tuple — Leaflet may mutate LatLng arrays in place. */
 export function cityCenter(city?: string | null): [number, number] {
   const key = city?.trim();

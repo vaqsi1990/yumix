@@ -20,6 +20,8 @@ export type PublicRestaurant = {
   logo: string;
   city: string;
   isOpen: boolean;
+  distanceKm?: number;
+  distanceLabel?: string;
 };
 
 const DEMO_IMAGES = [
@@ -97,6 +99,26 @@ export class ShopService {
     if (fee == null) return '—';
     if (fee === 0) return 'უფასო';
     return `₾${fee.toFixed(2)}`;
+  }
+
+  private haversineKm(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number,
+  ) {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * 6371 * Math.asin(Math.sqrt(a));
+  }
+
+  private formatDistance(km: number) {
+    if (km < 1) return `${Math.round(km * 1000)} მ`;
+    return `${km.toFixed(1)} კმ`;
   }
 
   private mapRestaurantRow(
@@ -263,6 +285,65 @@ export class ShopService {
       : DEMO_RESTAURANTS;
 
     return { restaurants: filtered, fromDatabase: false, pendingCount: 0 };
+  }
+
+  async getNearbyRestaurants(userId: string) {
+    const address = await this.prisma.address.findFirst({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+      select: { latitude: true, longitude: true },
+    });
+
+    const lat = address?.latitude;
+    const lng = address?.longitude;
+    if (
+      lat == null ||
+      lng == null ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng)
+    ) {
+      return { restaurants: [], fromDatabase: true, hasLocation: false };
+    }
+
+    const db = await this.prisma.restaurant.findMany({
+      where: {
+        isApproved: true,
+        latitude: { not: null },
+        longitude: { not: null },
+      },
+      include: {
+        categories: {
+          include: { category: { select: { name: true } } },
+        },
+        reviews: { select: { rating: true } },
+      },
+    });
+
+    const defaultMaxKm = 15;
+    const nearby = db
+      .map((restaurant, index) => {
+        if (restaurant.latitude == null || restaurant.longitude == null) {
+          return null;
+        }
+        const distanceKm = this.haversineKm(
+          lat,
+          lng,
+          restaurant.latitude,
+          restaurant.longitude,
+        );
+        const maxKm = restaurant.deliveryRadius ?? defaultMaxKm;
+        if (distanceKm > maxKm) return null;
+        return {
+          ...this.mapRestaurantRow(restaurant, index),
+          distanceKm: Number(distanceKm.toFixed(2)),
+          distanceLabel: this.formatDistance(distanceKm),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null)
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 8);
+
+    return { restaurants: nearby, fromDatabase: true, hasLocation: true };
   }
 
   async getRestaurantMenu(slug: string, options?: { includeUnapproved?: boolean }) {

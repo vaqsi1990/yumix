@@ -13,6 +13,8 @@ export type PublicRestaurant = {
   logo: string;
   city: string;
   isOpen: boolean;
+  distanceKm?: number;
+  distanceLabel?: string;
 };
 
 export type PublicRestaurantDetail = PublicRestaurant & {

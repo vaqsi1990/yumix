@@ -92,6 +92,12 @@ export default function RestaurantCard({
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <div className="text-sm text-neutral-500">
+            {restaurant.distanceLabel ? (
+              <>
+                <span>{restaurant.distanceLabel}</span>
+                <span className="mx-1.5 text-neutral-300">·</span>
+              </>
+            ) : null}
             <span>{restaurant.time}</span>
             <span className="mx-1.5 text-neutral-300">·</span>
             <span>{restaurant.deliveryFeeLabel}</span>

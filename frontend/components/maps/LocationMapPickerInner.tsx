@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Marker as LeafletMarker } from "leaflet";
 import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { GeocodeResult } from "@/lib/geocode";
@@ -12,6 +12,7 @@ import {
   cityCenter,
   configureLeafletDefaults,
   getDefaultMarkerIcon,
+  isInGeorgia,
   isValidLatLng,
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
@@ -30,6 +31,33 @@ function MapClickHandler({ onSelect }: MapClickHandlerProps) {
       onSelect(lat, lng);
     },
   });
+  return null;
+}
+
+function RecenterMap({
+  lat,
+  lng,
+  zoom,
+  tick,
+}: {
+  lat: number;
+  lng: number;
+  zoom: number;
+  tick: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const id = window.setTimeout(() => map.invalidateSize(), 80);
+    return () => window.clearTimeout(id);
+  }, [map]);
+
+  useEffect(() => {
+    if (tick === 0) return;
+    map.invalidateSize();
+    map.flyTo([lat, lng], zoom, { duration: 0.45 });
+  }, [map, lat, lng, zoom, tick]);
+
   return null;
 }
 
@@ -108,6 +136,11 @@ async function reverseAddress(
   return data.result ?? null;
 }
 
+function formatAccuracy(meters: number) {
+  if (meters >= 1000) return `~${(meters / 1000).toFixed(1)} კმ`;
+  return `~${Math.round(meters)} მ`;
+}
+
 export default function LocationMapPickerInner({
   latitude,
   longitude,
@@ -121,6 +154,9 @@ export default function LocationMapPickerInner({
   const [searching, setSearching] = useState(false);
   const [reversing, setReversing] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [locationHint, setLocationHint] = useState("");
+  const [locateTick, setLocateTick] = useState(0);
+  const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
   const [query, setQuery] = useState(addressQuery ?? "");
   const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
   const [openSuggestions, setOpenSuggestions] = useState(false);
@@ -134,6 +170,8 @@ export default function LocationMapPickerInner({
   const skipNextQuerySync = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reverseSeq = useRef(0);
+  const locateWatchRef = useRef<number | null>(null);
+  const locateTimerRef = useRef<number | null>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -160,10 +198,6 @@ export default function LocationMapPickerInner({
     return cityCenter(city);
   }, [city, coords]);
   const hasLocation = coords !== null && isValidLatLng(coords[0], coords[1]);
-
-  const mapKey = hasLocation
-    ? `pin:${center[0].toFixed(5)},${center[1].toFixed(5)}`
-    : `city:${city?.trim() || "default"}`;
 
   function updateMenuPosition() {
     const el = inputWrapRef.current;
@@ -305,31 +339,104 @@ export default function LocationMapPickerInner({
     });
   }
 
+  function stopLocating() {
+    if (locateWatchRef.current != null) {
+      navigator.geolocation.clearWatch(locateWatchRef.current);
+      locateWatchRef.current = null;
+    }
+    if (locateTimerRef.current != null) {
+      window.clearTimeout(locateTimerRef.current);
+      locateTimerRef.current = null;
+    }
+    setLocating(false);
+  }
+
   function locateMe() {
     if (!navigator.geolocation) {
       setLocationError("თქვენი ბრაუზერი მდებარეობის განსაზღვრას არ უჭერს მხარს");
       return;
     }
 
+    stopLocating();
     setLocating(true);
     setLocationError("");
+    setLocationHint("");
 
-    navigator.geolocation.getCurrentPosition(
+    let bestAccuracy = Number.POSITIVE_INFINITY;
+    let gotFix = false;
+
+    const applyFix = (coords: GeolocationCoordinates) => {
+      const lat = coords.latitude;
+      const lng = coords.longitude;
+      if (!isValidLatLng(lat, lng)) return;
+      if (!isInGeorgia(lat, lng)) {
+        setLocationError(
+          "ბრაუზერმა მდებარეობა საქართველოს გარეთ დააბრუნა. აირჩიე რუკაზე ხელით.",
+        );
+        return;
+      }
+      gotFix = true;
+      setFlyTo([lat, lng]);
+      setLocateTick((n) => n + 1);
+      selectLocation(lat, lng);
+      if (coords.accuracy > 200) {
+        setLocationHint(
+          `ბრაუზერის სიზუსტე ${formatAccuracy(coords.accuracy)} — ეს კომპიუტერის ქსელის მდებარეობაა, არა GPS. გადაიტანე მარკერი ზუსტ ადგილზე.`,
+        );
+      } else {
+        setLocationHint("");
+      }
+    };
+
+    locateWatchRef.current = navigator.geolocation.watchPosition(
       (position) => {
-        selectLocation(position.coords.latitude, position.coords.longitude);
-        setLocating(false);
+        const { coords } = position;
+        if (coords.accuracy >= bestAccuracy) {
+          if (coords.accuracy <= 40) stopLocating();
+          return;
+        }
+        bestAccuracy = coords.accuracy;
+        applyFix(coords);
+        if (coords.accuracy <= 40) stopLocating();
       },
-      () => {
-        setLocationError("მდებარეობის მიღება ვერ მოხერხდა. აირჩიეთ რუკაზე ხელით.");
-        setLocating(false);
+      (error) => {
+        if (gotFix || error.code === error.TIMEOUT) return;
+        stopLocating();
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError(
+            "მდებარეობაზე წვდომა აკრძალულია. აირჩიე რუკაზე ხელით.",
+          );
+          return;
+        }
+        setLocationError(
+          "მდებარეობის მიღება ვერ მოხერხდა. აირჩიეთ რუკაზე ხელით.",
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     );
+
+    locateTimerRef.current = window.setTimeout(() => {
+      if (gotFix) {
+        stopLocating();
+        return;
+      }
+      stopLocating();
+      setLocationError(
+        (prev) =>
+          prev || "მდებარეობის მიღება ვერ მოხერხდა. აირჩიეთ რუკაზე ხელით.",
+      );
+    }, 8000);
   }
 
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (locateWatchRef.current != null) {
+        navigator.geolocation.clearWatch(locateWatchRef.current);
+      }
+      if (locateTimerRef.current != null) {
+        window.clearTimeout(locateTimerRef.current);
+      }
     };
   }, []);
 
@@ -420,7 +527,11 @@ export default function LocationMapPickerInner({
             onClick={locateMe}
             title="ჩემი მდებარეობა"
           >
-            <Crosshair className="size-4" />
+            {locating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Crosshair className="size-4" />
+            )}
           </Button>
         </div>
       </div>
@@ -443,13 +554,18 @@ export default function LocationMapPickerInner({
       </div>
 
       <MapContainer
-        key={mapKey}
         center={center}
         zoom={hasLocation ? 16 : 13}
         className="relative z-0 h-[280px] w-full rounded-xl border border-neutral-200 sm:h-[320px]"
         scrollWheelZoom
       >
         <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
+        <RecenterMap
+          lat={flyTo?.[0] ?? center[0]}
+          lng={flyTo?.[1] ?? center[1]}
+          zoom={flyTo || hasLocation ? 17 : 13}
+          tick={locateTick}
+        />
         {hasLocation && coords ? (
           <DraggableMarker
             position={coords}
@@ -462,6 +578,10 @@ export default function LocationMapPickerInner({
       {locationError ? (
         <p className="mt-2 text-[16px] md:text-[18px] text-destructive">
           {locationError}
+        </p>
+      ) : locationHint ? (
+        <p className="mt-2 text-[16px] md:text-[18px] text-amber-700">
+          {locationHint}
         </p>
       ) : (
         <p className="mt-2 text-[14px] text-muted-foreground">

@@ -16,6 +16,12 @@ export class ShopController {
     return this.shop.getRecommendations(user.id);
   }
 
+  @Get('nearby')
+  @UseGuards(JwtAuthGuard)
+  getNearby(@CurrentUser() user: AuthUser) {
+    return this.shop.getNearbyRestaurants(user.id);
+  }
+
   @Get('restaurants')
   getRestaurants(@Query('q') q?: string, @Query('menu') menu?: string) {
     if (menu?.trim()) {
