@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import ImageUploadField from "@/components/admin/restaurants/form/ImageUploadField";
 import { restaurantApi } from "@/lib/restaurant/api";
 import { KA, translateApiError } from "@/lib/restaurant/labels";
 import type { OwnerProfile } from "@/lib/restaurant/types";
@@ -91,8 +91,6 @@ export default function ProfileForm() {
     );
   }
 
-  const fullName = `${profile.firstName} ${profile.lastName}`;
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -105,26 +103,16 @@ export default function ProfileForm() {
           <CardHeader>
             <CardTitle className="text-base">{KA.profile.avatar}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-            <Avatar
-              src={profile.avatar}
-              alt={fullName}
-              fallback={fullName}
-              size="lg"
-              className="size-24 text-2xl"
+          <CardContent>
+            <ImageUploadField
+              label={KA.profile.avatarPhoto}
+              aspect="square"
+              value={profile.avatar}
+              onChange={(url) =>
+                setProfile((p) => (p ? { ...p, avatar: url } : p))
+              }
+              className="max-w-[200px]"
             />
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="avatar">{KA.profile.avatarUrl}</Label>
-              <Input
-                id="avatar"
-                value={profile.avatar ?? ""}
-                onChange={(e) =>
-                  setProfile((p) =>
-                    p ? { ...p, avatar: e.target.value || null } : p,
-                  )
-                }
-              />
-            </div>
           </CardContent>
         </Card>
 

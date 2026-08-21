@@ -279,7 +279,7 @@ export const KA = {
     title: "პროფილი",
     subtitle: "მართეთ პირადი ანგარიშის ინფორმაცია.",
     avatar: "ავატარი",
-    avatarUrl: "ავატარის URL",
+    avatarPhoto: "ფოტო",
     personalInfo: "პირადი ინფორმაცია",
     firstName: "სახელი",
     lastName: "გვარი",
