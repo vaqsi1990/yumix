@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import {
   configureLeafletDefaults,
+  getDefaultMarkerIcon,
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
   parseCoords,
@@ -39,7 +40,7 @@ export default function LocationMapViewInner({
         zoomControl={false}
       >
         <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
-        <Marker position={coords} />
+        <Marker position={coords} icon={getDefaultMarkerIcon()} />
       </MapContainer>
     </div>
   );

@@ -123,7 +123,11 @@ export default function RestaurantFormView({
   const latitude = watch("latitude");
   const longitude = watch("longitude");
   const city = watch("city");
+  const street = watch("street");
+  const country = watch("country");
   const ownerId = watch("ownerId");
+
+  const addressQuery = [street, city, country].filter(Boolean).join(", ");
 
   useEffect(() => {
     if (!ownerId) return;
@@ -156,8 +160,37 @@ export default function RestaurantFormView({
   }, []);
 
   function handleLocationChange(lat: string, lng: string) {
-    setValue("latitude", lat);
-    setValue("longitude", lng);
+    setValue("latitude", lat, { shouldDirty: true });
+    setValue("longitude", lng, { shouldDirty: true });
+  }
+
+  function handleAddressResolved(address: {
+    displayName: string;
+    city: string;
+    street: string;
+    country: string;
+    postalCode: string;
+  }) {
+    if (address.street) {
+      setValue("street", address.street, { shouldValidate: true, shouldDirty: true });
+    }
+    if (address.city) {
+      const matched = CITIES.find(
+        (item) =>
+          item === address.city ||
+          address.city.includes(item) ||
+          item.includes(address.city),
+      );
+      if (matched) {
+        setValue("city", matched, { shouldValidate: true, shouldDirty: true });
+      }
+    }
+    if (address.country) {
+      setValue("country", address.country, { shouldDirty: true });
+    }
+    if (address.postalCode) {
+      setValue("postalCode", address.postalCode, { shouldDirty: true });
+    }
   }
 
   function submit(saveMode: "save" | "save-and-add") {
@@ -430,7 +463,9 @@ export default function RestaurantFormView({
           latitude={latitude}
           longitude={longitude}
           city={city}
+          addressQuery={addressQuery}
           onChange={handleLocationChange}
+          onAddressResolved={handleAddressResolved}
         />
       </FormSectionCard>
 

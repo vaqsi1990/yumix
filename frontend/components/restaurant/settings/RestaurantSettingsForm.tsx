@@ -222,7 +222,17 @@ export default function RestaurantSettingsForm() {
                     latitude={settings.latitude?.toString() ?? ""}
                     longitude={settings.longitude?.toString() ?? ""}
                     city={settings.city}
+                    addressQuery={[settings.address, settings.city]
+                      .filter(Boolean)
+                      .join(", ")}
                     onChange={updateMapLocation}
+                    onAddressResolved={(address) => {
+                      updateField(
+                        "address",
+                        address.street || address.displayName,
+                      );
+                      if (address.city) updateField("city", address.city);
+                    }}
                   />
                 </div>
 

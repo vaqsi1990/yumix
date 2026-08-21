@@ -210,9 +210,13 @@ export default function RestaurantOnboardingForm({
                 latitude={latitude}
                 longitude={longitude}
                 city={DEFAULT_CITY}
+                addressQuery={street}
                 onChange={(lat, lng) => {
                   setLatitude(lat);
                   setLongitude(lng);
+                }}
+                onAddressResolved={(address) => {
+                  if (address.street) setStreet(address.street);
                 }}
               />
             </div>

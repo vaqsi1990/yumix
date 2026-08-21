@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Marker as LeafletMarker } from "leaflet";
-import { Crosshair, MapPin } from "lucide-react";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { GeocodeResult } from "@/lib/geocode";
 import {
   cityCenter,
   configureLeafletDefaults,
+  getDefaultMarkerIcon,
+  isValidLatLng,
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
   parseCoords,
@@ -20,19 +25,11 @@ type MapClickHandlerProps = {
 function MapClickHandler({ onSelect }: MapClickHandlerProps) {
   useMapEvents({
     click(event) {
-      onSelect(event.latlng.lat, event.latlng.lng);
+      const { lat, lng } = event.latlng;
+      if (!isValidLatLng(lat, lng)) return;
+      onSelect(lat, lng);
     },
   });
-  return null;
-}
-
-function MapRecenter({ center, zoom }: { center: [number, number]; zoom: number }) {
-  const map = useMap();
-
-  useEffect(() => {
-    map.flyTo(center, zoom, { duration: 0.8 });
-  }, [center, map, zoom]);
-
   return null;
 }
 
@@ -49,51 +46,263 @@ function DraggableMarker({ position, onChange }: DraggableMarkerProps) {
         const marker = markerRef.current;
         if (!marker) return;
         const { lat, lng } = marker.getLatLng();
+        if (!isValidLatLng(lat, lng)) return;
         onChange(lat, lng);
       },
     }),
     [onChange],
   );
 
+  if (!isValidLatLng(position[0], position[1])) return null;
+
   return (
     <Marker
       draggable
       eventHandlers={eventHandlers}
       position={position}
+      icon={getDefaultMarkerIcon()}
       ref={markerRef}
     />
   );
 }
 
+export type ResolvedAddress = {
+  displayName: string;
+  city: string;
+  street: string;
+  country: string;
+  postalCode: string;
+};
+
 type LocationMapPickerInnerProps = {
   latitude?: string;
   longitude?: string;
   city?: string;
+  addressQuery?: string;
   onChange: (latitude: string, longitude: string) => void;
+  onAddressResolved?: (address: ResolvedAddress) => void;
   className?: string;
 };
+
+async function searchAddress(
+  query: string,
+  city?: string,
+): Promise<GeocodeResult[]> {
+  const params = new URLSearchParams({ q: query });
+  if (city?.trim()) params.set("city", city.trim());
+  const res = await fetch(`/api/geocode/search?${params.toString()}`);
+  const data = (await res.json()) as { results?: GeocodeResult[] };
+  return data.results ?? [];
+}
+
+async function reverseAddress(
+  lat: number,
+  lng: number,
+): Promise<GeocodeResult | null> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lng: String(lng),
+  });
+  const res = await fetch(`/api/geocode/reverse?${params.toString()}`);
+  const data = (await res.json()) as { result?: GeocodeResult | null };
+  return data.result ?? null;
+}
 
 export default function LocationMapPickerInner({
   latitude,
   longitude,
   city,
+  addressQuery,
   onChange,
+  onAddressResolved,
   className,
 }: LocationMapPickerInnerProps) {
   const [locating, setLocating] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [reversing, setReversing] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [query, setQuery] = useState(addressQuery ?? "");
+  const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
+  const [openSuggestions, setOpenSuggestions] = useState(false);
+  const [resolvedLabel, setResolvedLabel] = useState("");
+  const [menuBox, setMenuBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
+  const skipNextQuerySync = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reverseSeq = useRef(0);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     configureLeafletDefaults();
+    setPortalReady(true);
   }, []);
 
-  const coords = parseCoords(latitude, longitude);
-  const center = coords ?? cityCenter(city);
-  const hasLocation = coords !== null;
+  useEffect(() => {
+    if (skipNextQuerySync.current) {
+      skipNextQuerySync.current = false;
+      return;
+    }
+    if (addressQuery != null) {
+      setQuery(addressQuery);
+    }
+  }, [addressQuery]);
 
-  function selectLocation(lat: number, lng: number) {
+  const coords = useMemo(
+    () => parseCoords(latitude, longitude),
+    [latitude, longitude],
+  );
+  const center = useMemo<[number, number]>(() => {
+    if (coords && isValidLatLng(coords[0], coords[1])) return coords;
+    return cityCenter(city);
+  }, [city, coords]);
+  const hasLocation = coords !== null && isValidLatLng(coords[0], coords[1]);
+
+  const mapKey = hasLocation
+    ? `pin:${center[0].toFixed(5)},${center[1].toFixed(5)}`
+    : `city:${city?.trim() || "default"}`;
+
+  function updateMenuPosition() {
+    const el = inputWrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setMenuBox({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }
+
+  useEffect(() => {
+    if (!openSuggestions) {
+      setMenuBox(null);
+      return;
+    }
+    updateMenuPosition();
+    function onReposition() {
+      updateMenuPosition();
+    }
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [openSuggestions, suggestions.length]);
+
+  function emitAddress(result: GeocodeResult) {
+    const resolved: ResolvedAddress = {
+      displayName: result.displayName,
+      city: result.city,
+      street: result.street,
+      country: result.country,
+      postalCode: result.postalCode,
+    };
+    setResolvedLabel(result.displayName);
+    onAddressResolved?.(resolved);
+  }
+
+  function selectLocation(
+    lat: number,
+    lng: number,
+    options?: { reverse?: boolean; result?: GeocodeResult },
+  ) {
+    if (!isValidLatLng(lat, lng)) return;
     setLocationError("");
     onChange(lat.toFixed(6), lng.toFixed(6));
+
+    if (options?.result) {
+      emitAddress(options.result);
+      return;
+    }
+
+    if (options?.reverse === false) return;
+
+    const seq = ++reverseSeq.current;
+    setReversing(true);
+    void reverseAddress(lat, lng)
+      .then((result) => {
+        if (seq !== reverseSeq.current) return;
+        if (!result) {
+          setResolvedLabel(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+          return;
+        }
+        skipNextQuerySync.current = true;
+        setQuery(result.street || result.displayName);
+        emitAddress(result);
+      })
+      .catch(() => {
+        if (seq !== reverseSeq.current) return;
+        setResolvedLabel(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      })
+      .finally(() => {
+        if (seq === reverseSeq.current) setReversing(false);
+      });
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    setLocationError("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (value.trim().length < 3) {
+      setSuggestions([]);
+      setOpenSuggestions(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(() => {
+      setSearching(true);
+      void searchAddress(value, city)
+        .then((results) => {
+          setSuggestions(results);
+          setOpenSuggestions(results.length > 0);
+        })
+        .catch(() => {
+          setSuggestions([]);
+          setOpenSuggestions(false);
+        })
+        .finally(() => setSearching(false));
+    }, 450);
+  }
+
+  async function runSearch(explicitQuery?: string) {
+    const q = (explicitQuery ?? query).trim();
+    if (q.length < 2) {
+      setLocationError("ჩაწერეთ მისამართი ძებნისთვის");
+      return;
+    }
+
+    setSearching(true);
+    setLocationError("");
+    try {
+      const results = await searchAddress(q, city);
+      setSuggestions(results);
+      setOpenSuggestions(results.length > 0);
+      if (results.length === 0) {
+        setLocationError("მისამართი ვერ მოიძებნა");
+        return;
+      }
+      applySuggestion(results[0]);
+    } catch {
+      setLocationError("მისამართის ძებნა ვერ მოხერხდა");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function applySuggestion(result: GeocodeResult) {
+    skipNextQuerySync.current = true;
+    setQuery(result.street || result.displayName);
+    setSuggestions([]);
+    setOpenSuggestions(false);
+    selectLocation(result.lat, result.lng, {
+      reverse: false,
+      result,
+    });
   }
 
   function locateMe() {
@@ -118,53 +327,146 @@ export default function LocationMapPickerInner({
     );
   }
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const suggestionsMenu =
+    portalReady &&
+    openSuggestions &&
+    suggestions.length > 0 &&
+    menuBox
+      ? createPortal(
+          <ul
+            className="fixed z-[5000] max-h-64 overflow-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-xl"
+            style={{
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+            }}
+            role="listbox"
+          >
+            {suggestions.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm hover:bg-neutral-50"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applySuggestion(item)}
+                >
+                  <MapPin className="mt-0.5 size-4 shrink-0 text-[#FF0050]" />
+                  <span className="text-neutral-800">{item.displayName}</span>
+                </button>
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )
+      : null;
+
   return (
     <div className={className}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-start gap-2 text-[16px] md:text-[18px]">
-          <MapPin
-            className={`mt-0.5 size-4 shrink-0 ${hasLocation ? "text-emerald-600" : "text-neutral-400"}`}
-          />
-          <p className={hasLocation ? "text-emerald-700" : "text-neutral-600"}>
-            {hasLocation
-              ? "მდებარეობა არჩეულია — საჭიროების შემთხვევაში გადაიტანეთ მარკერი"
-              : "დააწკაპუნეთ რუკაზე ან გამოიყენეთ „ჩემი მდებარეობა“"}
-          </p>
+      <div className="relative z-[1100] mb-3 space-y-2">
+        <label className="text-sm font-medium text-neutral-800">
+          მისამართის ძებნა
+        </label>
+        <div className="flex gap-2">
+          <div ref={inputWrapRef} className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
+            <Input
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setOpenSuggestions(true);
+              }}
+              onBlur={() => {
+                window.setTimeout(() => setOpenSuggestions(false), 150);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void runSearch();
+                }
+                if (e.key === "Escape") {
+                  setOpenSuggestions(false);
+                }
+              }}
+              placeholder="მაგ. რუსთაველის გამზირი 1, თბილისი"
+              className="pl-9"
+              autoComplete="off"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0 bg-white"
+            disabled={searching}
+            onClick={() => void runSearch()}
+          >
+            {searching ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              "მოძებნა"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="shrink-0 bg-white"
+            disabled={locating}
+            onClick={locateMe}
+            title="ჩემი მდებარეობა"
+          >
+            <Crosshair className="size-4" />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="bg-white"
-          disabled={locating}
-          onClick={locateMe}
-        >
-          <Crosshair className="size-4" />
-          {locating ? "მოძებნა..." : "ჩემი მდებარეობა"}
-        </Button>
+      </div>
+
+      {suggestionsMenu}
+
+      <div className="mb-3 flex items-start gap-2 text-[16px] md:text-[18px]">
+        <MapPin
+          className={`mt-0.5 size-4 shrink-0 ${hasLocation ? "text-emerald-600" : "text-neutral-400"}`}
+        />
+        <p className={hasLocation ? "text-emerald-700" : "text-neutral-600"}>
+          {reversing
+            ? "მისამართი განისაზღვრება..."
+            : resolvedLabel
+              ? resolvedLabel
+              : hasLocation
+                ? "მდებარეობა არჩეულია — საჭიროების შემთხვევაში გადაიტანეთ მარკერი"
+                : "ჩაწერეთ მისამართი ან დააწკაპუნეთ რუკაზე"}
+        </p>
       </div>
 
       <MapContainer
+        key={mapKey}
         center={center}
         zoom={hasLocation ? 16 : 13}
-        className="h-[280px] w-full rounded-xl border border-neutral-200 sm:h-[320px]"
+        className="relative z-0 h-[280px] w-full rounded-xl border border-neutral-200 sm:h-[320px]"
         scrollWheelZoom
       >
         <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
-        {!hasLocation ? (
-          <MapRecenter center={cityCenter(city)} zoom={13} />
+        {hasLocation && coords ? (
+          <DraggableMarker
+            position={coords}
+            onChange={(lat, lng) => selectLocation(lat, lng)}
+          />
         ) : null}
-        {coords ? (
-          <DraggableMarker position={coords} onChange={selectLocation} />
-        ) : null}
-        <MapClickHandler onSelect={selectLocation} />
+        <MapClickHandler onSelect={(lat, lng) => selectLocation(lat, lng)} />
       </MapContainer>
 
       {locationError ? (
-        <p className="mt-2 text-[16px] md:text-[18px] text-destructive">{locationError}</p>
+        <p className="mt-2 text-[16px] md:text-[18px] text-destructive">
+          {locationError}
+        </p>
       ) : (
         <p className="mt-2 text-[14px] text-muted-foreground">
-          რუკაზე დაწკაპუნებით აირჩიეთ ადგილი, შემდეგ კი საჭიროების შემთხვევაში მარკერი გადაიტანეთ.
+          მისამართი შეიყვანეთ ზემოთ — pin ავტომატურად დადგება Leaflet რუკაზე და
+          შეინახება ფორმასთან ერთად.
         </p>
       )}
     </div>

@@ -282,8 +282,16 @@ export default function AccountAddressesClient({
                 city={form.city}
                 latitude={form.latitude}
                 longitude={form.longitude}
+                addressQuery={[form.street, form.city].filter(Boolean).join(", ")}
                 onChange={(lat, lng) =>
                   setForm((f) => ({ ...f, latitude: lat, longitude: lng }))
+                }
+                onAddressResolved={(address) =>
+                  setForm((f) => ({
+                    ...f,
+                    street: address.street || f.street,
+                    city: address.city || f.city,
+                  }))
                 }
               />
             </div>

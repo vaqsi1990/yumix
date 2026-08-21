@@ -337,8 +337,14 @@ export function restaurantToFormValues(
     floor: "",
     apartment: "",
     postalCode: "",
-    latitude: restaurant.latitude?.toString() ?? "",
-    longitude: restaurant.longitude?.toString() ?? "",
+    latitude:
+      restaurant.latitude != null && Number.isFinite(restaurant.latitude)
+        ? String(restaurant.latitude)
+        : "",
+    longitude:
+      restaurant.longitude != null && Number.isFinite(restaurant.longitude)
+        ? String(restaurant.longitude)
+        : "",
     deliveryFee: restaurant.deliveryFee,
     minimumOrder: restaurant.minimumOrder,
     deliveryRadius: restaurant.deliveryRadius ?? 5,
