@@ -15,6 +15,7 @@ import { DAY_LABELS, KA, translateApiError } from "@/lib/restaurant/labels";
 import { restaurantApi } from "@/lib/restaurant/api";
 import type { RestaurantSettings, WorkingHour } from "@/lib/restaurant/types";
 import LocationMapPicker from "@/components/maps/LocationMapPicker";
+import ImageUploadField from "@/components/admin/restaurants/form/ImageUploadField";
 
 export default function RestaurantSettingsForm() {
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
@@ -132,25 +133,21 @@ export default function RestaurantSettingsForm() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{KA.settings.logoUrl}</Label>
-                    <Input
-                      value={settings.logo ?? ""}
-                      onChange={(e) =>
-                        updateField("logo", e.target.value || null)
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{KA.settings.coverUrl}</Label>
-                    <Input
-                      value={settings.coverImage ?? ""}
-                      onChange={(e) =>
-                        updateField("coverImage", e.target.value || null)
-                      }
-                    />
-                  </div>
+                <div className="grid gap-6 md:grid-cols-[minmax(0,200px)_1fr] md:items-stretch">
+                  <ImageUploadField
+                    label={KA.settings.logo}
+                    aspect="square"
+                    value={settings.logo}
+                    onChange={(url) => updateField("logo", url)}
+                    className="mx-auto w-full md:mx-0"
+                  />
+                  <ImageUploadField
+                    label={KA.settings.coverImage}
+                    aspect="wide"
+                    className="min-h-[180px] w-full sm:min-h-[200px]"
+                    value={settings.coverImage}
+                    onChange={(url) => updateField("coverImage", url)}
+                  />
                 </div>
 
                 <div className="space-y-2">
