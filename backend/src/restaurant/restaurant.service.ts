@@ -780,8 +780,6 @@ export class RestaurantPanelService {
       body.coverImage !== undefined
         ? (body.coverImage as string | null)
         : undefined;
-    const minimumOrder =
-      body.minimumOrder != null ? Number(body.minimumOrder) : undefined;
     const isOpen =
       typeof body.isOpen === 'boolean' ? body.isOpen : undefined;
     const latitude =
@@ -812,7 +810,6 @@ export class RestaurantPanelService {
           ...(address !== undefined ? { address } : {}),
           ...(logo !== undefined ? { logo } : {}),
           ...(coverImage !== undefined ? { coverImage } : {}),
-          ...(minimumOrder !== undefined ? { minimumOrder } : {}),
           ...(isOpen !== undefined ? { isOpen } : {}),
           ...(latitude !== undefined ? { latitude } : {}),
           ...(longitude !== undefined ? { longitude } : {}),

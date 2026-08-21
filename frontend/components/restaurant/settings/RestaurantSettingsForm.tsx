@@ -116,6 +116,7 @@ export default function RestaurantSettingsForm() {
         deliveryFee: _deliveryFee,
         deliveryFeePerKm: _deliveryFeePerKm,
         deliveryRadius: _deliveryRadius,
+        minimumOrder: _minimumOrder,
         ...ownerSettings
       } = settings;
       const res = await restaurantApi.updateSettings({
@@ -166,7 +167,6 @@ export default function RestaurantSettingsForm() {
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList>
             <TabsTrigger value="general">{KA.settings.general}</TabsTrigger>
-            <TabsTrigger value="delivery">{KA.settings.delivery}</TabsTrigger>
             <TabsTrigger value="hours">{KA.settings.hours}</TabsTrigger>
           </TabsList>
 
@@ -289,60 +289,6 @@ export default function RestaurantSettingsForm() {
                     checked={settings.isOpen}
                     onCheckedChange={(v) => updateField("isOpen", v)}
                   />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="delivery">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {KA.settings.deliverySettings}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                  {KA.settings.deliveryAdminNote}
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="min-order">{KA.settings.minOrder}</Label>
-                    <Input
-                      id="min-order"
-                      type="number"
-                      min={0}
-                      step={0.5}
-                      value={settings.minimumOrder}
-                      onChange={(e) =>
-                        updateField("minimumOrder", Number(e.target.value))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{KA.settings.deliveryFee}</Label>
-                    <Input
-                      readOnly
-                      disabled
-                      value={settings.deliveryFee}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{KA.settings.deliveryFeePerKm}</Label>
-                    <Input
-                      readOnly
-                      disabled
-                      value={settings.deliveryFeePerKm}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{KA.settings.deliveryRadius}</Label>
-                    <Input
-                      readOnly
-                      disabled
-                      value={settings.deliveryRadius ?? "—"}
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>
