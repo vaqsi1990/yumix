@@ -22,7 +22,11 @@ type PendingPayload = {
   firstName: string;
   lastName: string;
   phone: string;
-  address: string;
+  address?: string;
+  city?: string;
+  street?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   birthDate: string;
   email: string;
   passwordHash: string;
@@ -79,7 +83,10 @@ export class AuthService {
       firstName: dto.firstName.trim(),
       lastName: dto.lastName.trim(),
       phone: dto.phone.trim(),
-      address: dto.address.trim(),
+      city: dto.city.trim(),
+      street: dto.street.trim(),
+      latitude: dto.latitude,
+      longitude: dto.longitude,
       birthDate: dto.birthDate.trim(),
       email: dto.email.trim().toLowerCase(),
       password: dto.password,
@@ -104,7 +111,10 @@ export class AuthService {
       firstName: data.firstName,
       lastName: data.lastName,
       phone: data.phone,
-      address: data.address,
+      city: data.city,
+      street: data.street,
+      latitude: data.latitude,
+      longitude: data.longitude,
       birthDate: data.birthDate,
       email: data.email,
       passwordHash,
@@ -178,12 +188,13 @@ export class AuthService {
       throw new ConflictException('ეს ანგარიში უკვე არსებობს');
     }
 
-    const parts = payload.address
+    const parts = (payload.address ?? '')
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean);
-    const city = parts[0] || 'თბილისი';
-    const street = parts.slice(1).join(', ') || payload.address;
+    const city = payload.city?.trim() || parts[0] || 'თბილისი';
+    const street =
+      payload.street?.trim() || parts.slice(1).join(', ') || payload.address || city;
 
     const user = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
@@ -201,6 +212,8 @@ export class AuthService {
               title: 'მთავარი',
               city,
               street,
+              latitude: payload.latitude ?? null,
+              longitude: payload.longitude ?? null,
               isDefault: true,
             },
           },

@@ -124,6 +124,10 @@ export class AddressesService {
 
   async remove(userId: string, addressId: string) {
     const address = await this.getOwned(userId, addressId);
+    const count = await this.prisma.address.count({ where: { userId } });
+    if (count <= 1) {
+      throw new BadRequestException('მინიმუმ ერთი მისამართი სავალდებულოა');
+    }
     const orderCount = await this.prisma.order.count({
       where: { addressId },
     });

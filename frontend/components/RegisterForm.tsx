@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/components/auth-context";
 import type { ApiUser } from "@/lib/api";
 import {
@@ -13,6 +14,11 @@ import {
   type RegisterFormValues,
   type VerifyRegisterFormValues,
 } from "@/lib/validation/auth";
+
+const LocationMapPicker = dynamic(
+  () => import("@/components/maps/LocationMapPicker"),
+  { ssr: false },
+);
 
 const inputClassName =
   "w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[#FF0050] focus:ring-2 focus:ring-[#FF0050]/20";
@@ -36,6 +42,8 @@ export default function RegisterForm() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -43,13 +51,21 @@ export default function RegisterForm() {
       firstName: "",
       lastName: "",
       phone: "",
-      address: "",
+      city: "თბილისი",
+      street: "",
+      latitude: undefined,
+      longitude: undefined,
       birthDate: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
+
+  const city = watch("city");
+  const street = watch("street");
+  const latitude = watch("latitude");
+  const longitude = watch("longitude");
 
   const {
     register: registerCode,
@@ -71,7 +87,10 @@ export default function RegisterForm() {
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),
         phone: values.phone.trim(),
-        address: values.address.trim(),
+        city: values.city.trim(),
+        street: values.street.trim(),
+        latitude: values.latitude,
+        longitude: values.longitude,
         birthDate: values.birthDate,
         email: values.email.trim(),
         password: values.password,
@@ -98,7 +117,10 @@ export default function RegisterForm() {
         firstName: values.firstName,
         lastName: values.lastName,
         phone: values.phone,
-        address: values.address,
+        city: values.city,
+        street: values.street,
+        latitude: values.latitude,
+        longitude: values.longitude,
         birthDate: values.birthDate,
         email: values.email,
         password: values.password,
@@ -338,19 +360,41 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label htmlFor="address" className={labelClassName}>
-            მისამართი
-          </label>
-          <input
-            id="address"
-            type="text"
-            autoComplete="street-address"
-            className={inputClassName}
-            placeholder="ქალაქი, ქუჩა, ნომერი"
-            {...register("address")}
+          <p className={labelClassName}>მისამართი რუკაზე</p>
+          <LocationMapPicker
+            city={city}
+            latitude={latitude != null ? String(latitude) : ""}
+            longitude={longitude != null ? String(longitude) : ""}
+            addressQuery={[street, city].filter(Boolean).join(", ")}
+            onChange={(lat, lng) => {
+              setValue("latitude", Number(lat), { shouldValidate: true });
+              setValue("longitude", Number(lng), { shouldValidate: true });
+            }}
+            onAddressResolved={(address) => {
+              if (address.street) {
+                setValue("street", address.street, { shouldValidate: true });
+              } else if (address.displayName) {
+                setValue("street", address.displayName, {
+                  shouldValidate: true,
+                });
+              }
+              if (address.city) {
+                setValue("city", address.city, { shouldValidate: true });
+              }
+            }}
           />
-          {errors.address && (
-            <p className="mt-1 text-xs text-red-500">{errors.address.message}</p>
+          {street ? (
+            <p className="mt-2 text-sm text-neutral-600">
+              {street}
+              {city ? `, ${city}` : ""}
+            </p>
+          ) : null}
+          {(errors.street || errors.latitude || errors.longitude) && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.street?.message ||
+                errors.latitude?.message ||
+                errors.longitude?.message}
+            </p>
           )}
         </div>
 

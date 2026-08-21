@@ -4,6 +4,7 @@ import AdminSettingsForm, {
 import PanelShell from "@/components/panels/PanelShell";
 import { requireAuth } from "@/lib/auth-guard";
 import { serverApiFetch } from "@/lib/session";
+import type { Address } from "@/lib/shop-api";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +13,26 @@ export default async function AdminSettingsPage() {
   await requireAuth(["ADMIN"]);
 
   let user: AdminProfile | null = null;
+  let address: Address | null = null;
   try {
-    const data = await serverApiFetch<{ user: AdminProfile }>("/admin/settings");
-    user = data.user;
+    const settingsData = await serverApiFetch<{ user: AdminProfile }>(
+      "/admin/settings",
+    );
+    user = settingsData.user;
   } catch {
     redirect("/admin");
+  }
+
+  try {
+    const addressData = await serverApiFetch<{ addresses: Address[] }>(
+      "/addresses",
+    );
+    address =
+      addressData.addresses.find((row) => row.isDefault) ??
+      addressData.addresses[0] ??
+      null;
+  } catch {
+    address = null;
   }
 
   if (!user) redirect("/admin");
@@ -27,7 +43,7 @@ export default async function AdminSettingsPage() {
       subtitle="შენი ანგარიშის მონაცემები"
       backHref="/admin"
     >
-      <AdminSettingsForm profile={user} />
+      <AdminSettingsForm profile={user} address={address} />
     </PanelShell>
   );
 }

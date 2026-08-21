@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { Save } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,31 @@ import ImageUploadField from "@/components/admin/restaurants/form/ImageUploadFie
 import { restaurantApi } from "@/lib/restaurant/api";
 import { KA, translateApiError } from "@/lib/restaurant/labels";
 import type { OwnerProfile } from "@/lib/restaurant/types";
+import {
+  createAddress,
+  fetchAddresses,
+  updateAddress,
+} from "@/lib/account-api";
+
+const LocationMapPicker = dynamic(
+  () => import("@/components/maps/LocationMapPicker"),
+  { ssr: false },
+);
+
+const EMPTY_ADDRESS = {
+  id: null as string | null,
+  title: "მთავარი",
+  city: "თბილისი",
+  street: "",
+  building: "",
+  apartment: "",
+  latitude: "",
+  longitude: "",
+};
 
 export default function ProfileForm() {
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
+  const [address, setAddress] = useState(EMPTY_ADDRESS);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,8 +49,28 @@ export default function ProfileForm() {
     setLoading(true);
     setError(null);
     try {
-      const res = await restaurantApi.account();
-      setProfile(res.user);
+      const [accountRes, addressRes] = await Promise.all([
+        restaurantApi.account(),
+        fetchAddresses(),
+      ]);
+      setProfile(accountRes.user);
+      const current =
+        addressRes.addresses.find((row) => row.isDefault) ??
+        addressRes.addresses[0];
+      if (current) {
+        setAddress({
+          id: current.id,
+          title: current.title || "მთავარი",
+          city: current.city || "თბილისი",
+          street: current.street,
+          building: current.building ?? "",
+          apartment: current.apartment ?? "",
+          latitude: current.latitude != null ? String(current.latitude) : "",
+          longitude: current.longitude != null ? String(current.longitude) : "",
+        });
+      } else {
+        setAddress(EMPTY_ADDRESS);
+      }
     } catch (e) {
       setError(
         translateApiError(e instanceof Error ? e.message : KA.failedLoad),
@@ -52,19 +95,50 @@ export default function ProfileForm() {
       alert(KA.enterCurrentPassword);
       return;
     }
+    const latitude = Number(address.latitude);
+    const longitude = Number(address.longitude);
+    if (
+      !address.street.trim() ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      alert("აირჩიე მისამართი რუკაზე");
+      return;
+    }
 
     try {
-      const res = await restaurantApi.updateAccount({
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        email: profile.email,
-        phone: profile.phone,
-        avatar: profile.avatar,
-        ...(password
-          ? { currentPassword, newPassword: password }
-          : {}),
-      });
-      setProfile(res.user);
+      const addressPayload = {
+        title: address.title || "მთავარი",
+        city: address.city.trim() || "თბილისი",
+        street: address.street.trim(),
+        building: address.building || null,
+        apartment: address.apartment || null,
+        latitude,
+        longitude,
+        isDefault: true,
+      };
+      const [{ user }, addressResult] = await Promise.all([
+        restaurantApi.updateAccount({
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          phone: profile.phone,
+          avatar: profile.avatar,
+          ...(password
+            ? { currentPassword, newPassword: password }
+            : {}),
+        }),
+        address.id
+          ? updateAddress(address.id, addressPayload)
+          : createAddress(addressPayload),
+      ]);
+      setProfile(user);
+      setAddress((prev) => ({
+        ...prev,
+        id: addressResult.address.id,
+        city: addressResult.address.city,
+        street: addressResult.address.street,
+      }));
       setPassword("");
       setConfirmPassword("");
       setCurrentPassword("");
@@ -171,6 +245,80 @@ export default function ProfileForm() {
                   setProfile((p) =>
                     p ? { ...p, phone: e.target.value } : p,
                   )
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{KA.profile.address}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="owner-city">{KA.settings.city}</Label>
+                <Input
+                  id="owner-city"
+                  value={address.city}
+                  onChange={(e) =>
+                    setAddress((a) => ({ ...a, city: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner-street">{KA.profile.street}</Label>
+                <Input
+                  id="owner-street"
+                  value={address.street}
+                  onChange={(e) =>
+                    setAddress((a) => ({ ...a, street: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner-building">{KA.profile.building}</Label>
+                <Input
+                  id="owner-building"
+                  value={address.building}
+                  onChange={(e) =>
+                    setAddress((a) => ({ ...a, building: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner-apt">{KA.profile.apartment}</Label>
+                <Input
+                  id="owner-apt"
+                  value={address.apartment}
+                  onChange={(e) =>
+                    setAddress((a) => ({ ...a, apartment: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{KA.profile.pickOnMap}</Label>
+              <p className="text-sm text-muted-foreground">
+                {KA.settings.mapLocationDesc}
+              </p>
+              <LocationMapPicker
+                city={address.city}
+                latitude={address.latitude}
+                longitude={address.longitude}
+                addressQuery={[address.street, address.city]
+                  .filter(Boolean)
+                  .join(", ")}
+                onChange={(lat, lng) =>
+                  setAddress((a) => ({ ...a, latitude: lat, longitude: lng }))
+                }
+                onAddressResolved={(resolved) =>
+                  setAddress((a) => ({
+                    ...a,
+                    street: resolved.street || a.street,
+                    city: resolved.city || a.city,
+                  }))
                 }
               />
             </div>

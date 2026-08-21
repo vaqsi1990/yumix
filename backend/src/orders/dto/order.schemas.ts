@@ -16,8 +16,8 @@ export const createAddressSchema = z.object({
   floor: z.string().nullable().optional(),
   apartment: z.string().nullable().optional(),
   postalCode: z.string().nullable().optional(),
-  latitude: z.number().nullable().optional(),
-  longitude: z.number().nullable().optional(),
+  latitude: z.number('აირჩიე მისამართი რუკაზე'),
+  longitude: z.number('აირჩიე მისამართი რუკაზე'),
   deliveryNote: z.string().nullable().optional(),
   isDefault: z.boolean().optional(),
 });

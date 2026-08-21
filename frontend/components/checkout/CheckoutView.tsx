@@ -21,6 +21,12 @@ import {
   createOrder,
   type Address,
 } from "@/lib/shop-api";
+import dynamic from "next/dynamic";
+
+const LocationMapPicker = dynamic(
+  () => import("@/components/maps/LocationMapPicker"),
+  { ssr: false },
+);
 
 type Totals = {
   subtotal: number;
@@ -58,6 +64,8 @@ export default function CheckoutView({
     building: "",
     apartment: "",
     deliveryNote: "",
+    latitude: "",
+    longitude: "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -66,24 +74,41 @@ export default function CheckoutView({
     cart.restaurant.minimumOrder != null &&
     totals.subtotal < cart.restaurant.minimumOrder;
 
+  function mapCoords() {
+    const latitude = Number(newAddress.latitude);
+    const longitude = Number(newAddress.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null;
+    }
+    return { latitude, longitude };
+  }
+
+  async function saveNewAddress(isDefault: boolean) {
+    const coords = mapCoords();
+    if (!newAddress.street.trim() || !coords) {
+      throw new Error("აირჩიე მისამართი რუკაზე");
+    }
+    return createAddress({
+      title: newAddress.title,
+      city: newAddress.city,
+      street: newAddress.street,
+      building: newAddress.building || null,
+      apartment: newAddress.apartment || null,
+      entrance: null,
+      floor: null,
+      postalCode: null,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      deliveryNote: newAddress.deliveryNote || null,
+      isDefault,
+    });
+  }
+
   async function handleCreateAddress() {
     setBusy(true);
     setError("");
     try {
-      const { address } = await createAddress({
-        title: newAddress.title,
-        city: newAddress.city,
-        street: newAddress.street,
-        building: newAddress.building || null,
-        apartment: newAddress.apartment || null,
-        entrance: null,
-        floor: null,
-        postalCode: null,
-        latitude: null,
-        longitude: null,
-        deliveryNote: newAddress.deliveryNote || null,
-        isDefault: addresses.length === 0,
-      });
+      const { address } = await saveNewAddress(addresses.length === 0);
       setAddresses((prev) => [...prev, address]);
       setAddressId(address.id);
       setShowNewAddress(false);
@@ -106,20 +131,7 @@ export default function CheckoutView({
     try {
       let finalAddressId = addressId;
       if (showNewAddress || !finalAddressId) {
-        const { address } = await createAddress({
-          title: newAddress.title,
-          city: newAddress.city,
-          street: newAddress.street,
-          building: newAddress.building || null,
-          apartment: newAddress.apartment || null,
-          entrance: null,
-          floor: null,
-          postalCode: null,
-          latitude: null,
-          longitude: null,
-          deliveryNote: newAddress.deliveryNote || null,
-          isDefault: true,
-        });
+        const { address } = await saveNewAddress(true);
         finalAddressId = address.id;
       }
 
@@ -211,6 +223,31 @@ export default function CheckoutView({
                   value={newAddress.apartment}
                   onChange={(e) =>
                     setNewAddress((a) => ({ ...a, apartment: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>აირჩიე რუკაზე *</Label>
+                <LocationMapPicker
+                  city={newAddress.city}
+                  latitude={newAddress.latitude}
+                  longitude={newAddress.longitude}
+                  addressQuery={[newAddress.street, newAddress.city]
+                    .filter(Boolean)
+                    .join(", ")}
+                  onChange={(lat, lng) =>
+                    setNewAddress((a) => ({
+                      ...a,
+                      latitude: lat,
+                      longitude: lng,
+                    }))
+                  }
+                  onAddressResolved={(address) =>
+                    setNewAddress((a) => ({
+                      ...a,
+                      street: address.street || a.street,
+                      city: address.city || a.city,
+                    }))
                   }
                 />
               </div>

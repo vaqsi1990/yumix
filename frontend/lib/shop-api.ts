@@ -100,8 +100,8 @@ export async function createAddress(payload: {
   floor?: string | null;
   apartment?: string | null;
   postalCode?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  latitude: number;
+  longitude: number;
   deliveryNote?: string | null;
   isDefault?: boolean;
 }) {

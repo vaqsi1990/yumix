@@ -17,7 +17,10 @@ export const registerSchema = z.object({
     .trim()
     .min(1, 'ტელეფონი სავალდებულოა')
     .regex(/^[\d+\s()-]{9,}$/, 'შეიყვანე სწორი ტელეფონის ნომერი'),
-  address: z.string().trim().min(1, 'მისამართი სავალდებულოა'),
+  city: z.string().trim().min(1, 'ქალაქი სავალდებულოა'),
+  street: z.string().trim().min(1, 'აირჩიე მისამართი რუკაზე'),
+  latitude: z.number('აირჩიე მისამართი რუკაზე'),
+  longitude: z.number('აირჩიე მისამართი რუკაზე'),
   birthDate: z.string().min(1, 'დაბადების თარიღი სავალდებულოა'),
   email: z
     .string()

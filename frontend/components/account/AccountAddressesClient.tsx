@@ -80,6 +80,10 @@ export default function AccountAddressesClient({
   }
 
   async function handleSave() {
+    if (!form.street.trim() || !form.latitude || !form.longitude) {
+      setError("აირჩიე მისამართი რუკაზე");
+      return;
+    }
     setBusy(true);
     setError("");
     const payload = {
@@ -91,8 +95,8 @@ export default function AccountAddressesClient({
       floor: form.floor || null,
       apartment: form.apartment || null,
       deliveryNote: form.deliveryNote || null,
-      latitude: form.latitude ? Number(form.latitude) : null,
-      longitude: form.longitude ? Number(form.longitude) : null,
+      latitude: Number(form.latitude),
+      longitude: Number(form.longitude),
       isDefault: addresses.length === 0,
     };
 
@@ -193,6 +197,7 @@ export default function AccountAddressesClient({
                   <Pencil className="size-4" />
                   რედაქტირება
                 </Button>
+                {addresses.length > 1 && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -202,6 +207,7 @@ export default function AccountAddressesClient({
                   <Trash2 className="size-4" />
                   წაშლა
                 </Button>
+                )}
               </div>
             </article>
           ))}
@@ -277,7 +283,7 @@ export default function AccountAddressesClient({
               />
             </div>
             <div>
-              <Label>აირჩიე რუკაზე</Label>
+              <Label>აირჩიე რუკაზე *</Label>
               <LocationMapPicker
                 city={form.city}
                 latitude={form.latitude}
