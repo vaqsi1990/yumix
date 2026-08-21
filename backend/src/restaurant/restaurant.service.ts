@@ -827,14 +827,25 @@ export class RestaurantPanelService {
         const rows = workingHours
           .map((row) => {
             const dayKey = String((row as { day?: string }).day ?? '');
-            const idx = DAY_INDEX[dayKey];
+            const idx = DAY_INDEX[dayKey] ?? DAY_INDEX[dayKey.toUpperCase()];
             if (idx === undefined) return null;
             return {
               restaurantId: restaurant.id,
               day: idx,
-              openTime: String((row as { open?: string; openTime?: string }).open ?? (row as { openTime?: string }).openTime ?? '10:00'),
-              closeTime: String((row as { close?: string; closeTime?: string }).close ?? (row as { closeTime?: string }).closeTime ?? '22:00'),
-              isClosed: Boolean((row as { closed?: boolean; isClosed?: boolean }).closed ?? (row as { isClosed?: boolean }).isClosed),
+              openTime: this.normalizeClock(
+                (row as { open?: string; openTime?: string }).open ??
+                  (row as { openTime?: string }).openTime,
+                '10:00',
+              ),
+              closeTime: this.normalizeClock(
+                (row as { close?: string; closeTime?: string }).close ??
+                  (row as { closeTime?: string }).closeTime,
+                '22:00',
+              ),
+              isClosed: Boolean(
+                (row as { closed?: boolean; isClosed?: boolean }).closed ??
+                  (row as { isClosed?: boolean }).isClosed,
+              ),
             };
           })
           .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -1064,12 +1075,15 @@ export class RestaurantPanelService {
       deliveryFee: restaurant.deliveryFee ?? 0,
       deliveryRadius: restaurant.deliveryRadius,
       isOpen: restaurant.isOpen,
-      workingHours: restaurant.workingHours.map((wh) => ({
-        day: DAY_NAMES[wh.day] ?? 'MONDAY',
-        open: wh.openTime,
-        close: wh.closeTime,
-        closed: wh.isClosed,
-      })),
+      workingHours: DAY_NAMES.map((name, idx) => {
+        const wh = restaurant.workingHours.find((row) => row.day === idx);
+        return {
+          day: name,
+          open: this.normalizeClock(wh?.openTime, '10:00'),
+          close: this.normalizeClock(wh?.closeTime, '22:00'),
+          closed: wh?.isClosed ?? false,
+        };
+      }),
     };
   }
 
@@ -1077,5 +1091,11 @@ export class RestaurantPanelService {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
+  }
+
+  private normalizeClock(value: string | undefined, fallback: string) {
+    const match = String(value ?? '').match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return fallback;
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
   }
 }

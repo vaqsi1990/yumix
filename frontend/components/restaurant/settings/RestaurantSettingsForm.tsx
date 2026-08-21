@@ -13,9 +13,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DAY_LABELS, KA, translateApiError } from "@/lib/restaurant/labels";
 import { restaurantApi } from "@/lib/restaurant/api";
-import type { RestaurantSettings, WorkingHour } from "@/lib/restaurant/types";
+import type { DayOfWeek, RestaurantSettings, WorkingHour } from "@/lib/restaurant/types";
 import LocationMapPicker from "@/components/maps/LocationMapPicker";
 import ImageUploadField from "@/components/admin/restaurants/form/ImageUploadField";
+import TimePickerInput from "@/components/admin/restaurants/form/TimePickerInput";
+
+const WEEK_DAYS: DayOfWeek[] = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+];
+
+function toTimeInput(value: string | undefined, fallback: string) {
+  const match = String(value ?? "").match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function withFullWeek(hours: WorkingHour[]): WorkingHour[] {
+  const byDay = new Map(hours.map((hour) => [hour.day, hour]));
+  return WEEK_DAYS.map((day) => {
+    const existing = byDay.get(day);
+    return {
+      day,
+      open: toTimeInput(existing?.open, "10:00"),
+      close: toTimeInput(existing?.close, "22:00"),
+      closed: existing?.closed ?? false,
+    };
+  });
+}
 
 export default function RestaurantSettingsForm() {
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
@@ -28,7 +58,10 @@ export default function RestaurantSettingsForm() {
     setError(null);
     try {
       const res = await restaurantApi.settings();
-      setSettings(res.settings);
+      setSettings({
+        ...res.settings,
+        workingHours: withFullWeek(res.settings.workingHours),
+      });
     } catch (e) {
       setError(
         translateApiError(e instanceof Error ? e.message : KA.failedLoad),
@@ -79,8 +112,14 @@ export default function RestaurantSettingsForm() {
     e.preventDefault();
     if (!settings) return;
     try {
-      const res = await restaurantApi.updateSettings(settings);
-      setSettings(res.settings);
+      const res = await restaurantApi.updateSettings({
+        ...settings,
+        workingHours: withFullWeek(settings.workingHours),
+      });
+      setSettings({
+        ...res.settings,
+        workingHours: withFullWeek(res.settings.workingHours),
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -306,7 +345,7 @@ export default function RestaurantSettingsForm() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="hours">
+          <TabsContent value="hours" forceMount className="data-[state=inactive]:hidden">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
@@ -314,12 +353,7 @@ export default function RestaurantSettingsForm() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {settings.workingHours.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {KA.settings.noWorkingHours}
-                  </p>
-                ) : (
-                  settings.workingHours.map((wh, index) => (
+                {settings.workingHours.map((wh, index) => (
                     <div
                       key={wh.day}
                       className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center"
@@ -328,24 +362,22 @@ export default function RestaurantSettingsForm() {
                         {DAY_LABELS[wh.day] ?? wh.day}
                       </div>
                       <div className="flex flex-1 flex-wrap items-center gap-3">
-                        <Input
-                          type="time"
+                        <TimePickerInput
                           value={wh.open}
                           disabled={wh.closed}
-                          onChange={(e) =>
-                            updateWorkingHour(index, { open: e.target.value })
+                          onChange={(open) =>
+                            updateWorkingHour(index, { open })
                           }
-                          className="w-32"
+                          className="w-36"
                         />
                         <span className="text-muted-foreground">–</span>
-                        <Input
-                          type="time"
+                        <TimePickerInput
                           value={wh.close}
                           disabled={wh.closed}
-                          onChange={(e) =>
-                            updateWorkingHour(index, { close: e.target.value })
+                          onChange={(close) =>
+                            updateWorkingHour(index, { close })
                           }
-                          className="w-32"
+                          className="w-36"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -360,8 +392,7 @@ export default function RestaurantSettingsForm() {
                         </span>
                       </div>
                     </div>
-                  ))
-                )}
+                  ))}
               </CardContent>
             </Card>
           </TabsContent>
