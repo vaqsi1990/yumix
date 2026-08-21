@@ -7,6 +7,7 @@ import type {
   PublicMenuProduct,
   PublicRestaurantDetail,
 } from "@/lib/restaurants";
+import { sortMenuCategories } from "@/lib/menu-category-order";
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -55,13 +56,15 @@ const pageContainerClass =
 
 export default function RestaurantMenuView({
   restaurant,
-  menu,
+  menu: rawMenu,
   onProductClick,
 }: {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
   onProductClick?: (product: PublicMenuProduct, variantId?: string) => void;
 }) {
+  const menu = sortMenuCategories(rawMenu);
+
   return (
     <div className="pb-12">
       <div className="relative h-48 w-full bg-neutral-200 sm:h-56 lg:h-64">

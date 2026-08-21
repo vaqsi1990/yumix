@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { sortVariantsBySize } from '../common/product-sizes';
+import { sortMenuCategories } from '../common/menu-category-order';
 import {
   collectTasteSlugs,
   tasteKeywordsForSlugs,
@@ -408,7 +409,11 @@ export class ShopService {
       isOpen: restaurant.isOpen,
     };
 
-    const menu = restaurant.productCategories
+    const menu = sortMenuCategories(
+      restaurant.productCategories,
+      (category) =>
+        category.products.map((product) => product.foodType ?? '').join(' '),
+    )
       .map((category) => ({
         id: category.id,
         name: category.name,
