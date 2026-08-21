@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE, getApiBaseUrl } from "@/lib/api";
+import { AUTH_COOKIE, authCookieOptions, getApiBaseUrl } from "@/lib/api";
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: 60 * 60 * 24 * 7,
-};
+const cookieOptions = authCookieOptions();
 
 export async function POST(request: Request) {
   try {

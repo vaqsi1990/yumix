@@ -1,5 +1,18 @@
 export const AUTH_COOKIE = "yumix_token";
 
+/** Keep the session cookie as long as the browser allows (Chrome caps ~400 days). */
+export const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 10;
+
+export function authCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: AUTH_COOKIE_MAX_AGE,
+  };
+}
+
 export function getApiBaseUrl() {
   return (
     process.env.API_URL?.replace(/\/$/, "") ||

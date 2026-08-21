@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE, getApiBaseUrl } from "@/lib/api";
+import { AUTH_COOKIE, authCookieOptions, getApiBaseUrl } from "@/lib/api";
 
 async function proxy(request: NextRequest, path: string[]) {
   const target = `${getApiBaseUrl()}/${path.join("/")}${request.nextUrl.search}`;
@@ -25,12 +25,18 @@ async function proxy(request: NextRequest, path: string[]) {
   });
 
   const text = await res.text();
-  return new NextResponse(text, {
+  const response = new NextResponse(text, {
     status: res.status,
     headers: {
       "content-type": res.headers.get("content-type") ?? "application/json",
     },
   });
+
+  if (token && res.status !== 401) {
+    response.cookies.set(AUTH_COOKIE, token, authCookieOptions());
+  }
+
+  return response;
 }
 
 type Ctx = { params: Promise<{ path: string[] }> };
