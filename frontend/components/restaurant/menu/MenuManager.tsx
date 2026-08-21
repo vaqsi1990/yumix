@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Eye, EyeOff, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
-import MenuCategoryDialog from "@/components/restaurant/menu/MenuCategoryDialog";
 import ProductDialog from "@/components/restaurant/products/ProductDialog";
 import ConfirmDialog from "@/components/restaurant/ConfirmDialog";
 import EmptyState from "@/components/restaurant/EmptyState";
@@ -13,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { restaurantApi } from "@/lib/restaurant/api";
 import { formatCurrency } from "@/lib/restaurant/format";
+import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
 import {
   KA,
   PRODUCT_AVAILABILITY_LABELS,
@@ -47,12 +47,6 @@ export default function MenuManager() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(
-    null,
-  );
-  const [deleteCategoryTarget, setDeleteCategoryTarget] =
-    useState<MenuCategory | null>(null);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<RestaurantProduct | null>(
     null,
@@ -66,8 +60,10 @@ export default function MenuManager() {
     setError(null);
     try {
       const res = await restaurantApi.menu();
-      setCategories(normalizeMenuCategories(res.menu ?? []));
-      setProductCategories(normalizeProductCategories(res.categories));
+      setCategories(onlyStandardMenuCategories(normalizeMenuCategories(res.menu ?? [])));
+      setProductCategories(
+        onlyStandardMenuCategories(normalizeProductCategories(res.categories)),
+      );
     } catch (e) {
       setError(
         translateApiError(e instanceof Error ? e.message : KA.failedLoad),
@@ -80,56 +76,6 @@ export default function MenuManager() {
   useEffect(() => {
     loadMenu();
   }, [loadMenu]);
-
-  async function handleSaveCategory(data: {
-    name: string;
-    description?: string;
-    image?: string;
-    visible: boolean;
-    sortOrder: number;
-  }) {
-    try {
-      if (editingCategory) {
-        await restaurantApi.updateCategory(editingCategory.id, {
-          name: data.name,
-          sortOrder: data.sortOrder,
-        });
-      } else {
-        await restaurantApi.createCategory({
-          name: data.name,
-          sortOrder: data.sortOrder,
-        });
-      }
-      await loadMenu();
-      setEditingCategory(null);
-    } catch (e) {
-      alert(
-        translateApiError(e instanceof Error ? e.message : KA.failedSave),
-      );
-    }
-  }
-
-  async function handleDeleteCategory() {
-    if (!deleteCategoryTarget) return;
-    if (deleteCategoryTarget.productsCount > 0) {
-      alert(
-        KA.menu.deleteCategoryBlocked
-          .replace("{name}", deleteCategoryTarget.name)
-          .replace("{count}", String(deleteCategoryTarget.productsCount)),
-      );
-      setDeleteCategoryTarget(null);
-      return;
-    }
-    try {
-      await restaurantApi.deleteCategory(deleteCategoryTarget.id);
-      await loadMenu();
-      setDeleteCategoryTarget(null);
-    } catch (e) {
-      alert(
-        translateApiError(e instanceof Error ? e.message : KA.failedDelete),
-      );
-    }
-  }
 
   async function handleToggleVisibility(category: MenuCategory) {
     try {
@@ -205,17 +151,6 @@ export default function MenuManager() {
       <PageHeader
         title={KA.menu.title}
         description={KA.menu.subtitle}
-        actions={
-          <Button
-            onClick={() => {
-              setEditingCategory(null);
-              setCategoryDialogOpen(true);
-            }}
-          >
-            <Plus className="size-4" />
-             {KA.menu.createCategory}
-          </Button>
-        }
       />
 
       {categories.length === 0 ? (
@@ -223,8 +158,6 @@ export default function MenuManager() {
           icon={UtensilsCrossed}
           title={KA.menu.empty}
           description={KA.menu.emptyDesc}
-          actionLabel={KA.menu.createCategory}
-          onAction={() => setCategoryDialogOpen(true)}
         />
       ) : (
         <div className="space-y-4">
@@ -254,17 +187,6 @@ export default function MenuManager() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        setEditingCategory(category);
-                        setCategoryDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="size-4" />
-                      {KA.edit}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
                       onClick={() => handleToggleVisibility(category)}
                     >
                       {category.visible ? (
@@ -278,15 +200,6 @@ export default function MenuManager() {
                           {KA.menu.show}
                         </>
                       )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleteCategoryTarget(category)}
-                    >
-                      <Trash2 className="size-4" />
-                      {KA.delete}
                     </Button>
                   </div>
                 </div>
@@ -376,34 +289,14 @@ export default function MenuManager() {
         </div>
       )}
 
-      <MenuCategoryDialog
-        open={categoryDialogOpen}
-        onOpenChange={setCategoryDialogOpen}
-        category={editingCategory}
-        onSave={handleSaveCategory}
-      />
-
       <ProductDialog
+        key={editingProduct?.id ?? `new-${defaultCategoryId ?? "none"}`}
         open={productDialogOpen}
         onOpenChange={setProductDialogOpen}
         product={editingProduct}
         categories={productCategories}
         defaultCategoryId={defaultCategoryId}
         onSave={handleSaveProduct}
-      />
-
-      <ConfirmDialog
-        open={!!deleteCategoryTarget}
-        onOpenChange={(open) => !open && setDeleteCategoryTarget(null)}
-        title={KA.menu.deleteTitle}
-        description={
-          deleteCategoryTarget
-            ? KA.menu.deleteDesc.replace("{name}", deleteCategoryTarget.name)
-            : ""
-        }
-        confirmLabel={KA.delete}
-        variant="destructive"
-        onConfirm={handleDeleteCategory}
       />
 
       <ConfirmDialog

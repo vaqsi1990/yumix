@@ -1,56 +1,64 @@
-/** Public restaurant menu: food → dessert → snacks → drinks. */
-const MENU_GROUP_KEYWORDS: { rank: number; keywords: string[] }[] = [
+export const STANDARD_MENU_CATEGORIES = [
+  { name: "ძირითადი კერძები", aliases: ["საჭმელ", "ცხელი კერძ", "main"] },
+  { name: "ცომეული", aliases: ["ცომეულ", "პიცა", "ხაჭაპურ", "pizza"] },
   {
-    rank: 3,
-    keywords: [
-      "სასმელ",
-      "drink",
-      "ყავ",
-      "ჩაი",
-      "coffee",
-      "tea",
-      "cocktail",
-      "კოქტ",
-    ],
+    name: "აპეტაიზერი",
+    aliases: ["აპეტაიზ", "სნექ", "snack", "appetizer", "starter"],
   },
-  { rank: 2, keywords: ["სნექ", "snack"] },
+  { name: "სალათები", aliases: ["სალათ", "salad"] },
+  { name: "პასტა", aliases: ["პასტ", "pasta"] },
+  { name: "წვნიანი", aliases: ["წვნიან", "სუპ", "soup"] },
+  { name: "გარნირი", aliases: ["გარნირ", "garnish", "side"] },
+  { name: "სოუსები", aliases: ["სოუს", "sauce"] },
+  { name: "დესერტი", aliases: ["დესერტ", "dessert", "ტკბილ", "ტორტ", "cake"] },
   {
-    rank: 1,
-    keywords: [
-      "დესერტ",
-      "dessert",
-      "ტკბილ",
-      "ტორტ",
-      "cake",
-      "ice cream",
-      "ყინულ",
-    ],
+    name: "სასმელები",
+    aliases: ["სასმელ", "drink", "beverage", "ყავა", "ჩაი", "წვენი", "ლიმონათი", "cola", "coffee", "juice"],
   },
-  { rank: 4, keywords: ["სოუს", "sauce"] },
-];
+] as const;
 
-export function menuCategoryRank(text: string) {
-  const hay = text.toLowerCase();
-  for (const group of MENU_GROUP_KEYWORDS) {
-    if (group.keywords.some((keyword) => hay.includes(keyword.toLowerCase()))) {
-      return group.rank;
-    }
-  }
-  return 0;
+export function isStandardMenuCategory(name: string) {
+  return STANDARD_MENU_CATEGORIES.some((category) => category.name === name);
+}
+
+export function matchStandardMenuCategory(name: string) {
+  const trimmed = name.trim();
+  const exact = STANDARD_MENU_CATEGORIES.find(
+    (category) => category.name === trimmed,
+  );
+  if (exact) return exact;
+
+  const hay = trimmed.toLowerCase();
+  return (
+    STANDARD_MENU_CATEGORIES.find((category) =>
+      category.aliases.some((alias) => hay.includes(alias.toLowerCase())),
+    ) ?? null
+  );
+}
+
+export function menuCategoryRank(name: string) {
+  const matched = matchStandardMenuCategory(name);
+  if (!matched) return STANDARD_MENU_CATEGORIES.length;
+  return STANDARD_MENU_CATEGORIES.findIndex(
+    (category) => category.name === matched.name,
+  );
 }
 
 export function sortMenuCategories<T extends { name: string; sortOrder?: number }>(
   categories: T[],
-  extraText?: (category: T) => string,
 ) {
   return [...categories].sort((a, b) => {
-    const rankA = menuCategoryRank(
-      [a.name, extraText?.(a) ?? ""].filter(Boolean).join(" "),
-    );
-    const rankB = menuCategoryRank(
-      [b.name, extraText?.(b) ?? ""].filter(Boolean).join(" "),
-    );
+    const rankA = menuCategoryRank(a.name);
+    const rankB = menuCategoryRank(b.name);
     if (rankA !== rankB) return rankA - rankB;
     return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
   });
+}
+
+export function onlyStandardMenuCategories<
+  T extends { name: string; sortOrder?: number },
+>(categories: T[]) {
+  return sortMenuCategories(
+    categories.filter((category) => isStandardMenuCategory(category.name)),
+  );
 }

@@ -14,6 +14,14 @@ import {
 import { sanitizeCustomizationGroups } from '../common/customization.utils';
 import { orderInclude } from '../common/order.utils';
 import { parseAddonCategory } from '../common/addon-categories';
+import {
+  ensureAllRestaurantMenuCategories,
+  ensureStandardMenuCategories,
+} from '../common/ensure-menu-categories';
+import {
+  isStandardMenuCategory,
+  onlyStandardMenuCategories,
+} from '../common/menu-category-order';
 import type { OrderStatus } from '../generated/prisma/client';
 
 const ROLES = ['USER', 'COURIER', 'RESTAURANT_OWNER', 'ADMIN'] as const;
@@ -592,6 +600,8 @@ export class AdminService {
 
       return created;
     });
+
+    await ensureStandardMenuCategories(this.prisma, restaurant.id);
 
     return { restaurant };
   }
@@ -1405,6 +1415,11 @@ export class AdminService {
   // ─── Product Categories (menu sections) ──────────────────────
 
   async listProductCategories(restaurantId?: string) {
+    if (restaurantId) {
+      await ensureStandardMenuCategories(this.prisma, restaurantId);
+    } else {
+      await ensureAllRestaurantMenuCategories(this.prisma);
+    }
     const categories = await this.prisma.productCategory.findMany({
       where: restaurantId ? { restaurantId } : undefined,
       select: {
@@ -1412,39 +1427,19 @@ export class AdminService {
         restaurantId: true,
         name: true,
         sortOrder: true,
-        _count: { select: { products: true } },
+        _count: { select: { products: { where: { deletedAt: null } } } },
       },
       orderBy: [{ restaurantId: 'asc' }, { sortOrder: 'asc' }],
     });
-    return { categories };
+    return {
+      categories: onlyStandardMenuCategories(categories),
+    };
   }
 
 
 
-  async createProductCategory(input: ProductCategoryWriteInput) {
-    if (!input.restaurantId) {
-      throw new BadRequestException('აირჩიე რესტორანი');
-    }
-    if (!input.name?.trim()) {
-      throw new BadRequestException('კატეგორიის სახელი სავალდებულოა');
-    }
-
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { id: input.restaurantId },
-    });
-    if (!restaurant) {
-      throw new NotFoundException('რესტორანი ვერ მოიძებნა');
-    }
-
-    const category = await this.prisma.productCategory.create({
-      data: {
-        restaurantId: input.restaurantId,
-        name: input.name.trim(),
-        sortOrder: input.sortOrder ?? 0,
-      },
-    });
-
-    return { category };
+  async createProductCategory(_input: ProductCategoryWriteInput) {
+    throw new BadRequestException('კატეგორიების ხელით დამატება არ შეიძლება');
   }
 
   async updateProductCategory(
@@ -1477,6 +1472,9 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException('კატეგორია ვერ მოიძებნა');
     }
+    if (isStandardMenuCategory(existing.name)) {
+      throw new BadRequestException('სტანდარტული კატეგორია არ იშლება');
+    }
     if (existing._count.products > 0) {
       throw new BadRequestException(
         'კატეგორიაში პროდუქტებია — ჯერ წაშალე ან გადაიტანე ისინი',
@@ -1496,11 +1494,14 @@ export class AdminService {
       throw new NotFoundException('რესტორანი ვერ მოიძებნა');
     }
 
+    await ensureStandardMenuCategories(this.prisma, restaurantId);
+
     const categories = await this.prisma.productCategory.findMany({
       where: { restaurantId },
       orderBy: { sortOrder: 'asc' },
       include: {
         products: {
+          where: { deletedAt: null },
           orderBy: { name: 'asc' },
           include: productInclude,
         },
@@ -1509,7 +1510,7 @@ export class AdminService {
 
     return {
       restaurant,
-      menu: categories.map((category) => ({
+      menu: onlyStandardMenuCategories(categories).map((category) => ({
         id: category.id,
         name: category.name,
         sortOrder: category.sortOrder,
@@ -1668,8 +1669,10 @@ export class AdminService {
   }
 
   async listProducts() {
+    await ensureAllRestaurantMenuCategories(this.prisma);
     const [products, restaurants, categories] = await Promise.all([
       this.prisma.product.findMany({
+        where: { deletedAt: null },
         include: productInclude,
         orderBy: { createdAt: 'desc' },
       }),
@@ -1690,7 +1693,7 @@ export class AdminService {
     return {
       products: products.map((p) => this.mapProduct(p)),
       restaurants,
-      categories,
+      categories: onlyStandardMenuCategories(categories),
     };
   }
 
@@ -1704,6 +1707,7 @@ export class AdminService {
   }
 
   async createProduct(input: ProductWriteInput) {
+    await ensureStandardMenuCategories(this.prisma, input.restaurantId);
     await this.assertCategoryBelongsToRestaurant(
       input.categoryId,
       input.restaurantId,
@@ -1728,6 +1732,7 @@ export class AdminService {
   }
 
   async updateProduct(id: string, input: ProductWriteInput) {
+    await ensureStandardMenuCategories(this.prisma, input.restaurantId);
     await this.assertCategoryBelongsToRestaurant(
       input.categoryId,
       input.restaurantId,
@@ -1771,9 +1776,66 @@ export class AdminService {
   }
 
   async deleteProduct(id: string) {
-    const existing = await this.prisma.product.findUnique({ where: { id } });
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        variants: { select: { id: true } },
+        customizationGroups: {
+          select: { options: { select: { id: true } } },
+        },
+      },
+    });
     if (!existing) throw new NotFoundException('პროდუქტი არ მოიძებნა');
-    await this.prisma.product.delete({ where: { id } });
+    if (existing.deletedAt) return { deleted: true };
+
+    const variantIds = existing.variants.map((variant) => variant.id);
+    const optionIds = existing.customizationGroups.flatMap((group) =>
+      group.options.map((option) => option.id),
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      if (optionIds.length > 0) {
+        await tx.cartItemCustomization.deleteMany({
+          where: { optionId: { in: optionIds } },
+        });
+      }
+      await tx.cartItem.deleteMany({
+        where: {
+          OR: [
+            { productId: id },
+            ...(variantIds.length ? [{ variantId: { in: variantIds } }] : []),
+          ],
+        },
+      });
+      await tx.favoriteProduct.deleteMany({ where: { productId: id } });
+
+      const [orderItems, orderVariants, orderOptions] = await Promise.all([
+        tx.orderItem.count({ where: { productId: id } }),
+        variantIds.length
+          ? tx.orderItem.count({ where: { variantId: { in: variantIds } } })
+          : Promise.resolve(0),
+        optionIds.length
+          ? tx.orderItemCustomization.count({
+              where: { optionId: { in: optionIds } },
+            })
+          : Promise.resolve(0),
+      ]);
+
+      if (orderItems + orderVariants + orderOptions > 0) {
+        await tx.product.update({
+          where: { id },
+          data: {
+            deletedAt: new Date(),
+            isHidden: true,
+            isAvailable: false,
+          },
+        });
+        return;
+      }
+
+      await tx.product.delete({ where: { id } });
+    });
+
     return { deleted: true };
   }
 

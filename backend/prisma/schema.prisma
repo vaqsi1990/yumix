@@ -216,6 +216,7 @@ model Product {
   isHidden        Boolean         @default(false)
   outOfStock      Boolean         @default(false)
   isAvailable     Boolean         @default(true)
+  deletedAt       DateTime?
 
   variants            ProductVariant[]
   customizationGroups ProductCustomizationGroup[]

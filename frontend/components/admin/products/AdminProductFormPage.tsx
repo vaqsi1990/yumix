@@ -120,6 +120,7 @@ export default function AdminProductFormPage({
 
   return (
     <ProductFormView
+      key={productId ?? `new-${initialRestaurantId}-${initialCategoryId}`}
       product={product}
       restaurants={restaurants}
       categories={categories}

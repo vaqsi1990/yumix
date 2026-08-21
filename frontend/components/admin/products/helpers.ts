@@ -1,3 +1,5 @@
+import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
+
 export function getRestaurantName(
   id: string,
   restaurants: { id: string; name: string }[],
@@ -13,8 +15,10 @@ export function getCategoryName(
 }
 
 export function getCategoriesForRestaurant<
-  T extends { restaurantId: string },
+  T extends { restaurantId: string; name: string; sortOrder?: number },
 >(restaurantId: string, categories: T[]): T[] {
-  if (!restaurantId) return categories;
-  return categories.filter((c) => c.restaurantId === restaurantId);
+  const scoped = restaurantId
+    ? categories.filter((c) => c.restaurantId === restaurantId)
+    : categories;
+  return onlyStandardMenuCategories(scoped);
 }

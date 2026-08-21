@@ -10,6 +10,12 @@ import {
   type ProductWriteInput,
 } from '../admin/admin.service';
 import { sortVariantsBySize } from '../common/product-sizes';
+import { ensureStandardMenuCategories } from '../common/ensure-menu-categories';
+import {
+  isStandardMenuCategory,
+  onlyStandardMenuCategories,
+} from '../common/menu-category-order';
+import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
 import type { OrderStatus, Prisma } from '../generated/prisma/client';
 
 const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
@@ -389,11 +395,13 @@ export class RestaurantPanelService {
 
   async getMenu(userId: string, role: string) {
     const restaurant = await this.getOwnedRestaurant(userId, role);
+    await ensureStandardMenuCategories(this.prisma, restaurant.id);
     const categories = await this.prisma.productCategory.findMany({
       where: { restaurantId: restaurant.id },
       orderBy: { sortOrder: 'asc' },
       include: {
         products: {
+          where: { deletedAt: null },
           include: {
             category: true,
             variants: { orderBy: { name: 'asc' } },
@@ -406,31 +414,36 @@ export class RestaurantPanelService {
           },
           orderBy: { name: 'asc' },
         },
-        _count: { select: { products: true } },
+        _count: { select: { products: { where: { deletedAt: null } } } },
       },
     });
 
+    const ordered = onlyStandardMenuCategories(categories);
+
     return {
       restaurant,
-      categories: categories.map((cat) => ({
+      categories: ordered.map((cat) => ({
         id: cat.id,
         restaurantId: restaurant.id,
         name: cat.name,
         sortOrder: cat.sortOrder,
         _count: cat._count,
       })),
-      menu: categories.map((cat) => {
-        const products = cat.products.map((p) => this.mapProduct(p));
+      menu: ordered.map((cat) => {
+        const products = cat.products
+          .filter((p) => p.name !== ADDON_CARRIER_PRODUCT_NAME)
+          .map((p) => this.mapProduct(p));
         const visibleProducts = products.filter((p) => !p.isHidden);
         const coverProduct = visibleProducts[0] ?? products[0] ?? null;
+        const isStandard = isStandardMenuCategory(cat.name);
         return {
           id: cat.id,
           name: cat.name,
           description: null,
           image: coverProduct?.image ?? null,
-          productsCount: cat._count.products,
+          productsCount: products.length,
           sortOrder: cat.sortOrder,
-          visible: visibleProducts.length > 0,
+          visible: isStandard || visibleProducts.length > 0,
           products,
         };
       }),
@@ -439,23 +452,19 @@ export class RestaurantPanelService {
 
   async getCategories(userId: string, role: string) {
     const restaurant = await this.getOwnedRestaurant(userId, role);
+    await ensureStandardMenuCategories(this.prisma, restaurant.id);
     const { categories } = await this.admin.listProductCategories(
       restaurant.id,
     );
-    return { restaurant, categories };
+    return { restaurant, categories: onlyStandardMenuCategories(categories) };
   }
 
   async createCategory(
-    userId: string,
-    role: string,
-    body: { name: string; sortOrder?: number },
+    _userId: string,
+    _role: string,
+    _body: { name: string; sortOrder?: number },
   ) {
-    const restaurant = await this.getOwnedRestaurant(userId, role);
-    return this.admin.createProductCategory({
-      restaurantId: restaurant.id,
-      name: body.name,
-      sortOrder: body.sortOrder,
-    });
+    throw new BadRequestException('კატეგორიების ხელით დამატება არ შეიძლება');
   }
 
   async updateCategory(
@@ -469,6 +478,9 @@ export class RestaurantPanelService {
       where: { id, restaurantId: restaurant.id },
     });
     if (!existing) throw new NotFoundException('კატეგორია ვერ მოიძებნა');
+    if (isStandardMenuCategory(existing.name) && body.name && body.name !== existing.name) {
+      throw new BadRequestException('სტანდარტული კატეგორიის სახელი არ იცვლება');
+    }
     return this.admin.updateProductCategory(id, body);
   }
 
@@ -478,6 +490,9 @@ export class RestaurantPanelService {
       where: { id, restaurantId: restaurant.id },
     });
     if (!existing) throw new NotFoundException('კატეგორია ვერ მოიძებნა');
+    if (isStandardMenuCategory(existing.name)) {
+      throw new BadRequestException('სტანდარტული კატეგორია არ იშლება');
+    }
     return this.admin.deleteProductCategory(id);
   }
 
@@ -525,8 +540,9 @@ export class RestaurantPanelService {
 
   async getProducts(userId: string, role: string) {
     const restaurant = await this.getOwnedRestaurant(userId, role);
+    await ensureStandardMenuCategories(this.prisma, restaurant.id);
     const products = await this.prisma.product.findMany({
-      where: { restaurantId: restaurant.id },
+      where: { restaurantId: restaurant.id, deletedAt: null },
       include: {
         category: true,
         variants: { orderBy: { name: 'asc' } },
@@ -547,7 +563,7 @@ export class RestaurantPanelService {
     return {
       restaurant,
       products: products.map((p) => this.mapProduct(p)),
-      categories,
+      categories: onlyStandardMenuCategories(categories),
     };
   }
 
@@ -590,6 +606,7 @@ export class RestaurantPanelService {
       where: { id, restaurantId: restaurant.id },
     });
     if (!existing) throw new NotFoundException('პროდუქტი ვერ მოიძებნა');
+    if (existing.deletedAt) return { deleted: true };
     return this.admin.deleteProduct(id);
   }
 

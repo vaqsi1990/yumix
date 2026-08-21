@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { restaurantApi } from "@/lib/restaurant/api";
 import { KA, translateApiError } from "@/lib/restaurant/labels";
+import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
 import type {
   ProductCategory,
   ProductWritePayload,
@@ -40,7 +41,7 @@ export default function ProductsManager() {
     try {
       const res = await restaurantApi.products();
       setProducts(res.products);
-      setCategories(res.categories);
+      setCategories(onlyStandardMenuCategories(res.categories));
     } catch (e) {
       setError(
         translateApiError(e instanceof Error ? e.message : KA.failedLoad),
@@ -186,6 +187,7 @@ export default function ProductsManager() {
       )}
 
       <ProductDialog
+        key={editing?.id ?? "new"}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         product={editing}

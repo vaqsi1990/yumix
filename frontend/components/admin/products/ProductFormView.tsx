@@ -58,7 +58,6 @@ export default function ProductFormView({
   saving = false,
   onSave,
   onCancel,
-  onCategoriesChange,
 }: ProductFormViewProps) {
   const [form, setForm] = useState<ProductFormData>(() =>
     product
@@ -68,9 +67,6 @@ export default function ProductFormView({
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [localCategories, setLocalCategories] = useState(categories);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [creatingCategory, setCreatingCategory] = useState(false);
-  const [categoryError, setCategoryError] = useState("");
 
   useEffect(() => {
     setLocalCategories(categories);
@@ -132,7 +128,7 @@ export default function ProductFormView({
       return false;
     }
     if (scopedCategories.length === 0 && form.restaurantId) {
-      const message = "ჯერ შექმენი მენიუს კატეგორია (მაგ: პიცა, სალათები)";
+      const message = "ამ რესტორნის კატეგორიები ჯერ არ ჩაიტვირთა";
       setFieldErrors({ categoryId: message });
       setError(message);
       return false;
@@ -140,40 +136,6 @@ export default function ProductFormView({
     setFieldErrors({});
     setError("");
     return true;
-  }
-
-  async function handleCreateCategory() {
-    if (!form.restaurantId || !newCategoryName.trim()) return;
-    setCreatingCategory(true);
-    setCategoryError("");
-    try {
-      const res = await fetch("/api/backend/admin/product-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          restaurantId: form.restaurantId,
-          name: newCategoryName.trim(),
-          sortOrder: scopedCategories.length,
-        }),
-      });
-      if (!res.ok) {
-        const data = (await res.json()) as { message?: string; error?: string };
-        setCategoryError(data.message ?? data.error ?? "კატეგორიის შექმნა ვერ მოხერხდა");
-        return;
-      }
-      const data = (await res.json()) as {
-        category: AdminCategory;
-      };
-      const nextCategories = [...localCategories, data.category];
-      setLocalCategories(nextCategories);
-      onCategoriesChange?.(nextCategories);
-      updateField("categoryId", data.category.id);
-      setNewCategoryName("");
-    } catch {
-      setCategoryError("კატეგორიის შექმნა ვერ მოხერხდა");
-    } finally {
-      setCreatingCategory(false);
-    }
   }
 
   async function handleSave() {
@@ -304,7 +266,7 @@ export default function ProductFormView({
                       placeholder={
                         form.restaurantId
                           ? scopedCategories.length === 0
-                            ? "კატეგორიები არ არის — შექმენი ქვემოთ"
+                            ? "კატეგორიები იტვირთება..."
                             : "აირჩიე კატეგორია"
                           : "ჯერ აირჩიე რესტორანი"
                       }
@@ -322,33 +284,6 @@ export default function ProductFormView({
                   <p className="text-[16px] md:text-[18px] text-destructive">
                     {fieldErrors.categoryId}
                   </p>
-                )}
-                {form.restaurantId && (
-                  <div className="flex gap-2 pt-1">
-                    <Input
-                      placeholder="ახალი მენიუს კატეგორია, მაგ: პიცა"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void handleCreateCategory();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="shrink-0"
-                      disabled={creatingCategory || !newCategoryName.trim()}
-                      onClick={() => void handleCreateCategory()}
-                    >
-                      {creatingCategory ? "..." : "დამატება"}
-                    </Button>
-                  </div>
-                )}
-                {categoryError && (
-                  <p className="text-[16px] md:text-[18px] text-destructive">{categoryError}</p>
                 )}
               </div>
             </div>

@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { sortVariantsBySize } from '../common/product-sizes';
-import { sortMenuCategories } from '../common/menu-category-order';
+import { onlyStandardMenuCategories } from '../common/menu-category-order';
+import {
+  ensureAllRestaurantMenuCategories,
+  ensureStandardMenuCategories,
+} from '../common/ensure-menu-categories';
 import {
   collectTasteSlugs,
   tasteKeywordsForSlugs,
@@ -177,6 +181,7 @@ export class ShopService {
             some: {
               isHidden: false,
               isAvailable: true,
+              deletedAt: null,
               OR: this.menuKeywordFilters(normalized),
             },
           },
@@ -218,6 +223,7 @@ export class ShopService {
   }
 
   async getPublicRestaurants(query?: string) {
+    await ensureAllRestaurantMenuCategories(this.prisma);
     const q = query?.trim();
 
     const [db, totalInDb, pendingCount] = await Promise.all([
@@ -332,6 +338,17 @@ export class ShopService {
   }
 
   async getRestaurantMenu(slug: string, options?: { includeUnapproved?: boolean }) {
+    const existing = await this.prisma.restaurant.findFirst({
+      where: {
+        slug,
+        ...(options?.includeUnapproved ? {} : { isApproved: true }),
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      await ensureStandardMenuCategories(this.prisma, existing.id);
+    }
+
     const restaurant = await this.prisma.restaurant.findFirst({
       where: {
         slug,
@@ -346,7 +363,7 @@ export class ShopService {
           orderBy: { sortOrder: 'asc' },
           include: {
             products: {
-              where: { isHidden: false },
+              where: { isHidden: false, deletedAt: null },
               orderBy: { name: 'asc' },
               include: {
                 variants: { orderBy: { name: 'asc' } },
@@ -409,11 +426,7 @@ export class ShopService {
       isOpen: restaurant.isOpen,
     };
 
-    const menu = sortMenuCategories(
-      restaurant.productCategories,
-      (category) =>
-        category.products.map((product) => product.foodType ?? '').join(' '),
-    )
+    const menu = onlyStandardMenuCategories(restaurant.productCategories)
       .map((category) => ({
         id: category.id,
         name: category.name,
@@ -474,6 +487,7 @@ export class ShopService {
         isHidden: false,
         isAvailable: true,
         outOfStock: false,
+        deletedAt: null,
         discountPrice: { not: null, gt: 0 },
         restaurant: { isApproved: true },
       },
@@ -715,6 +729,7 @@ export class ShopService {
                       some: {
                         isHidden: false,
                         isAvailable: true,
+                        deletedAt: null,
                         OR: keywordFilters,
                       },
                     },
@@ -735,6 +750,7 @@ export class ShopService {
           isHidden: false,
           isAvailable: true,
           outOfStock: false,
+          deletedAt: null,
           restaurant: { isApproved: true },
           OR: [
             ...(orderedProductIds.length

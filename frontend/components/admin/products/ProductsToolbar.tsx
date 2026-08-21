@@ -150,15 +150,7 @@ export default function ProductsToolbar({
 
       {filters.restaurantId && scopedCategories.length === 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[16px] md:text-[18px] text-amber-900">
-          ამ რესტორნის მენიუს კატეგორიები ჯერ არ არის. დაამატე პროდუქტისას ან
-          გახსენი{" "}
-          <a
-            href={`/admin/products/new?restaurantId=${filters.restaurantId}`}
-            className="font-medium underline"
-          >
-            ახალი პროდუქტი
-          </a>{" "}
-          და შექმენი კატეგორია იქ.
+          ამ რესტორნის სტანდარტული კატეგორიები ჯერ არ ჩაიტვირთა. განაახლე გვერდი.
         </p>
       )}
 

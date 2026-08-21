@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import ProductImageUpload from "@/components/restaurant/products/ProductImageUpl
 import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
 import ProductCustomizationGroupsEditor from "@/components/products/ProductCustomizationGroupsEditor";
 import type { ProductCustomizationGroup } from "@/components/admin/products/types";
+import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
 import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
 import {
   normalizeProductVariants,
@@ -129,6 +130,28 @@ function sanitizeCustomizationGroupsForSubmit(
     .filter(Boolean) as ProductCustomizationGroup[];
 }
 
+function buildFormState(
+  product: RestaurantProduct | null | undefined,
+  categories: ProductCategory[],
+  defaultCategoryId?: string,
+) {
+  const menuCategories = onlyStandardMenuCategories(categories);
+  return {
+    name: product?.name ?? "",
+    description: product?.description ?? "",
+    image: product?.image ?? null,
+    categoryId:
+      product?.categoryId ?? defaultCategoryId ?? menuCategories[0]?.id ?? "",
+    price: product?.price != null ? String(product.price) : "",
+    discountPrice: product?.discountPrice?.toString() ?? "",
+    preparationTime:
+      product?.preparationTime != null ? String(product.preparationTime) : "",
+    availability: (product?.availability ?? "AVAILABLE") as ProductAvailability,
+    variants: mapVariantsFromProduct(product),
+    customizationGroups: mapCustomizationGroupsFromProduct(product),
+  };
+}
+
 export default function ProductDialog({
   open,
   onOpenChange,
@@ -137,31 +160,25 @@ export default function ProductDialog({
   defaultCategoryId,
   onSave,
 }: ProductDialogProps) {
-  const [name, setName] = useState(product?.name ?? "");
-  const [description, setDescription] = useState(product?.description ?? "");
-  const [image, setImage] = useState<string | null>(product?.image ?? null);
+  const menuCategories = onlyStandardMenuCategories(categories);
+  const initial = buildFormState(product, categories, defaultCategoryId);
+  const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.description);
+  const [image, setImage] = useState<string | null>(initial.image);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [categoryId, setCategoryId] = useState(
-    product?.categoryId ?? categories[0]?.id ?? "",
-  );
-  const [price, setPrice] = useState(
-    product?.price != null ? String(product.price) : "",
-  );
-  const [discountPrice, setDiscountPrice] = useState(
-    product?.discountPrice?.toString() ?? "",
-  );
-  const [preparationTime, setPreparationTime] = useState(
-    product?.preparationTime != null ? String(product.preparationTime) : "",
-  );
+  const [categoryId, setCategoryId] = useState(initial.categoryId);
+  const [price, setPrice] = useState(initial.price);
+  const [discountPrice, setDiscountPrice] = useState(initial.discountPrice);
+  const [preparationTime, setPreparationTime] = useState(initial.preparationTime);
   const [availability, setAvailability] = useState<ProductAvailability>(
-    product?.availability ?? "AVAILABLE",
+    initial.availability,
   );
-  const [variants, setVariants] = useState<ProductSizeVariant[]>(() =>
-    mapVariantsFromProduct(product),
+  const [variants, setVariants] = useState<ProductSizeVariant[]>(
+    initial.variants,
   );
   const [customizationGroups, setCustomizationGroups] = useState<
     ProductCustomizationGroup[]
-  >(() => mapCustomizationGroupsFromProduct(product));
+  >(initial.customizationGroups);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -169,28 +186,25 @@ export default function ProductDialog({
     image?: string;
   }>({});
 
+  useEffect(() => {
+    if (!open) return;
+    const next = buildFormState(product, categories, defaultCategoryId);
+    setName(next.name);
+    setDescription(next.description);
+    setImage(next.image);
+    setUploadError(null);
+    setFormError(null);
+    setFieldErrors({});
+    setCategoryId(next.categoryId);
+    setPrice(next.price);
+    setDiscountPrice(next.discountPrice);
+    setPreparationTime(next.preparationTime);
+    setAvailability(next.availability);
+    setVariants(next.variants);
+    setCustomizationGroups(next.customizationGroups);
+  }, [open, product, categories, defaultCategoryId]);
+
   function handleOpenChange(next: boolean) {
-    if (next) {
-      setName(product?.name ?? "");
-      setDescription(product?.description ?? "");
-      setImage(product?.image ?? null);
-      setUploadError(null);
-      setFormError(null);
-      setFieldErrors({});
-      setCategoryId(
-        product?.categoryId ?? defaultCategoryId ?? categories[0]?.id ?? "",
-      );
-      setPrice(product?.price != null ? String(product.price) : "");
-      setDiscountPrice(product?.discountPrice?.toString() ?? "");
-      setPreparationTime(
-        product?.preparationTime != null
-          ? String(product.preparationTime)
-          : "",
-      );
-      setAvailability(product?.availability ?? "AVAILABLE");
-      setVariants(mapVariantsFromProduct(product));
-      setCustomizationGroups(mapCustomizationGroupsFromProduct(product));
-    }
     onOpenChange(next);
   }
 
@@ -323,7 +337,7 @@ export default function ProductDialog({
                     <SelectValue placeholder={KA.products.selectCategory} />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
+                    {menuCategories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
