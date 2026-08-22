@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
 import ProductDialog from "@/components/restaurant/products/ProductDialog";
@@ -40,6 +40,10 @@ function normalizeProductCategories(
   return categories ?? [];
 }
 
+function hasCategoryProducts(category: MenuCategory) {
+  return (category.productsCount ?? category.products?.length ?? 0) > 0;
+}
+
 export default function MenuManager() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [productCategories, setProductCategories] = useState<ProductCategory[]>(
@@ -54,6 +58,11 @@ export default function MenuManager() {
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>();
   const [deleteProductTarget, setDeleteProductTarget] =
     useState<RestaurantProduct | null>(null);
+
+  const visibleCategories = useMemo(
+    () => categories.filter(hasCategoryProducts),
+    [categories],
+  );
 
   const loadMenu = useCallback(async () => {
     setLoading(true);
@@ -88,7 +97,7 @@ export default function MenuManager() {
     }
   }
 
-  function openCreateProduct(categoryId: string) {
+  function openCreateProduct(categoryId?: string) {
     setEditingProduct(null);
     setDefaultCategoryId(categoryId);
     setProductDialogOpen(true);
@@ -151,17 +160,27 @@ export default function MenuManager() {
       <PageHeader
         title={KA.menu.title}
         description={KA.menu.subtitle}
+        actions={
+          productCategories.length > 0 ? (
+            <Button onClick={() => openCreateProduct()}>
+              <Plus className="size-4" />
+              {KA.menu.addProduct}
+            </Button>
+          ) : null
+        }
       />
 
-      {categories.length === 0 ? (
+      {visibleCategories.length === 0 ? (
         <EmptyState
           icon={UtensilsCrossed}
-          title={KA.menu.empty}
-          description={KA.menu.emptyDesc}
+          title={KA.menu.noProducts}
+          description={KA.menu.noProductsDesc}
+          actionLabel={KA.menu.addProduct}
+          onAction={() => openCreateProduct()}
         />
       ) : (
         <div className="space-y-4">
-          {categories.map((category) => (
+          {visibleCategories.map((category) => (
             <Card key={category.id}>
               <CardContent className="space-y-4 py-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -204,27 +223,8 @@ export default function MenuManager() {
                   </div>
                 </div>
 
-                {(category.products ?? []).length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center">
-                    <p className="font-medium text-foreground">
-                      {KA.menu.noProducts}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {KA.menu.noProductsDesc}
-                    </p>
-                    <Button
-                      className="mt-4"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openCreateProduct(category.id)}
-                    >
-                      <Plus className="size-4" />
-                      {KA.menu.addProduct}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border rounded-lg border border-border">
-                    {(category.products ?? []).map((product) => (
+                <div className="divide-y divide-border rounded-lg border border-border">
+                  {(category.products ?? []).map((product) => (
                       <div
                         key={product.id}
                         className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -281,8 +281,7 @@ export default function MenuManager() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           ))}
