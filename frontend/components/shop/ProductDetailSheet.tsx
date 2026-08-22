@@ -21,7 +21,7 @@ import { addToCart } from "@/lib/shop-api";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
-import { useAuth } from "@/components/auth-context";
+import { useRequireLogin } from "@/lib/use-require-login";
 
 type ProductDetailSheetProps = {
   product: PublicMenuProduct | null;
@@ -41,7 +41,7 @@ export default function ProductDetailSheet({
   initialQuantity = 1,
 }: ProductDetailSheetProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { authReady, requireLogin } = useRequireLogin();
   const { setItemCount } = useCart();
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -99,10 +99,8 @@ export default function ProductDetailSheet({
 
   async function handleAddToCart() {
     if (!product) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+    const allowed = requireLogin();
+    if (allowed !== true) return;
     if (!restaurantOpen) {
       setError("რესტორანი დახურულია");
       return;
@@ -252,7 +250,7 @@ export default function ProductDetailSheet({
           <Button
             type="button"
             className="w-full bg-[#FF0050] hover:bg-[#e00048]"
-            disabled={busy || product.outOfStock || !restaurantOpen}
+            disabled={busy || product.outOfStock || !restaurantOpen || !authReady}
             onClick={() => void handleAddToCart()}
           >
             {busy ? "იმატება..." : "კალათაში დამატება"}

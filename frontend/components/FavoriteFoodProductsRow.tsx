@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import HorizontalScroll from "@/components/HorizontalScroll";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
-import { useAuth } from "@/components/auth-context";
+import { useRequireLogin } from "@/lib/use-require-login";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
 import { formatGel } from "@/lib/admin/format";
 import type { FavoriteFoodProduct } from "@/lib/favorite-food";
@@ -21,7 +21,7 @@ function needsCustomization(product: FavoriteFoodProduct) {
 
 function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { authReady, requireLogin } = useRequireLogin();
   const { setItemCount } = useCart();
   const variants = useMemo(
     () => sortVariantsBySize(product.variants),
@@ -53,10 +53,8 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
     setError("");
 
     if (unavailable) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+    const allowed = requireLogin();
+    if (allowed !== true) return;
     if (!product.restaurant.isOpen) {
       setError("რესტორანი დახურულია");
       return;
@@ -189,7 +187,7 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
               </div>
               <button
                 type="button"
-                disabled={unavailable || busy}
+                disabled={unavailable || busy || !authReady}
                 onClick={() => void handleAdd()}
                 className="w-full rounded-lg bg-[#FF0050] px-2 py-2 font-[family-name:var(--font-inter)] text-[13px] font-medium text-white transition hover:bg-[#e60048] disabled:cursor-not-allowed disabled:bg-neutral-300 md:min-w-0 md:flex-1 md:px-3 md:py-2.5 md:text-[16px] lg:text-[18px]"
               >

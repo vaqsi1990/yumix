@@ -7,7 +7,7 @@ import { Minus, Plus } from "lucide-react";
 import { formatGel } from "@/lib/admin/format";
 import { addToCart } from "@/lib/shop-api";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
-import { useAuth } from "@/components/auth-context";
+import { useRequireLogin } from "@/lib/use-require-login";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
 
@@ -31,7 +31,7 @@ export default function MenuProductCard({
   ) => void;
 }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { authReady, requireLogin } = useRequireLogin();
   const { setItemCount } = useCart();
   const variants = useMemo(
     () => sortVariantsBySize(product.variants),
@@ -63,10 +63,8 @@ export default function MenuProductCard({
     setError("");
 
     if (unavailable) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+    const allowed = requireLogin();
+    if (allowed !== true) return;
     if (!restaurantOpen) {
       setError("რესტორანი დახურულია");
       return;
@@ -220,7 +218,7 @@ export default function MenuProductCard({
           </div>
           <button
             type="button"
-            disabled={unavailable || busy}
+            disabled={unavailable || busy || !authReady}
             onClick={(e) => void handleAdd(e)}
             className="rounded-lg bg-[#FF0050] px-4 py-2 font-[family-name:var(--font-inter)] text-[16px] font-medium text-white transition hover:bg-[#e60048] disabled:cursor-not-allowed disabled:bg-neutral-300 md:text-[18px]"
           >

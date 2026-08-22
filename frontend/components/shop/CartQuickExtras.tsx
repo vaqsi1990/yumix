@@ -10,6 +10,7 @@ import {
 } from "@/lib/addon-categories";
 import { addExtraToCart } from "@/lib/shop-api";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
+import { useRequireLogin } from "@/lib/use-require-login";
 
 type CartExtra = {
   id: string;
@@ -50,6 +51,7 @@ function ExtraChip({
 export default function CartQuickExtras({ addOns }: CartQuickExtrasProps) {
   const router = useRouter();
   const { setItemCount } = useCart();
+  const { requireLogin } = useRequireLogin();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -57,6 +59,9 @@ export default function CartQuickExtras({ addOns }: CartQuickExtrasProps) {
   if (food.length === 0 && drink.length === 0) return null;
 
   async function handleAdd(addonId: string) {
+    const allowed = requireLogin();
+    if (allowed !== true) return;
+
     setBusyId(addonId);
     setError("");
     try {

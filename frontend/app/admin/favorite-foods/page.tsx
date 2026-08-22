@@ -1,5 +1,6 @@
 import AdminFavoriteFoodsManager, {
   normalizeFavoriteFoodItems,
+  type AdminFavoriteFood,
 } from "@/components/admin/AdminFavoriteFoodsManager";
 import PanelShell from "@/components/panels/PanelShell";
 import { serverApiFetch } from "@/lib/session";
