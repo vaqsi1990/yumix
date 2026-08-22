@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
@@ -17,6 +17,16 @@ function needsCustomization(product: FavoriteFoodProduct) {
   return (product.customizationGroups ?? []).some(
     (group) => group.required || group.minSelections > 0,
   );
+}
+
+const MOBILE_VISIBLE_PRODUCTS = 6;
+
+function chunkProducts<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    rows.push(items.slice(i, i + size));
+  }
+  return rows;
 }
 
 function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) {
@@ -221,18 +231,41 @@ export default function FavoriteFoodProductsRow({
 }: {
   products: FavoriteFoodProduct[];
 }) {
+  const mobileRows = chunkProducts(products, 2);
+  const mobileScrollable = products.length > MOBILE_VISIBLE_PRODUCTS;
+
   return (
     <>
-      <ul
-        className="grid grid-cols-2 gap-3 md:hidden"
-        aria-label="სასურველი საკვები"
-      >
-        {products.map((product) => (
-          <li key={product.id}>
-            <FavoriteFoodProductCard product={product} />
-          </li>
-        ))}
-      </ul>
+      <div className="relative md:hidden">
+        <ul
+          className="flex max-h-[min(calc(var(--favorite-food-mobile-row-height)*3+1.5rem),72dvh)] snap-y snap-mandatory flex-col gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={
+            {
+              "--favorite-food-mobile-row-height": "17.5rem",
+            } as CSSProperties
+          }
+          aria-label="სასურველი საკვები"
+        >
+          {mobileRows.map((row) => (
+            <li
+              key={row.map((product) => product.id).join("-")}
+              className="grid shrink-0 snap-start snap-always grid-cols-2 gap-3"
+            >
+              {row.map((product) => (
+                <FavoriteFoodProductCard key={product.id} product={product} />
+              ))}
+              {row.length === 1 ? <div aria-hidden className="invisible" /> : null}
+            </li>
+          ))}
+        </ul>
+
+        {mobileScrollable ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent"
+            aria-hidden
+          />
+        ) : null}
+      </div>
 
       <HorizontalScroll className="hidden gap-4 pb-2 md:flex">
         {products.map((product) => (
