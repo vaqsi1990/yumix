@@ -1,16 +1,15 @@
 import { z } from 'zod';
 
 export const favoriteFoodWriteSchema = z.object({
-  slug: z.string().trim().min(1, 'აირჩიე კატეგორია'),
-  label: z.string().trim().min(1, 'სახელი სავალდებულოა'),
-  image: z.string().trim().min(1, 'სურათი სავალდებულოა'),
+  productId: z
+    .string({ error: 'აირჩიე საჭმელი' })
+    .trim()
+    .min(1, 'აირჩიე საჭმელი'),
   isActive: z.boolean().optional(),
 });
 
 export const favoriteFoodPatchSchema = z.object({
-  slug: z.string().trim().min(1).optional(),
-  label: z.string().trim().min(1).optional(),
-  image: z.string().trim().min(1).optional(),
+  productId: z.string().trim().min(1).optional(),
   isActive: z.boolean().optional(),
 });
 

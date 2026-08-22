@@ -223,6 +223,7 @@ model Product {
   orderItems          OrderItem[]
   cartItems           CartItem[]
   favorites           FavoriteProduct[]
+  homeFavoriteFood    HomeFavoriteFood?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -526,14 +527,13 @@ model WorkingHour {
   isClosed     Boolean    @default(false)
 }
 
-/// Homepage “სასურველი საკვები” tiles chosen by admin
+/// Homepage “სასურველი საკვები” — admin-picked products
 model HomeFavoriteFood {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  label     String
-  image     String
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String  @unique
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

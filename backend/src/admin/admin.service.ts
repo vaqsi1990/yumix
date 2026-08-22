@@ -1901,22 +1901,74 @@ export class AdminService {
   async listFavoriteFoods() {
     const items = await this.prisma.homeFavoriteFood.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        product: {
+          include: {
+            restaurant: { select: { id: true, name: true, slug: true } },
+            category: { select: { name: true } },
+          },
+        },
+      },
     });
-    return { items };
+    return {
+      items: items
+        .filter((row) => row.product != null)
+        .map((row) => this.mapFavoriteFood(row)),
+    };
+  }
+
+  private mapFavoriteFood(row: {
+    id: string;
+    productId: string;
+    sortOrder: number;
+    isActive: boolean;
+    product: {
+      id: string;
+      name: string;
+      image: string | null;
+      price: number;
+      discountPrice: number | null;
+      restaurant: { id: string; name: string; slug: string };
+      category: { name: string };
+    };
+  }) {
+    return {
+      id: row.id,
+      productId: row.productId,
+      sortOrder: row.sortOrder,
+      isActive: row.isActive,
+      product: {
+        id: row.product.id,
+        name: row.product.name,
+        image: row.product.image,
+        price: row.product.price,
+        discountPrice: row.product.discountPrice,
+        restaurantId: row.product.restaurant.id,
+        restaurantName: row.product.restaurant.name,
+        restaurantSlug: row.product.restaurant.slug,
+        categoryName: row.product.category.name,
+      },
+    };
   }
 
   async createFavoriteFood(body: {
-    slug: string;
-    label: string;
-    image: string;
+    productId: string;
     isActive?: boolean;
   }) {
-    const slug = body.slug.trim();
+    const productId = body.productId.trim();
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new NotFoundException('პროდუქტი არ მოიძებნა');
+    }
+
     const existing = await this.prisma.homeFavoriteFood.findUnique({
-      where: { slug },
+      where: { productId },
     });
     if (existing) {
-      throw new ConflictException('ეს კატეგორია უკვე დამატებულია');
+      throw new ConflictException('ეს საჭმელი უკვე დამატებულია');
     }
 
     const max = await this.prisma.homeFavoriteFood.aggregate({
@@ -1925,22 +1977,26 @@ export class AdminService {
 
     const item = await this.prisma.homeFavoriteFood.create({
       data: {
-        slug,
-        label: body.label.trim(),
-        image: body.image.trim(),
+        productId,
         isActive: body.isActive ?? true,
         sortOrder: (max._max.sortOrder ?? -1) + 1,
       },
+      include: {
+        product: {
+          include: {
+            restaurant: { select: { id: true, name: true, slug: true } },
+            category: { select: { name: true } },
+          },
+        },
+      },
     });
-    return { item };
+    return { item: this.mapFavoriteFood(item) };
   }
 
   async updateFavoriteFood(
     id: string,
     body: {
-      slug?: string;
-      label?: string;
-      image?: string;
+      productId?: string;
       isActive?: boolean;
     },
   ) {
@@ -1949,25 +2005,40 @@ export class AdminService {
     });
     if (!current) throw new NotFoundException('ჩანაწერი ვერ მოიძებნა');
 
-    if (body.slug && body.slug.trim() !== current.slug) {
-      const clash = await this.prisma.homeFavoriteFood.findUnique({
-        where: { slug: body.slug.trim() },
+    if (body.productId && body.productId.trim() !== current.productId) {
+      const productId = body.productId.trim();
+      const product = await this.prisma.product.findFirst({
+        where: { id: productId, deletedAt: null },
+        select: { id: true },
       });
-      if (clash) {
-        throw new ConflictException('ეს კატეგორია უკვე დამატებულია');
+      if (!product) {
+        throw new NotFoundException('პროდუქტი არ მოიძებნა');
+      }
+
+      const clash = await this.prisma.homeFavoriteFood.findUnique({
+        where: { productId },
+      });
+      if (clash && clash.id !== id) {
+        throw new ConflictException('ეს საჭმელი უკვე დამატებულია');
       }
     }
 
     const item = await this.prisma.homeFavoriteFood.update({
       where: { id },
       data: {
-        ...(body.slug != null ? { slug: body.slug.trim() } : {}),
-        ...(body.label != null ? { label: body.label.trim() } : {}),
-        ...(body.image != null ? { image: body.image.trim() } : {}),
+        ...(body.productId != null ? { productId: body.productId.trim() } : {}),
         ...(body.isActive != null ? { isActive: body.isActive } : {}),
       },
+      include: {
+        product: {
+          include: {
+            restaurant: { select: { id: true, name: true, slug: true } },
+            category: { select: { name: true } },
+          },
+        },
+      },
     });
-    return { item };
+    return { item: this.mapFavoriteFood(item) };
   }
 
   async deleteFavoriteFood(id: string) {

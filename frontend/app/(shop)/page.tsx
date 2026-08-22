@@ -12,10 +12,10 @@ export default function Home() {
     <>
       <Category />
       <Rest />
-      <FavoriteFood />
       <Offers />
       <RecommendedForYou />
       <NearbyRestaurants />
+      <FavoriteFood />
     </>
   );
 }

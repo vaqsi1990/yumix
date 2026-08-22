@@ -1,20 +1,25 @@
 import { serverApiFetch } from "@/lib/session";
+import type { PublicMenuProduct } from "@/lib/restaurants";
 
-export type PublicFavoriteFood = {
-  id: string;
-  slug: string;
-  label: string;
-  image: string;
+export type FavoriteFoodProduct = PublicMenuProduct & {
+  restaurant: {
+    slug: string;
+    name: string;
+    logo: string;
+    isOpen: boolean;
+  };
 };
 
 export async function getPublicFavoriteFoods(): Promise<{
-  items: PublicFavoriteFood[];
+  products: FavoriteFoodProduct[];
 }> {
   try {
-    return await serverApiFetch<{ items: PublicFavoriteFood[] }>(
-      "/shop/favorite-foods",
-    );
+    const data = await serverApiFetch<{
+      products?: FavoriteFoodProduct[];
+      items?: unknown[];
+    }>("/shop/favorite-foods");
+    return { products: Array.isArray(data.products) ? data.products : [] };
   } catch {
-    return { items: [] };
+    return { products: [] };
   }
 }

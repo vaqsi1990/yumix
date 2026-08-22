@@ -17,6 +17,7 @@ import {
   formatMoneyLabel,
   haversineKm,
 } from '../common/delivery.utils';
+import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
 
 export type PublicRestaurant = {
   id: string;
@@ -580,17 +581,126 @@ export class ShopService {
   }
 
   async getFavoriteFoods() {
-    const items = await this.prisma.homeFavoriteFood.findMany({
+    const rows = await this.prisma.homeFavoriteFood.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: {
-        id: true,
-        slug: true,
-        label: true,
-        image: true,
+      include: {
+        product: {
+          include: {
+            category: { select: { name: true } },
+            variants: { orderBy: { name: 'asc' } },
+            customizationGroups: {
+              orderBy: { sortOrder: 'asc' },
+              include: {
+                options: {
+                  where: { isAvailable: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
+            },
+            restaurant: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+                logo: true,
+                coverImage: true,
+                isOpen: true,
+                isApproved: true,
+              },
+            },
+          },
+        },
       },
     });
-    return { items };
+
+    const products = rows
+      .map((row) => row.product)
+      .filter(
+        (product) =>
+          product != null &&
+          product.deletedAt == null &&
+          !product.isHidden &&
+          product.isAvailable &&
+          !product.outOfStock &&
+          product.name !== ADDON_CARRIER_PRODUCT_NAME &&
+          product.restaurant.isApproved,
+      )
+      .map((product) => this.mapPublicShopProduct(product));
+
+    return { products };
+  }
+
+  private mapPublicShopProduct(
+    product: {
+      id: string;
+      name: string;
+      description: string | null;
+      image: string | null;
+      price: number;
+      discountPrice: number | null;
+      outOfStock: boolean;
+      variants: { id: string; name: string; price: number }[];
+      customizationGroups: {
+        id: string;
+        name: string;
+        description: string | null;
+        required: boolean;
+        minSelections: number;
+        maxSelections: number;
+        sortOrder: number;
+        options: { id: string; name: string; price: number }[];
+      }[];
+      restaurant: {
+        slug: string;
+        name: string;
+        logo: string | null;
+        coverImage: string | null;
+        isOpen: boolean;
+      };
+    },
+  ) {
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      image: product.image,
+      price: product.price,
+      discountPrice: product.discountPrice,
+      outOfStock: product.outOfStock,
+      variants: sortVariantsBySize(
+        product.variants.map((variant) => ({
+          id: variant.id,
+          name: variant.name,
+          price: variant.price,
+        })),
+      ),
+      customizationGroups: product.customizationGroups
+        .filter((group) => group.options.length > 0)
+        .map((group) => ({
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          required: group.required,
+          minSelections: group.minSelections,
+          maxSelections: group.maxSelections,
+          sortOrder: group.sortOrder,
+          options: group.options.map((option) => ({
+            id: option.id,
+            name: option.name,
+            price: option.price,
+          })),
+        })),
+      restaurant: {
+        slug: product.restaurant.slug,
+        name: product.restaurant.name,
+        logo:
+          product.restaurant.logo ||
+          product.restaurant.coverImage ||
+          DEMO_IMAGES[0],
+        isOpen: product.restaurant.isOpen,
+      },
+    };
   }
 
   async getRecommendations(userId: string) {

@@ -1,5 +1,5 @@
 import AdminFavoriteFoodsManager, {
-  type AdminFavoriteFood,
+  normalizeFavoriteFoodItems,
 } from "@/components/admin/AdminFavoriteFoodsManager";
 import PanelShell from "@/components/panels/PanelShell";
 import { serverApiFetch } from "@/lib/session";
@@ -10,10 +10,10 @@ export default async function AdminFavoriteFoodsPage() {
   let items: AdminFavoriteFood[] = [];
 
   try {
-    const data = await serverApiFetch<{ items: AdminFavoriteFood[] }>(
+    const data = await serverApiFetch<{ items?: unknown[] }>(
       "/admin/favorite-foods",
     );
-    items = data.items;
+    items = normalizeFavoriteFoodItems(data.items);
   } catch {
     items = [];
   }
@@ -21,7 +21,7 @@ export default async function AdminFavoriteFoodsPage() {
   return (
     <PanelShell
       title="სასურველი საკვები"
-      subtitle={`სულ: ${items.length} · აირჩიე რა გამოჩნდება მთავარ გვერდზე`}
+      subtitle={`სულ: ${items.length} · აირჩიე რა საჭმელი გამოჩნდება მთავარ გვერდზე`}
       backHref="/admin"
     >
       <AdminFavoriteFoodsManager items={items} />
