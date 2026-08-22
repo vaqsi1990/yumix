@@ -78,7 +78,7 @@ export default function RestaurantCard({
           </div>
         </div>
 
-        <p className="mt-1 text-sm text-neutral-400">
+        {/* <p className="mt-1 text-sm text-neutral-400">
           {offersHint ? (
             <>
               <span className="font-medium text-[#FF0050]">{offersHint}</span>
@@ -88,7 +88,7 @@ export default function RestaurantCard({
           ) : (
             restaurant.categories
           )}
-        </p>
+        </p> */}
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <div className="text-sm text-neutral-500">
