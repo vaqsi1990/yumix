@@ -32,6 +32,13 @@ const OWNER_ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   READY: ['CANCELLED'],
 };
 
+const restaurantOrderItemInclude = {
+  product: { select: { name: true } },
+  variant: { select: { name: true } },
+  addOns: { include: { addon: { select: { name: true } } } },
+  customizations: true,
+} as const;
+
 const DAY_NAMES = [
   'MONDAY',
   'TUESDAY',
@@ -636,10 +643,7 @@ export class RestaurantPanelService {
         },
         address: true,
         items: {
-          include: {
-            product: { select: { name: true } },
-            addOns: { include: { addon: { select: { name: true } } } },
-          },
+          include: restaurantOrderItemInclude,
         },
         _count: { select: { items: true } },
       },
@@ -665,10 +669,7 @@ export class RestaurantPanelService {
         },
         address: true,
         items: {
-          include: {
-            product: { select: { name: true } },
-            addOns: { include: { addon: { select: { name: true } } } },
-          },
+          include: restaurantOrderItemInclude,
         },
       },
     });
@@ -710,10 +711,7 @@ export class RestaurantPanelService {
           },
           address: true,
           items: {
-            include: {
-              product: { select: { name: true } },
-              addOns: { include: { addon: { select: { name: true } } } },
-            },
+            include: restaurantOrderItemInclude,
           },
           _count: { select: { items: true } },
         },
@@ -999,7 +997,13 @@ export class RestaurantPanelService {
         quantity: number;
         price: number;
         product: { name: string };
+        variant?: { name: string } | null;
         addOns: Array<{ addon: { name: string } }>;
+        customizations?: Array<{
+          groupName: string;
+          optionName: string;
+          quantity: number;
+        }>;
       }>;
       total: number;
       status: OrderStatus;
@@ -1036,7 +1040,12 @@ export class RestaurantPanelService {
         name: item.product.name,
         quantity: item.quantity,
         price: item.price,
+        variantName: item.variant?.name ?? null,
         addons: item.addOns.map((a) => a.addon.name),
+        customizations: (item.customizations ?? []).map((c) => {
+          const label = `${c.groupName}: ${c.optionName}`;
+          return c.quantity > 1 ? `${label} ×${c.quantity}` : label;
+        }),
       })),
     };
   }

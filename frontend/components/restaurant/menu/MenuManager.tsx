@@ -251,6 +251,13 @@ export default function MenuManager() {
                               {product.discountPrice != null &&
                                 ` · ${formatCurrency(product.discountPrice)}`}
                             </p>
+                            {(product.customizationGroups?.length ?? 0) > 0 ? (
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {product.customizationGroups!
+                                  .map((group) => group.name)
+                                  .join(" · ")}
+                              </p>
+                            ) : null}
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">

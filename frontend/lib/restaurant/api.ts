@@ -90,13 +90,21 @@ export const restaurantApi = {
   createProduct: (data: ProductWritePayload) =>
     apiFetch<{ product: RestaurantProduct }>("/restaurant/products", {
       method: "POST",
-      body: JSON.stringify({ ...data, variants: data.variants ?? [] }),
+      body: JSON.stringify({
+        ...data,
+        variants: data.variants ?? [],
+        customizationGroups: data.customizationGroups ?? [],
+      }),
     }),
 
   updateProduct: (id: string, data: ProductWritePayload) =>
     apiFetch<{ product: RestaurantProduct }>(`/restaurant/products/${id}`, {
       method: "PATCH",
-      body: JSON.stringify({ ...data, variants: data.variants ?? [] }),
+      body: JSON.stringify({
+        ...data,
+        variants: data.variants ?? [],
+        customizationGroups: data.customizationGroups ?? [],
+      }),
     }),
 
   deleteProduct: (id: string) =>

@@ -74,7 +74,9 @@ export type RestaurantOrderItem = {
   name: string;
   quantity: number;
   price: number;
+  variantName?: string | null;
   addons?: string[];
+  customizations?: string[];
 };
 
 export type MenuCategory = {

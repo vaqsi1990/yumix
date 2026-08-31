@@ -464,6 +464,7 @@ export default function ProductDialog({
               <ProductCustomizationGroupsEditor
                 value={customizationGroups}
                 onChange={setCustomizationGroups}
+                numberInputClass={numberInputClass}
               />
             </div>
           </div>

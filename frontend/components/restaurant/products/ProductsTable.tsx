@@ -80,6 +80,13 @@ export default function ProductsTable({
               </TableCell>
               <TableCell>
                 <p className="font-medium">{product.name}</p>
+                {(product.customizationGroups?.length ?? 0) > 0 ? (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {product.customizationGroups!
+                      .map((group) => group.name)
+                      .join(" · ")}
+                  </p>
+                ) : null}
               </TableCell>
               <TableCell>{product.categoryName}</TableCell>
               <TableCell>{formatCurrency(product.price)}</TableCell>

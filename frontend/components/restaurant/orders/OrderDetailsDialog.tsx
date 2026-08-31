@@ -86,6 +86,16 @@ export default function OrderDetailsDialog({
                     <p className="font-medium">
                       {item.quantity}x {item.name}
                     </p>
+                    {item.variantName ? (
+                      <p className="text-xs text-muted-foreground">
+                        {item.variantName}
+                      </p>
+                    ) : null}
+                    {item.customizations && item.customizations.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {item.customizations.join(" · ")}
+                      </p>
+                    )}
                     {item.addons && item.addons.length > 0 && (
                       <p className="text-xs text-muted-foreground">
                         + {item.addons.join(", ")}

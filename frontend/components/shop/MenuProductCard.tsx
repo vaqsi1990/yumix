@@ -9,13 +9,8 @@ import { addToCart } from "@/lib/shop-api";
 import { syncCartFromResponse, useCart } from "@/components/cart-context";
 import { useRequireLogin } from "@/lib/use-require-login";
 import { sortVariantsBySize } from "@/lib/product-sizes";
+import { productHasSelectableOptions } from "@/lib/product-customization";
 import type { PublicMenuProduct } from "@/lib/restaurants";
-
-function needsCustomization(product: PublicMenuProduct) {
-  return (product.customizationGroups ?? []).some(
-    (group) => group.required || group.minSelections > 0,
-  );
-}
 
 export default function MenuProductCard({
   product,
@@ -73,7 +68,7 @@ export default function MenuProductCard({
       setError("აირჩიე ზომა");
       return;
     }
-    if (needsCustomization(product)) {
+    if (productHasSelectableOptions(product)) {
       onOpenDetails?.(product, variantId ?? undefined, quantity);
       return;
     }
@@ -136,6 +131,11 @@ export default function MenuProductCard({
             {product.description && (
               <p className="mt-1 line-clamp-2 text-[16px] text-neutral-500 md:text-[18px]">
                 {product.description}
+              </p>
+            )}
+            {productHasSelectableOptions(product) && (
+              <p className="mt-1 text-[13px] font-medium text-[#FF0050] md:text-[14px]">
+                არჩევანი შეკვეთისას
               </p>
             )}
             {variants.length > 0 && (

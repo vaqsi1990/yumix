@@ -12,12 +12,7 @@ import { formatGel } from "@/lib/admin/format";
 import type { FavoriteFoodProduct } from "@/lib/favorite-food";
 import { addToCart } from "@/lib/shop-api";
 import { sortVariantsBySize } from "@/lib/product-sizes";
-
-function needsCustomization(product: FavoriteFoodProduct) {
-  return (product.customizationGroups ?? []).some(
-    (group) => group.required || group.minSelections > 0,
-  );
-}
+import { productHasSelectableOptions } from "@/lib/product-customization";
 
 const MOBILE_VISIBLE_PRODUCTS = 6;
 
@@ -73,7 +68,7 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
       setError("აირჩიე ზომა");
       return;
     }
-    if (needsCustomization(product)) {
+    if (productHasSelectableOptions(product)) {
       setSheetOpen(true);
       return;
     }

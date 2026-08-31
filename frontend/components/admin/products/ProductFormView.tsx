@@ -452,11 +452,10 @@ export default function ProductFormView({
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-bold">
-              კოსტუმიზაციის ჯგუფები
+              ოფციები
             </CardTitle>
             <p className="text-[14px] text-muted-foreground md:text-[16px]">
-              სოუსები, დამატებითი, სასმელები და სხვა — Wolt-ის მსგავსი არჩევანი
-              პროდუქტის გვერდზე.
+              სოუსები, დამატებითი, ცხარობა — მომხმარებელი აირჩევს შეკვეთისას.
             </p>
           </CardHeader>
           <CardContent>
