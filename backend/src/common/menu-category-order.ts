@@ -1,19 +1,170 @@
 export const STANDARD_MENU_CATEGORIES = [
-  { name: 'ძირითადი კერძები', aliases: ['საჭმელ', 'ცხელი კერძ', 'main'] },
-  { name: 'ცომეული', aliases: ['ცომეულ', 'პიცა', 'ხაჭაპურ', 'pizza'] },
   {
-    name: 'აპეტაიზერი',
-    aliases: ['აპეტაიზ', 'სნექ', 'snack', 'appetizer', 'starter'],
+    name: 'ქართული',
+    aliases: [
+      'ძირითადი კერძ',
+      'ცხელი კერძ',
+      'main',
+      'georgian',
+      'ქართულ',
+      'ხინკ',
+      'ხაჭაპ',
+      'მწვად',
+      'ქაბაბ',
+      'ჩაქაფ',
+      'ჩაშუშ',
+      'ლობი',
+      'ფხალ',
+      'კუპატ',
+      'ღომ',
+      'ელარჯ',
+      'საცივ',
+      'ბაჟ',
+    ],
   },
-  { name: 'სალათები', aliases: ['სალათ', 'salad'] },
-  { name: 'პასტა', aliases: ['პასტ', 'pasta'] },
-  { name: 'წვნიანი', aliases: ['წვნიან', 'სუპ', 'soup'] },
-  { name: 'გარნირი', aliases: ['გარნირ', 'garnish', 'side'] },
-  { name: 'სოუსები', aliases: ['სოუს', 'sauce'] },
-  { name: 'დესერტი', aliases: ['დესერტ', 'dessert', 'ტკბილ', 'ტორტ', 'cake'] },
+  {
+    name: 'უცხოური',
+    aliases: [
+      'პასტ',
+      'pasta',
+      'foreign',
+      'international',
+      'იტალიურ',
+      'აზიურ',
+      'იაპონ',
+      'ჩინურ',
+      'ამერიკ',
+      'მექსიკ',
+      'თურქ',
+      'ინდურ',
+      'ფრანგ',
+      'ბერძნ',
+      'ესპან',
+      'არაბ',
+      'sushi',
+      'სუში',
+    ],
+  },
+  {
+    name: 'სწრაფი კვება',
+    aliases: [
+      'გარნირ',
+      'garnish',
+      'side',
+      'fast food',
+      'ბურგერ',
+      'burger',
+      'შაურმ',
+      'hot-dog',
+      'ფრი',
+      'nugget',
+      'ჩიქენ',
+      'sandwich',
+      'სენდვიჩ',
+      'ტაკო',
+      'wrap',
+      'რაპ',
+      'combo',
+      'კომბო',
+    ],
+  },
+  {
+    name: 'გამომცხვრები',
+    aliases: [
+      'ცომეულ',
+      'bakery',
+      'პიც',
+      'pizza',
+      'კუბდარ',
+      'ღვეზ',
+      'კრუას',
+      'croissant',
+      'ფუნთ',
+      'პურ',
+      'დონატ',
+      'donut',
+      'მაფინ',
+      'muffin',
+      'ბრაუნ',
+      'brownie',
+      'ბაგეტ',
+    ],
+  },
+  {
+    name: 'ზღვის პროდუქტები',
+    aliases: [
+      'ზღვ',
+      'seafood',
+      'თევზ',
+      'fish',
+      'ორაგულ',
+      'კალმარ',
+      'squid',
+      'კრევეტ',
+      'shrimp',
+      'მიდი',
+      'ოქტოპ',
+      'octopus',
+      'კიბორჩხ',
+    ],
+  },
+  { name: 'სალათები', aliases: ['სალათ', 'salad', 'ცეზარ', 'caesar', 'poke'] },
+  {
+    name: 'სუპები',
+    aliases: ['წვნიან', 'სუპ', 'soup', 'ხარჩ', 'ჩიხირთ', 'ramen', 'რამენ'],
+  },
+  {
+    name: 'დესერტები',
+    aliases: [
+      'დესერტ',
+      'dessert',
+      'ტკბილ',
+      'ტორტ',
+      'cake',
+      'ჩიზქეიქ',
+      'cheesecake',
+      'ნაყინ',
+      'ice cream',
+      'ტირამ',
+      'tiramisu',
+    ],
+  },
+  {
+    name: 'საუზმე',
+    aliases: ['breakfast', 'brunch', 'ბრანჩ', 'კვერცხ', 'egg', 'ომლეტ', 'omelet', 'ბლინ', 'pancake', 'გრანოლ', 'granola'],
+  },
+  {
+    name: 'ჯანსაღი კვება',
+    aliases: ['ჯანსაღ', 'healthy', 'ქინოა', 'quinoa', 'ჰუმუს', 'hummus', 'სმუზ', 'smoothie', 'პროტეინ'],
+  },
+  {
+    name: 'ვეგეტარიანული',
+    aliases: ['ვეგეტარი', 'vegetarian', 'vegan', 'ვეგან', 'ფალაფელ', 'falafel'],
+  },
+  {
+    name: 'სნექები',
+    aliases: [
+      'აპეტაიზ',
+      'snack',
+      'appetizer',
+      'starter',
+      'ჩიფს',
+      'chips',
+      'nachos',
+      'ნაჩ',
+      'პოპკორნ',
+      'popcorn',
+      'კრეკერ',
+      'cracker',
+    ],
+  },
   {
     name: 'სასმელები',
-    aliases: ['სასმელ', 'drink', 'beverage', 'ყავა', 'ჩაი', 'წვენი', 'ლიმონათი', 'cola', 'coffee', 'juice'],
+    aliases: ['სასმელ', 'drink', 'beverage', 'ყავა', 'ჩაი', 'წვენი', 'ლიმონათი', 'cola', 'coffee', 'juice', 'კოქტ', 'cocktail'],
+  },
+  {
+    name: 'სოუსები',
+    aliases: ['სოუს', 'sauce', 'კეტჩ', 'ketchup', 'მაიო', 'mayo', 'პესტ', 'pesto', 'აჯიკ', 'ტყემალ'],
   },
 ] as const;
 
@@ -69,5 +220,28 @@ export function onlyStandardMenuCategories<
 >(categories: T[]) {
   return sortMenuCategories(
     categories.filter((category) => isStandardMenuCategory(category.name)),
+  );
+}
+
+/** Sauces and drinks are configured as options/add-ons, not standalone menu sections. */
+const AUXILIARY_MENU_CATEGORY_NAMES = new Set<StandardMenuCategoryName>([
+  'სოუსები',
+  'სასმელები',
+]);
+
+export function isAuxiliaryMenuCategory(name: string) {
+  const matched = matchStandardMenuCategory(name);
+  return matched != null && AUXILIARY_MENU_CATEGORY_NAMES.has(matched.name);
+}
+
+export function onlyCustomerMenuCategories<
+  T extends { name: string; sortOrder?: number },
+>(categories: T[]) {
+  return sortMenuCategories(
+    categories.filter(
+      (category) =>
+        isStandardMenuCategory(category.name) &&
+        !isAuxiliaryMenuCategory(category.name),
+    ),
   );
 }

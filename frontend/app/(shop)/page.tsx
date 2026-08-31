@@ -1,4 +1,3 @@
-import Category from "@/components/Category";
 import FavoriteFood from "@/components/FavoriteFood";
 import NearbyRestaurants from "@/components/NearbyRestaurants";
 import Offers from "@/components/Offers";
@@ -10,7 +9,6 @@ export const dynamic = "force-dynamic";
 export default function Home() {
   return (
     <>
-      <Category />
       <Rest />
       <Offers />
       <RecommendedForYou />

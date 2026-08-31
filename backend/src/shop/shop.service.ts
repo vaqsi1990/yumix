@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { sortVariantsBySize } from '../common/product-sizes';
-import { onlyStandardMenuCategories } from '../common/menu-category-order';
+import {
+  isAuxiliaryMenuCategory,
+  onlyCustomerMenuCategories,
+} from '../common/menu-category-order';
 import {
   ensureAllRestaurantMenuCategories,
   ensureStandardMenuCategories,
@@ -427,7 +430,7 @@ export class ShopService {
       isOpen: restaurant.isOpen,
     };
 
-    const menu = onlyStandardMenuCategories(restaurant.productCategories)
+    const menu = onlyCustomerMenuCategories(restaurant.productCategories)
       .map((category) => ({
         id: category.id,
         name: category.name,
@@ -624,7 +627,8 @@ export class ShopService {
           product.isAvailable &&
           !product.outOfStock &&
           product.name !== ADDON_CARRIER_PRODUCT_NAME &&
-          product.restaurant.isApproved,
+          product.restaurant.isApproved &&
+          !isAuxiliaryMenuCategory(product.category.name),
       )
       .map((product) => this.mapPublicShopProduct(product));
 
@@ -942,7 +946,10 @@ export class ShopService {
         const score = orderQty * 10 + categoryScore * 4 + favoriteBonus;
         return { score, product };
       })
-      .filter((row) => row.score > 0)
+      .filter(
+        (row) =>
+          row.score > 0 && !isAuxiliaryMenuCategory(row.product.category.name),
+      )
       .sort((a, b) => b.score - a.score);
 
     const perRestaurant = new Map<string, number>();

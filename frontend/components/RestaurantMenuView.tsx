@@ -7,7 +7,7 @@ import type {
   PublicMenuProduct,
   PublicRestaurantDetail,
 } from "@/lib/restaurants";
-import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
+import { onlyCustomerMenuCategories } from "@/lib/menu-category-order";
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -71,7 +71,7 @@ export default function RestaurantMenuView({
     quantity?: number,
   ) => void;
 }) {
-  const menu = onlyStandardMenuCategories(rawMenu);
+  const menu = onlyCustomerMenuCategories(rawMenu);
 
   return (
     <div className="pb-12">
