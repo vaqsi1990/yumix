@@ -34,13 +34,13 @@ export default async function Rest() {
           </Link>
         </div>
 
-        <HorizontalScroll className="flex gap-4 pb-2">
+        <HorizontalScroll className="-mx-4 flex gap-4 px-4 pb-2 sm:-mx-5 sm:px-5 lg:-mx-8 lg:px-8">
           {popular.map((restaurant) => (
             <li
               key={restaurant.id}
-              className="w-[280px] shrink-0 sm:w-[300px]"
+              className="w-[300px] shrink-0 sm:w-[320px]"
             >
-              <RestaurantCard restaurant={restaurant} />
+              <RestaurantCard restaurant={restaurant} variant="compact" />
             </li>
           ))}
         </HorizontalScroll>
