@@ -40,28 +40,44 @@ export default function CategoryCard({
   list?: boolean;
   labelSingleLine?: boolean;
 }) {
+  const isLogoTile = compact && labelSingleLine;
+
   return (
     <Link
       href={href}
       className={
         list
           ? "flex min-h-[72px] w-full items-center gap-3 rounded-2xl bg-[#F5F5F5] px-4 py-3 transition hover:bg-[#EFEFEF] md:min-h-[160px] md:flex-col md:items-center md:justify-center md:gap-2.5 md:px-3 md:py-5 md:text-center"
-          : compact
-            ? labelSingleLine
-              ? "flex h-[108px] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF] md:min-h-[140px] md:h-auto md:gap-2.5 md:px-3 md:py-5"
-              : "flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF]"
-            : "flex h-full min-h-[140px] flex-col items-center justify-center gap-2.5 rounded-2xl bg-[#F5F5F5] px-3 py-5 text-center transition hover:bg-[#EFEFEF] sm:min-h-[160px]"
+          : isLogoTile
+            ? "group flex w-full flex-col items-center gap-2 text-center"
+            : compact
+              ? "flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF]"
+              : "flex h-full min-h-[140px] flex-col items-center justify-center gap-2.5 rounded-2xl bg-[#F5F5F5] px-3 py-5 text-center transition hover:bg-[#EFEFEF] sm:min-h-[160px]"
       }
     >
-      {image ? (
+      {isLogoTile ? (
+        image ? (
+          <span className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-[#F5F5F5] transition group-hover:bg-[#EFEFEF]">
+            <Image
+              src={image}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 112px, 160px"
+              className="object-cover"
+            />
+          </span>
+        ) : (
+          <span className="flex aspect-square w-full items-center justify-center rounded-2xl bg-[#F5F5F5] transition group-hover:bg-[#EFEFEF]">
+            <OtherIcon compact />
+          </span>
+        )
+      ) : image ? (
         <span
           className={`relative block shrink-0 overflow-hidden rounded-xl ${
             list
               ? "size-12 md:size-16 lg:size-[72px]"
               : compact
-                ? labelSingleLine
-                  ? "size-14 sm:size-16 md:size-[72px]"
-                  : "size-14"
+                ? "size-14"
                 : "size-16 sm:size-[72px]"
           }`}
         >
@@ -79,7 +95,7 @@ export default function CategoryCard({
       <span
         className={cn(
           "font-[family-name:var(--font-inter)] font-normal not-italic text-neutral-900",
-          labelSingleLine
+          isLogoTile
             ? "w-full min-w-0 truncate px-0.5 text-[16px] leading-snug md:text-[18px]"
             : "text-[16px] leading-snug md:text-[18px]",
         )}

@@ -14,15 +14,7 @@ import { addToCart } from "@/lib/shop-api";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import { productHasSelectableOptions } from "@/lib/product-customization";
 
-const MOBILE_VISIBLE_PRODUCTS = 6;
-
-function chunkProducts<T>(items: T[], size: number): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    rows.push(items.slice(i, i + size));
-  }
-  return rows;
-}
+const MOBILE_VISIBLE_PRODUCTS = 3;
 
 function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) {
   const router = useRouter();
@@ -107,7 +99,7 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
               src={product.image}
               alt=""
               fill
-              sizes="(max-width: 768px) 45vw, 300px"
+              sizes="(max-width: 768px) 100vw, 300px"
               className="object-cover"
             />
           ) : null}
@@ -226,30 +218,23 @@ export default function FavoriteFoodProductsRow({
 }: {
   products: FavoriteFoodProduct[];
 }) {
-  const mobileRows = chunkProducts(products, 2);
   const mobileScrollable = products.length > MOBILE_VISIBLE_PRODUCTS;
 
   return (
     <>
       <div className="relative md:hidden">
         <ul
-          className="flex max-h-[min(calc(var(--favorite-food-mobile-row-height)*3+1.5rem),72dvh)] snap-y snap-mandatory flex-col gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex max-h-[min(calc(var(--favorite-food-mobile-row-height)*3+1.5rem),80dvh)] snap-y snap-mandatory flex-col gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={
             {
-              "--favorite-food-mobile-row-height": "17.5rem",
+              "--favorite-food-mobile-row-height": "24rem",
             } as CSSProperties
           }
           aria-label="სასურველი საკვები"
         >
-          {mobileRows.map((row) => (
-            <li
-              key={row.map((product) => product.id).join("-")}
-              className="grid shrink-0 snap-start snap-always grid-cols-2 gap-3"
-            >
-              {row.map((product) => (
-                <FavoriteFoodProductCard key={product.id} product={product} />
-              ))}
-              {row.length === 1 ? <div aria-hidden className="invisible" /> : null}
+          {products.map((product) => (
+            <li key={product.id} className="shrink-0 snap-start snap-always">
+              <FavoriteFoodProductCard product={product} />
             </li>
           ))}
         </ul>
