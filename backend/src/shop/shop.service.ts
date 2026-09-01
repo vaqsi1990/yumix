@@ -486,6 +486,24 @@ export class ShopService {
     };
   }
 
+  async getRestaurantAddOns(slug: string) {
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { slug, isApproved: true },
+      select: { id: true },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+    }
+
+    const addOns = await this.prisma.productAddon.findMany({
+      where: { restaurantId: restaurant.id },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, price: true, category: true },
+    });
+
+    return { addOns };
+  }
+
   async getPublicOffers() {
     const products = await this.prisma.product.findMany({
       where: {

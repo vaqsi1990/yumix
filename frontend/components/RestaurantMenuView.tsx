@@ -26,11 +26,13 @@ function MenuCategorySection({
   category,
   restaurantId,
   restaurantOpen,
+  hasRestaurantAddOns,
   onProductClick,
 }: {
   category: PublicMenuCategory;
   restaurantId: string;
   restaurantOpen: boolean;
+  hasRestaurantAddOns?: boolean;
   onProductClick?: (
     product: PublicMenuProduct,
     variantId?: string,
@@ -49,6 +51,7 @@ function MenuCategorySection({
               product={product}
               restaurantId={restaurantId}
               restaurantOpen={restaurantOpen}
+              hasRestaurantAddOns={hasRestaurantAddOns}
               onOpenDetails={onProductClick}
             />
           </li>
@@ -64,10 +67,12 @@ const pageContainerClass =
 export default function RestaurantMenuView({
   restaurant,
   menu: rawMenu,
+  hasRestaurantAddOns = false,
   onProductClick,
 }: {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
+  hasRestaurantAddOns?: boolean;
   onProductClick?: (
     product: PublicMenuProduct,
     variantId?: string,
@@ -202,6 +207,7 @@ export default function RestaurantMenuView({
                 category={category}
                 restaurantId={restaurant.id}
                 restaurantOpen={restaurant.isOpen}
+                hasRestaurantAddOns={hasRestaurantAddOns}
                 onProductClick={onProductClick}
               />
             ))

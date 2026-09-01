@@ -626,6 +626,50 @@ export class RestaurantPanelService {
     return this.admin.duplicateProduct(id);
   }
 
+  async listAddons(userId: string, role: string) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    return this.admin.listRestaurantAddons(restaurant.id);
+  }
+
+  async createAddon(
+    userId: string,
+    role: string,
+    input: { name: string; price: number; category?: string },
+  ) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    return this.admin.createRestaurantAddon(restaurant.id, input);
+  }
+
+  async updateAddon(
+    userId: string,
+    role: string,
+    id: string,
+    input: { name?: string; price?: number; category?: string },
+  ) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    await this.assertAddonBelongsToRestaurant(id, restaurant.id);
+    return this.admin.updateRestaurantAddon(id, input);
+  }
+
+  async deleteAddon(userId: string, role: string, id: string) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    await this.assertAddonBelongsToRestaurant(id, restaurant.id);
+    return this.admin.deleteRestaurantAddon(id);
+  }
+
+  private async assertAddonBelongsToRestaurant(
+    addonId: string,
+    restaurantId: string,
+  ) {
+    const addon = await this.prisma.productAddon.findUnique({
+      where: { id: addonId },
+      select: { restaurantId: true },
+    });
+    if (!addon || addon.restaurantId !== restaurantId) {
+      throw new NotFoundException('დამატება ვერ მოიძებნა');
+    }
+  }
+
   async getOrders(userId: string, role: string) {
     const restaurant = await this.getOwnedRestaurant(userId, role);
     const orders = await this.prisma.order.findMany({

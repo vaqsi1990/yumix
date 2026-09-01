@@ -315,7 +315,13 @@ export class AccountService {
         product: {
           include: {
             restaurant: {
-              select: { id: true, name: true, slug: true, logo: true },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                isOpen: true,
+              },
             },
             variants: { orderBy: { name: 'asc' } },
             customizationGroups: {

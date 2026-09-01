@@ -46,6 +46,7 @@ export const NAV_ITEMS = [
   { href: "/restaurant/dashboard", label: "მთავარი", icon: "LayoutDashboard" },
   { href: "/restaurant/orders", label: "შეკვეთები", icon: "ShoppingBag" },
   { href: "/restaurant/menu", label: "მენიუ", icon: "UtensilsCrossed" },
+  { href: "/restaurant/addons", label: "დამატებები", icon: "PlusCircle" },
   { href: "/restaurant/products", label: "პროდუქტები", icon: "Package" },
   { href: "/restaurant/categories", label: "კატეგორიები", icon: "Layers" },
   { href: "/restaurant/reviews", label: "მიმოხილვები", icon: "Star" },

@@ -164,6 +164,33 @@ export class RestaurantController {
     return this.restaurant.deleteProduct(user.id, user.role, id);
   }
 
+  @Get('addons')
+  listAddons(@CurrentUser() user: AuthUser) {
+    return this.restaurant.listAddons(user.id, user.role);
+  }
+
+  @Post('addons')
+  createAddon(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { name: string; price: number; category?: string },
+  ) {
+    return this.restaurant.createAddon(user.id, user.role, body);
+  }
+
+  @Patch('addons/:id')
+  updateAddon(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { name?: string; price?: number; category?: string },
+  ) {
+    return this.restaurant.updateAddon(user.id, user.role, id, body);
+  }
+
+  @Delete('addons/:id')
+  deleteAddon(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.restaurant.deleteAddon(user.id, user.role, id);
+  }
+
   @Post('products/:id/duplicate')
   duplicateProduct(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.restaurant.duplicateProduct(user.id, user.role, id);

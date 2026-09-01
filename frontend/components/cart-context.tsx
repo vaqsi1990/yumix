@@ -24,6 +24,7 @@ type CartContextValue = {
   refresh: () => Promise<void>;
   setItemCount: (count: number) => void;
   applyCartResponse: (data: unknown) => boolean;
+  showNotice: (message: string) => void;
   clearNotice: () => void;
 };
 
@@ -71,6 +72,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setNotice(null);
   }, []);
 
+  const showNotice = useCallback((message: string) => {
+    setNotice(message);
+  }, []);
+
   useEffect(() => {
     if (status === "loading") return;
     setReady(false);
@@ -91,9 +96,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       refresh,
       setItemCount,
       applyCartResponse,
+      showNotice,
       clearNotice,
     }),
-    [itemCount, ready, notice, refresh, applyCartResponse, clearNotice],
+    [itemCount, ready, notice, refresh, applyCartResponse, showNotice, clearNotice],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

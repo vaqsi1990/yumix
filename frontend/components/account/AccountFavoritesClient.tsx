@@ -11,13 +11,14 @@ import { useFavorites } from "@/components/favorites-context";
 import AccountEmptyState from "@/components/account/AccountEmptyState";
 import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { formatGel } from "@/lib/admin/format";
-import type { PublicMenuProduct } from "@/lib/restaurants";
+import { useRestaurantAddOns } from "@/lib/use-restaurant-addons";
 import {
   removeFavoriteProduct,
   removeFavoriteRestaurant,
   type FavoriteProduct,
   type RestaurantCard,
 } from "@/lib/account-api";
+import type { PublicMenuProduct } from "@/lib/restaurants";
 
 function FavoriteRestaurantCard({
   restaurant,
@@ -68,6 +69,7 @@ export default function AccountFavoritesClient({
   const [selectedProduct, setSelectedProduct] = useState<FavoriteProduct | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const { refresh: refreshFavorites } = useFavorites();
+  const addOns = useRestaurantAddOns(selectedProduct?.restaurant.slug);
 
   async function handleRemoveRestaurant(id: string) {
     await removeFavoriteRestaurant(id);
@@ -206,7 +208,8 @@ export default function AccountFavoritesClient({
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         restaurantId={selectedProduct?.restaurant.id ?? ""}
-        restaurantOpen
+        restaurantOpen={selectedProduct?.restaurant.isOpen ?? true}
+        addOns={addOns}
       />
     </div>
   );

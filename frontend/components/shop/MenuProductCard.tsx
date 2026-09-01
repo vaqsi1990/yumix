@@ -9,18 +9,20 @@ import { addToCart } from "@/lib/shop-api";
 import { useCart } from "@/components/cart-context";
 import { useRequireLogin } from "@/lib/use-require-login";
 import { sortVariantsBySize } from "@/lib/product-sizes";
-import { productHasSelectableOptions } from "@/lib/product-customization";
+import { productHasSelectableOptions, productNeedsDetailSheet } from "@/lib/product-customization";
 import type { PublicMenuProduct } from "@/lib/restaurants";
 
 export default function MenuProductCard({
   product,
   restaurantId,
   restaurantOpen,
+  hasRestaurantAddOns = false,
   onOpenDetails,
 }: {
   product: PublicMenuProduct;
   restaurantId: string;
   restaurantOpen: boolean;
+  hasRestaurantAddOns?: boolean;
   onOpenDetails?: (
     product: PublicMenuProduct,
     variantId?: string,
@@ -70,7 +72,7 @@ export default function MenuProductCard({
       setError("აირჩიე ზომა");
       return;
     }
-    if (productHasSelectableOptions(product)) {
+    if (productNeedsDetailSheet(product, hasRestaurantAddOns)) {
       onOpenDetails?.(product, variantId ?? undefined, quantity);
       return;
     }
@@ -136,7 +138,7 @@ export default function MenuProductCard({
                 {product.description}
               </p>
             )}
-            {productHasSelectableOptions(product) && (
+            {(productHasSelectableOptions(product) || hasRestaurantAddOns) && (
               <p className="mt-1 text-[13px] font-medium text-[#FF0050] md:text-[14px]">
                 არჩევანი შეკვეთისას
               </p>

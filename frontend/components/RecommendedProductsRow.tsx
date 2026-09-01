@@ -5,6 +5,7 @@ import Image from "next/image";
 import HorizontalScroll from "@/components/HorizontalScroll";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
 import { formatGel } from "@/lib/admin/format";
+import { useRestaurantAddOns } from "@/lib/use-restaurant-addons";
 import type { RecommendedProduct } from "@/lib/recommendations";
 
 export default function RecommendedProductsRow({
@@ -13,6 +14,7 @@ export default function RecommendedProductsRow({
   products: RecommendedProduct[];
 }) {
   const [selected, setSelected] = useState<RecommendedProduct | null>(null);
+  const addOns = useRestaurantAddOns(selected?.restaurant.slug);
 
   return (
     <>
@@ -73,6 +75,7 @@ export default function RecommendedProductsRow({
         }}
         restaurantId={selected?.restaurant.id ?? ""}
         restaurantOpen={selected?.restaurant.isOpen ?? true}
+        addOns={addOns}
       />
     </>
   );

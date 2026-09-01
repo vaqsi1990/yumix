@@ -39,6 +39,11 @@ export class ShopController {
     return this.shop.getRestaurantMenu(slug);
   }
 
+  @Get('restaurants/:slug/addons')
+  getRestaurantAddOns(@Param('slug') slug: string) {
+    return this.shop.getRestaurantAddOns(slug);
+  }
+
   @Get('offers')
   getOffers() {
     return this.shop.getPublicOffers();

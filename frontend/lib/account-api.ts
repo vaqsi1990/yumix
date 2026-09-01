@@ -108,7 +108,13 @@ export type FavoriteProduct = {
   price: number;
   discountPrice: number | null;
   outOfStock: boolean;
-  restaurant: { id: string; name: string; slug: string; logo: string | null };
+  restaurant: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    isOpen: boolean;
+  };
   variants: Array<{ id: string; name: string; price: number }>;
   customizationGroups?: PublicMenuProduct["customizationGroups"];
 };

@@ -14,6 +14,7 @@ import {
 import { sanitizeCustomizationGroups } from '../common/customization.utils';
 import { orderInclude } from '../common/order.utils';
 import { parseAddonCategory } from '../common/addon-categories';
+import { assertComboProductRules } from '../common/combo-product.utils';
 import {
   ensureAllRestaurantMenuCategories,
   ensureStandardMenuCategories,
@@ -1626,6 +1627,20 @@ export class AdminService {
         'კატეგორია არ ეკუთვნის არჩეულ რესტორანს — აირჩიე სწორი კატეგორია',
       );
     }
+    return category;
+  }
+
+  private async assertComboProductRules(input: ProductWriteInput) {
+    const category = await this.prisma.productCategory.findFirst({
+      where: { id: input.categoryId },
+      select: { name: true },
+    });
+    assertComboProductRules({
+      foodType: input.foodType,
+      categoryName: category?.name ?? null,
+      variants: input.variants,
+      customizationGroups: input.customizationGroups,
+    });
   }
 
   private buildProductData(input: ProductWriteInput) {
@@ -1715,6 +1730,7 @@ export class AdminService {
       input.categoryId,
       input.restaurantId,
     );
+    await this.assertComboProductRules(input);
 
     const product = await this.prisma.product.create({
       data: {
@@ -1740,6 +1756,7 @@ export class AdminService {
       input.categoryId,
       input.restaurantId,
     );
+    await this.assertComboProductRules(input);
 
     const existing = await this.prisma.product.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('პროდუქტი არ მოიძებნა');

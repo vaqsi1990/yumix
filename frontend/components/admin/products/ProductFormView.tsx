@@ -36,6 +36,22 @@ import { isSchemaValid, parseWithSchema } from "@/lib/validation/product";
 import { normalizeProductVariants } from "@/lib/product-sizes";
 import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
 import ProductCustomizationGroupsEditor from "@/components/products/ProductCustomizationGroupsEditor";
+import {
+  findComboMenuCategoryId,
+  isComboMenuCategory,
+} from "@/lib/menu-category-order";
+
+type ProductKind = "item" | "combo";
+
+function inferProductKind(
+  product: AdminProduct | null,
+  categoryId: string,
+  categories: AdminCategory[],
+): ProductKind {
+  if (product?.foodType === "combo") return "combo";
+  const category = categories.find((row) => row.id === categoryId);
+  return category && isComboMenuCategory(category.name) ? "combo" : "item";
+}
 
 type ProductFormViewProps = {
   product: AdminProduct | null;
@@ -67,26 +83,33 @@ export default function ProductFormView({
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [localCategories, setLocalCategories] = useState(categories);
+  const [productKind, setProductKind] = useState<ProductKind>(() =>
+    inferProductKind(product, initialCategoryId, categories),
+  );
 
   useEffect(() => {
     setLocalCategories(categories);
   }, [categories]);
 
   useEffect(() => {
-    setForm(
-      product
-        ? productToFormData(product)
-        : createEmptyProductForm(initialRestaurantId, initialCategoryId),
+    const nextForm = product
+      ? productToFormData(product)
+      : createEmptyProductForm(initialRestaurantId, initialCategoryId);
+    setForm(nextForm);
+    setProductKind(
+      inferProductKind(product, nextForm.categoryId, categories),
     );
     setError("");
     setFieldErrors({});
-  }, [product, initialRestaurantId, initialCategoryId]);
+  }, [product, initialRestaurantId, initialCategoryId, categories]);
 
   const scopedCategories = getCategoriesForRestaurant(
     form.restaurantId,
     localCategories,
   );
 
+  const comboCategoryId = findComboMenuCategoryId(scopedCategories);
+  const isCombo = productKind === "combo";
   const selectedRestaurant = restaurants.find((r) => r.id === form.restaurantId);
 
   useEffect(() => {
@@ -98,6 +121,31 @@ export default function ProductFormView({
       setForm((f) => ({ ...f, categoryId: "" }));
     }
   }, [form.restaurantId, form.categoryId, scopedCategories]);
+
+  useEffect(() => {
+    if (!isCombo || !comboCategoryId) return;
+    setForm((f) =>
+      f.categoryId === comboCategoryId ? f : { ...f, categoryId: comboCategoryId },
+    );
+  }, [isCombo, comboCategoryId]);
+
+  function handleProductKindChange(nextKind: ProductKind) {
+    setProductKind(nextKind);
+    if (nextKind === "combo") {
+      setForm((f) => ({
+        ...f,
+        foodType: "combo",
+        categoryId: comboCategoryId ?? f.categoryId,
+        variants: [],
+        customizationGroups: [],
+      }));
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      foodType: f.foodType === "combo" ? null : f.foodType,
+    }));
+  }
 
   function updateField<K extends keyof ProductFormData>(
     key: K,
@@ -116,7 +164,7 @@ export default function ProductFormView({
   function validate(): boolean {
     const parsed = parseWithSchema(productFormSchema, {
       restaurantId: form.restaurantId,
-      categoryId: form.categoryId,
+      categoryId: isCombo ? comboCategoryId ?? form.categoryId : form.categoryId,
       name: form.name,
       image: form.image ?? "",
       price: form.price,
@@ -133,6 +181,12 @@ export default function ProductFormView({
       setError(message);
       return false;
     }
+    if (isCombo && !comboCategoryId) {
+      const message = "კომბო მენიუ კატეგორია ვერ მოიძებნა";
+      setFieldErrors({ categoryId: message });
+      setError(message);
+      return false;
+    }
     setFieldErrors({});
     setError("");
     return true;
@@ -140,13 +194,19 @@ export default function ProductFormView({
 
   async function handleSave() {
     if (!validate()) return;
+    const saveCategoryId = isCombo ? comboCategoryId! : form.categoryId;
     const apiError = await onSave({
       ...form,
-      variants: normalizeProductVariants(form.variants).map((v) => ({
-        id: v.id ?? `new_${v.name}`,
-        name: v.name,
-        price: v.price,
-      })),
+      categoryId: saveCategoryId,
+      foodType: isCombo ? "combo" : form.foodType,
+      variants: isCombo
+        ? []
+        : normalizeProductVariants(form.variants).map((v) => ({
+            id: v.id ?? `new_${v.name}`,
+            name: v.name,
+            price: v.price,
+          })),
+      customizationGroups: isCombo ? [] : form.customizationGroups,
     });
     if (apiError) setError(apiError);
   }
@@ -214,6 +274,32 @@ export default function ProductFormView({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label>პროდუქტის ტიპი</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={productKind === "item" ? "default" : "outline"}
+                  onClick={() => handleProductKindChange("item")}
+                >
+                  კერძი
+                </Button>
+                <Button
+                  type="button"
+                  variant={productKind === "combo" ? "default" : "outline"}
+                  onClick={() => handleProductKindChange("combo")}
+                >
+                  კომბო მენიუ
+                </Button>
+              </div>
+              {isCombo ? (
+                <p className="text-sm text-muted-foreground">
+                  კომბოს ფიქსირებული ფასი და საკუთარი სურათი აქვს; ზომები და
+                  ოფციები არ გამოიყენება.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="product-name">პროდუქტის დასახელება *</Label>
               <Input
                 id="product-name"
@@ -257,7 +343,7 @@ export default function ProductFormView({
                 <Select
                   value={form.categoryId || undefined}
                   onValueChange={(v) => updateField("categoryId", v)}
-                  disabled={!form.restaurantId}
+                  disabled={!form.restaurantId || isCombo}
                 >
                   <SelectTrigger
                     className={cn(fieldErrors.categoryId && "border-destructive")}
@@ -273,7 +359,9 @@ export default function ProductFormView({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {scopedCategories.map((c) => (
+                    {scopedCategories
+                      .filter((c) => !isComboMenuCategory(c.name))
+                      .map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
                       </SelectItem>
@@ -421,6 +509,7 @@ export default function ProductFormView({
           </CardContent>
         </Card>
 
+        {!isCombo ? (
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-bold">
@@ -448,7 +537,9 @@ export default function ProductFormView({
             />
           </CardContent>
         </Card>
+        ) : null}
 
+        {!isCombo ? (
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-bold">
@@ -467,6 +558,7 @@ export default function ProductFormView({
             />
           </CardContent>
         </Card>
+        ) : null}
 
         {error && <p className="text-[16px] md:text-[18px] text-destructive">{error}</p>}
 
@@ -524,6 +616,7 @@ export default function ProductFormView({
           </CardContent>
         </Card>
 
+        {!isCombo ? (
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-bold">
@@ -532,7 +625,8 @@ export default function ProductFormView({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
-              {FOOD_TYPE_OPTIONS.map(({ id, label, icon: Icon }) => {
+              {FOOD_TYPE_OPTIONS.filter((option) => option.id !== "combo").map(
+                ({ id, label, icon: Icon }) => {
                 const active = form.foodType === id;
                 return (
                   <button
@@ -552,10 +646,12 @@ export default function ProductFormView({
                     </span>
                   </button>
                 );
-              })}
+              },
+              )}
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
         <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <Lightbulb className="mt-0.5 size-5 shrink-0 text-amber-600" />

@@ -29,11 +29,26 @@ type ProductAddon = {
 
 type RestaurantAddonsPanelProps = {
   restaurantId: string;
+  api?: {
+    list: string;
+    create: string;
+    update: (id: string) => string;
+    delete: (id: string) => string;
+  };
 };
+
+const defaultAddonApi = (restaurantId: string) => ({
+  list: `/api/backend/admin/restaurants/${restaurantId}/addons`,
+  create: `/api/backend/admin/restaurants/${restaurantId}/addons`,
+  update: (id: string) => `/api/backend/admin/addons/${id}`,
+  delete: (id: string) => `/api/backend/admin/addons/${id}`,
+});
 
 export default function RestaurantAddonsPanel({
   restaurantId,
+  api,
 }: RestaurantAddonsPanelProps) {
+  const endpoints = api ?? defaultAddonApi(restaurantId);
   const [addOns, setAddOns] = useState<ProductAddon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,9 +67,7 @@ export default function RestaurantAddonsPanel({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(
-        `/api/backend/admin/restaurants/${restaurantId}/addons`,
-      );
+      const res = await fetch(endpoints.list);
       if (!res.ok) {
         throw new Error(await parseApiError(res, "დამატებების ჩატვირთვა ვერ მოხერხდა"));
       }
@@ -66,7 +79,7 @@ export default function RestaurantAddonsPanel({
     } finally {
       setLoading(false);
     }
-  }, [restaurantId]);
+  }, [endpoints.list]);
 
   useEffect(() => {
     void loadAddons();
@@ -81,14 +94,11 @@ export default function RestaurantAddonsPanel({
     setCreating(true);
     setError("");
     try {
-      const res = await fetch(
-        `/api/backend/admin/restaurants/${restaurantId}/addons`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, price, category: newCategory }),
-        },
-      );
+      const res = await fetch(endpoints.create, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, price, category: newCategory }),
+      });
       if (!res.ok) {
         throw new Error(await parseApiError(res, "დამატების შექმნა ვერ მოხერხდა"));
       }
@@ -118,7 +128,7 @@ export default function RestaurantAddonsPanel({
     setSavingId(id);
     setError("");
     try {
-      const res = await fetch(`/api/backend/admin/addons/${id}`, {
+      const res = await fetch(endpoints.update(id), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, price, category: editCategory }),
@@ -141,7 +151,7 @@ export default function RestaurantAddonsPanel({
     setDeletingId(id);
     setError("");
     try {
-      const res = await fetch(`/api/backend/admin/addons/${id}`, {
+      const res = await fetch(endpoints.delete(id), {
         method: "DELETE",
       });
       if (!res.ok) {

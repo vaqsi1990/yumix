@@ -5,7 +5,7 @@ import RestaurantMenuView from "@/components/RestaurantMenuView";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
 import { useAuth } from "@/components/auth-context";
 import { useCart } from "@/components/cart-context";
-import { ensureCartRestaurant } from "@/lib/shop-api";
+import { ensureCartRestaurant, CART_REPLACED_NOTICE } from "@/lib/shop-api";
 import type {
   PublicMenuProduct,
   PublicMenuCategory,
@@ -25,7 +25,7 @@ export default function RestaurantMenuClient({
   addOns = [],
 }: RestaurantMenuClientProps) {
   const { user, status } = useAuth();
-  const { applyCartResponse } = useCart();
+  const { applyCartResponse, showNotice } = useCart();
   const [selectedProduct, setSelectedProduct] =
     useState<PublicMenuProduct | null>(null);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
@@ -38,8 +38,9 @@ export default function RestaurantMenuClient({
     void ensureCartRestaurant(restaurant.id).then((cleared) => {
       if (!cleared) return;
       applyCartResponse({ cart: { items: [] }, totals: { itemCount: 0 } });
+      showNotice(CART_REPLACED_NOTICE);
     });
-  }, [restaurant.id, user, status, applyCartResponse]);
+  }, [restaurant.id, user, status, applyCartResponse, showNotice]);
 
   function openProduct(
     product: PublicMenuProduct,
@@ -57,6 +58,7 @@ export default function RestaurantMenuClient({
       <RestaurantMenuView
         restaurant={restaurant}
         menu={menu}
+        hasRestaurantAddOns={addOns.length > 0}
         onProductClick={openProduct}
       />
       <ProductDetailSheet

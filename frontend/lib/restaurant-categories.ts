@@ -510,7 +510,7 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
   "კომბო მენიუ": {
     slug: "combo-menu",
     description: "კომბო შეთავაზებები ფიქსირებული ფასით",
-    image: null,
+    image: "/cat/2.png",
     subcategories: COMBO_MENU_SUBCATEGORIES,
   },
   გამომცხვრები: {

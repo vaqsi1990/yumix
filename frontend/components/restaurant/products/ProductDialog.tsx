@@ -294,9 +294,10 @@ export default function ProductDialog({
         productKind === "combo"
           ? []
           : normalizeProductVariants(variants),
-      customizationGroups: sanitizeCustomizationGroupsForSubmit(
-        customizationGroups,
-      ),
+      customizationGroups:
+        productKind === "combo"
+          ? []
+          : sanitizeCustomizationGroupsForSubmit(customizationGroups),
     };
 
     const writeValidation = parseWithSchema(restaurantProductWriteSchema, payload);
@@ -545,21 +546,23 @@ export default function ProductDialog({
               </div>
             ) : null}
 
-            <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
-              <div>
-                <Label className="text-sm font-semibold">
-                  {KA.products.customizationGroups}
-                </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {KA.products.customizationGroupsHint}
-                </p>
+            {!isCombo ? (
+              <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
+                <div>
+                  <Label className="text-sm font-semibold">
+                    {KA.products.customizationGroups}
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {KA.products.customizationGroupsHint}
+                  </p>
+                </div>
+                <ProductCustomizationGroupsEditor
+                  value={customizationGroups}
+                  onChange={setCustomizationGroups}
+                  numberInputClass={numberInputClass}
+                />
               </div>
-              <ProductCustomizationGroupsEditor
-                value={customizationGroups}
-                onChange={setCustomizationGroups}
-                numberInputClass={numberInputClass}
-              />
-            </div>
+            ) : null}
           </div>
 
           {formError && (
