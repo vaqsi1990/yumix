@@ -1,12 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { ProductCustomizationGroup } from "@/components/admin/products/types";
-import { cn } from "@/lib/utils";
+import {
+  EXCLUSION_GROUP_NAME,
+  isExclusionGroup,
+  normalizeCustomizationGroupKind,
+} from "@/lib/customization-groups";
 
 type ProductCustomizationGroupsEditorProps = {
   value: ProductCustomizationGroup[];
@@ -14,356 +19,418 @@ type ProductCustomizationGroupsEditorProps = {
   numberInputClass?: string;
 };
 
-const OPTION_TEMPLATES: {
-  name: string;
-  description: string;
-  required: boolean;
-  minSelections: number;
-  maxSelections: number;
-  options: { name: string; price: number }[];
-}[] = [
-  {
-    name: "სოუსი",
-    description: "აირჩიე სოუსი",
-    required: true,
-    minSelections: 1,
-    maxSelections: 1,
-    options: [
-      { name: "კეტჩუპი", price: 0 },
-      { name: "მაიონეზი", price: 0 },
-      { name: "მდოგვი", price: 0 },
-    ],
-  },
-  {
-    name: "ცხარობა",
-    description: "აირჩიე ცხარობის დონე",
-    required: true,
-    minSelections: 1,
-    maxSelections: 1,
-    options: [
-      { name: "არაცხარე", price: 0 },
-      { name: "საშუალო", price: 0 },
-      { name: "ცხარე", price: 0 },
-    ],
-  },
-  {
-    name: "დამატებითი",
-    description: "სურვილისამებრ დაამატე",
-    required: false,
-    minSelections: 0,
-    maxSelections: 5,
-    options: [
-      { name: "ყველი", price: 2 },
-      { name: "ბეკონი", price: 3 },
-    ],
-  },
-];
-
-function emptyGroup(sortOrder: number): ProductCustomizationGroup {
+function emptyOptionGroup(sortOrder: number): ProductCustomizationGroup {
   return {
+    kind: "option",
     name: "",
     description: "",
     required: false,
     minSelections: 0,
     maxSelections: 1,
     sortOrder,
-    options: [{ name: "", price: 0, sortOrder: 0, isAvailable: true }],
+    options: [],
   };
 }
 
-function fromTemplate(
-  template: (typeof OPTION_TEMPLATES)[number],
-  sortOrder: number,
-): ProductCustomizationGroup {
+function emptyExclusionGroup(sortOrder: number): ProductCustomizationGroup {
   return {
-    name: template.name,
-    description: template.description,
-    required: template.required,
-    minSelections: template.minSelections,
-    maxSelections: template.maxSelections,
+    kind: "exclusion",
+    name: EXCLUSION_GROUP_NAME,
+    description: "",
+    required: false,
+    minSelections: 0,
+    maxSelections: 20,
     sortOrder,
-    options: template.options.map((option, index) => ({
-      name: option.name,
-      price: option.price,
+    options: [],
+  };
+}
+
+function parseVariantsList(
+  text: string,
+  allowPrices: boolean,
+): ProductCustomizationGroup["options"] {
+  const parts = text
+    .split(/[,;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) return [];
+
+  return parts.map((part, index) => {
+    if (allowPrices) {
+      const priceMatch = part.match(/^(.+?)\s*\+\s*(\d+(?:[.,]\d+)?)\s*₾?$/);
+      if (priceMatch) {
+        return {
+          name: priceMatch[1].trim(),
+          price: Number(priceMatch[2].replace(",", ".")) || 0,
+          sortOrder: index,
+          isAvailable: true,
+        };
+      }
+    }
+
+    return {
+      name: part,
+      price: 0,
       sortOrder: index,
       isAvailable: true,
-    })),
+    };
+  });
+}
+
+function formatVariantsList(
+  options: ProductCustomizationGroup["options"],
+  allowPrices: boolean,
+): string {
+  return options
+    .map((option) => {
+      const name = option.name.trim();
+      if (!name) return "";
+      if (allowPrices && option.price > 0) {
+        return `${name} +${option.price}`;
+      }
+      return name;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+function syncOptionGroup(
+  group: ProductCustomizationGroup,
+): ProductCustomizationGroup {
+  const namedOptions = group.options.filter((option) => option.name.trim());
+  const isMultiple = (group.maxSelections ?? 1) > 1;
+  const required = Boolean(group.required);
+
+  return {
+    ...group,
+    kind: "option",
+    options: namedOptions,
+    minSelections: required ? 1 : 0,
+    maxSelections: isMultiple
+      ? Math.min(20, Math.max(2, namedOptions.length || 2))
+      : 1,
   };
+}
+
+function syncExclusionGroup(
+  group: ProductCustomizationGroup,
+): ProductCustomizationGroup {
+  const namedOptions = group.options
+    .filter((option) => option.name.trim())
+    .map((option) => ({
+      ...option,
+      price: 0,
+    }));
+
+  return {
+    ...group,
+    kind: "exclusion",
+    name: EXCLUSION_GROUP_NAME,
+    required: false,
+    minSelections: 0,
+    maxSelections: Math.min(20, Math.max(2, namedOptions.length || 2)),
+    options: namedOptions,
+  };
+}
+
+function VariantListInput({
+  groupKey,
+  options,
+  allowPrices,
+  placeholder,
+  onChange,
+}: {
+  groupKey: string;
+  options: ProductCustomizationGroup["options"];
+  allowPrices: boolean;
+  placeholder: string;
+  onChange: (options: ProductCustomizationGroup["options"]) => void;
+}) {
+  const [text, setText] = useState(() =>
+    formatVariantsList(options, allowPrices),
+  );
+
+  useEffect(() => {
+    setText(formatVariantsList(options, allowPrices));
+  }, [groupKey, allowPrices]);
+
+  return (
+    <Input
+      value={text}
+      placeholder={placeholder}
+      onChange={(e) => {
+        const nextText = e.target.value;
+        setText(nextText);
+        onChange(parseVariantsList(nextText, allowPrices));
+      }}
+    />
+  );
+}
+
+function splitGroups(value: ProductCustomizationGroup[]) {
+  const optionGroups = value.filter((group) => !isExclusionGroup(group));
+  const exclusionGroup =
+    value.find((group) => isExclusionGroup(group)) ?? null;
+
+  return { optionGroups, exclusionGroup };
+}
+
+function mergeGroups(
+  optionGroups: ProductCustomizationGroup[],
+  exclusionGroup: ProductCustomizationGroup | null,
+) {
+  const next = optionGroups.map((group, index) =>
+    syncOptionGroup({
+      ...group,
+      kind: "option",
+      sortOrder: index,
+    }),
+  );
+
+  if (
+    exclusionGroup &&
+    exclusionGroup.options.some((option) => option.name.trim())
+  ) {
+    next.push(
+      syncExclusionGroup({
+        ...exclusionGroup,
+        sortOrder: next.length,
+      }),
+    );
+  }
+
+  return next;
 }
 
 export default function ProductCustomizationGroupsEditor({
   value,
   onChange,
-  numberInputClass,
 }: ProductCustomizationGroupsEditorProps) {
-  function updateGroup(index: number, patch: Partial<ProductCustomizationGroup>) {
-    const next = value.map((group, i) =>
-      i === index ? { ...group, ...patch } : group,
+  const { optionGroups, exclusionGroup } = splitGroups(value);
+
+  function commit(
+    nextOptions: ProductCustomizationGroup[],
+    nextExclusion: ProductCustomizationGroup | null,
+  ) {
+    onChange(mergeGroups(nextOptions, nextExclusion));
+  }
+
+  function updateOptionGroup(
+    index: number,
+    patch: Partial<ProductCustomizationGroup>,
+  ) {
+    const next = optionGroups.map((group, i) =>
+      i === index ? syncOptionGroup({ ...group, ...patch }) : group,
     );
-    onChange(next);
+    commit(next, exclusionGroup);
   }
 
-  function removeGroup(index: number) {
-    onChange(value.filter((_, i) => i !== index));
+  function removeOptionGroup(index: number) {
+    commit(
+      optionGroups.filter((_, i) => i !== index),
+      exclusionGroup,
+    );
   }
 
-  function addGroup(group?: ProductCustomizationGroup) {
-    onChange([...value, group ?? emptyGroup(value.length)]);
+  function addOptionGroup() {
+    commit([...optionGroups, emptyOptionGroup(optionGroups.length)], exclusionGroup);
   }
 
-  function addTemplate(template: (typeof OPTION_TEMPLATES)[number]) {
-    if (value.some((group) => group.name === template.name)) return;
-    addGroup(fromTemplate(template, value.length));
-  }
+  function setMultiple(index: number, multiple: boolean) {
+    const group = optionGroups[index];
+    const namedCount = group.options.filter((option) =>
+      option.name.trim(),
+    ).length;
 
-  function setSelectionType(index: number, multiple: boolean) {
-    const group = value[index];
-    if (multiple) {
-      updateGroup(index, {
-        maxSelections: Math.max(2, group.maxSelections ?? 2, group.options.length),
-        minSelections: group.required ? Math.max(1, group.minSelections ?? 1) : 0,
-      });
-      return;
-    }
-    updateGroup(index, {
-      maxSelections: 1,
+    updateOptionGroup(index, {
+      maxSelections: multiple
+        ? Math.min(20, Math.max(2, namedCount || 2))
+        : 1,
       minSelections: group.required ? 1 : 0,
     });
   }
 
   function setRequired(index: number, required: boolean) {
-    const group = value[index];
-    const maxSelections = Math.max(1, group.maxSelections ?? 1);
-    updateGroup(index, {
+    updateOptionGroup(index, {
       required,
-      minSelections: required ? Math.max(1, group.minSelections ?? 1) : 0,
-      maxSelections: required ? Math.max(1, maxSelections) : maxSelections,
+      minSelections: required ? 1 : 0,
     });
   }
 
-  function updateOption(
-    groupIndex: number,
-    optionIndex: number,
-    patch: Partial<ProductCustomizationGroup["options"][number]>,
+  function updateExclusionGroup(
+    patch: Partial<ProductCustomizationGroup>,
   ) {
-    const group = value[groupIndex];
-    const options = group.options.map((option, i) =>
-      i === optionIndex ? { ...option, ...patch } : option,
-    );
-    updateGroup(groupIndex, { options });
+    const base = exclusionGroup ?? emptyExclusionGroup(optionGroups.length);
+    commit(optionGroups, syncExclusionGroup({ ...base, ...patch }));
   }
 
-  function addOption(groupIndex: number) {
-    const group = value[groupIndex];
-    updateGroup(groupIndex, {
-      options: [
-        ...group.options,
-        {
-          name: "",
-          price: 0,
-          sortOrder: group.options.length,
-          isAvailable: true,
-        },
-      ],
-    });
+  function removeExclusionGroup() {
+    commit(optionGroups, null);
   }
 
-  function removeOption(groupIndex: number, optionIndex: number) {
-    const group = value[groupIndex];
-    if (group.options.length <= 1) return;
-    updateGroup(groupIndex, {
-      options: group.options.filter((_, i) => i !== optionIndex),
-    });
+  function addExclusionGroup() {
+    commit(optionGroups, emptyExclusionGroup(optionGroups.length));
   }
-
-  const usedTemplateNames = new Set(value.map((group) => group.name));
 
   return (
-    <div className="space-y-4">
-      {value.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          დაამატე ოფციები, რომ მომხმარებელმა შეკვეთისას აირჩიოს სოუსი, ცხარობა
-          ან დამატებითი.
-        </p>
-      ) : null}
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">ოფციები</p>
+          <p className="text-sm text-muted-foreground">
+            სოუსი, დამატებითი, ზომა და სხვა არჩევანი.
+          </p>
+        </div>
 
-      <div className="flex flex-wrap gap-2">
-        {OPTION_TEMPLATES.map((template) => (
-          <Button
-            key={template.name}
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={usedTemplateNames.has(template.name)}
-            onClick={() => addTemplate(template)}
-          >
-            <Plus className="mr-1 size-4" />
-            {template.name}
-          </Button>
-        ))}
-      </div>
+        {optionGroups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            ოფციები ჯერ არ არის დამატებული.
+          </p>
+        ) : null}
 
-      {value.map((group, groupIndex) => {
-        const isMultiple = (group.maxSelections ?? 1) > 1;
+        {optionGroups.map((group, groupIndex) => {
+          const groupKey = group.id ?? `option-${groupIndex}`;
+          const isMultiple = (group.maxSelections ?? 1) > 1;
 
-        return (
-          <div
-            key={group.id ?? groupIndex}
-            className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="grid flex-1 gap-3">
-                <div className="space-y-2">
-                  <Label>ჯგუფის სახელი</Label>
-                  <Input
-                    value={group.name}
-                    placeholder="მაგ. სოუსი, დამატებითი, სასმელი"
-                    onChange={(e) =>
-                      updateGroup(groupIndex, { name: e.target.value })
+          return (
+            <div
+              key={groupKey}
+              className="space-y-3 rounded-xl border border-neutral-200 bg-white p-3"
+            >
+              <div className="flex items-center gap-2">
+                <Input
+                  value={group.name}
+                  placeholder="ოფციის სახელი (მაგ. სოუსი, დამატებითი)"
+                  onChange={(e) =>
+                    updateOptionGroup(groupIndex, { name: e.target.value })
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-red-500"
+                  onClick={() => removeOptionGroup(groupIndex)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  ვარიანტები (მძიმით)
+                </Label>
+                <VariantListInput
+                  groupKey={groupKey}
+                  options={group.options}
+                  allowPrices
+                  placeholder="მაგ. კეტჩუპი, მაიონეზი, ყველი +2"
+                  onChange={(options) =>
+                    updateOptionGroup(groupIndex, { options })
+                  }
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id={`required-${groupIndex}`}
+                    checked={Boolean(group.required)}
+                    onCheckedChange={(checked) =>
+                      setRequired(groupIndex, checked)
                     }
                   />
+                  <Label
+                    htmlFor={`required-${groupIndex}`}
+                    className="text-sm font-normal"
+                  >
+                    სავალდებულო
+                  </Label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id={`multiple-${groupIndex}`}
+                    checked={isMultiple}
+                    onCheckedChange={(checked) =>
+                      setMultiple(groupIndex, checked)
+                    }
+                  />
+                  <Label
+                    htmlFor={`multiple-${groupIndex}`}
+                    className="text-sm font-normal"
+                  >
+                    რამდენიმის არჩევა
+                  </Label>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        <Button type="button" variant="outline" onClick={addOptionGroup}>
+          <Plus className="mr-1 size-4" />
+          ოფციის დამატება
+        </Button>
+      </div>
+
+      <div className="space-y-3 border-t border-neutral-200 pt-5">
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">
+            {EXCLUSION_GROUP_NAME}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            რა არ უნდა იყოს კერძში — მომხმარებელი აირჩევს სურვილისამებრ.
+          </p>
+        </div>
+
+        {exclusionGroup ? (
+          <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  გამონაკლისები (მძიმით)
+                </Label>
+                <VariantListInput
+                  groupKey={exclusionGroup.id ?? "exclusion"}
+                  options={exclusionGroup.options}
+                  allowPrices={false}
+                  placeholder="მაგ. კეტჩუპის გარეშე, ხახვის გარეშე, სალათის გარეშე"
+                  onChange={(options) => updateExclusionGroup({ options })}
+                />
               </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="shrink-0 text-red-500"
-                onClick={() => removeGroup(groupIndex)}
+                onClick={removeExclusionGroup}
               >
                 <Trash2 className="size-4" />
               </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label>არჩევის ტიპი</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectionType(groupIndex, false)}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-left text-sm transition",
-                    !isMultiple
-                      ? "border-[#FF0050] bg-[#FF0050]/5 font-medium"
-                      : "border-neutral-200 hover:border-neutral-300",
-                  )}
-                >
-                  ერთი არჩევანი
-                  <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                    რადიო — მაგ. სოუსი
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectionType(groupIndex, true)}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-left text-sm transition",
-                    isMultiple
-                      ? "border-[#FF0050] bg-[#FF0050]/5 font-medium"
-                      : "border-neutral-200 hover:border-neutral-300",
-                  )}
-                >
-                  რამდენიმე არჩევანი
-                  <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                    ჩექბოქსი — მაგ. დამატებითი
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {isMultiple ? (
-              <div className="space-y-2">
-                <Label htmlFor={`max-${groupIndex}`}>მაქს. არჩევანი</Label>
-                <Input
-                  id={`max-${groupIndex}`}
-                  type="number"
-                  min={Math.max(1, group.minSelections ?? 1)}
-                  max={20}
-                  value={group.maxSelections ?? 2}
-                  onChange={(e) =>
-                    updateGroup(groupIndex, {
-                      maxSelections: Math.max(1, Number(e.target.value) || 1),
-                    })
-                  }
-                  className={numberInputClass}
-                />
-              </div>
-            ) : null}
-
-            <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
-              <div>
-                <Label htmlFor={`required-${groupIndex}`}>სავალდებულო</Label>
-                <p className="text-xs text-muted-foreground">
-                  მომხმარებელმა აუცილებლად უნდა აირჩიოს
-                </p>
-              </div>
-              <Switch
-                id={`required-${groupIndex}`}
-                checked={Boolean(group.required)}
-                onCheckedChange={(checked) =>
-                  setRequired(groupIndex, checked)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>ვარიანტები</Label>
-              {group.options.map((option, optionIndex) => (
-                <div
-                  key={option.id ?? optionIndex}
-                  className="grid items-center gap-2 sm:grid-cols-[1fr_110px_auto]"
-                >
-                  <Input
-                    value={option.name}
-                    placeholder="ვარიანტის სახელი"
-                    onChange={(e) =>
-                      updateOption(groupIndex, optionIndex, {
-                        name: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={option.price || ""}
-                    placeholder="+₾"
-                    onChange={(e) =>
-                      updateOption(groupIndex, optionIndex, {
-                        price: Number(e.target.value.replace(",", ".")) || 0,
-                      })
-                    }
-                    className={numberInputClass}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={group.options.length <= 1}
-                    onClick={() => removeOption(groupIndex, optionIndex)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addOption(groupIndex)}
-              >
-                <Plus className="mr-1 size-4" />
-                ვარიანტის დამატება
-              </Button>
-            </div>
           </div>
-        );
-      })}
-
-      <Button type="button" variant="outline" onClick={() => addGroup()}>
-        <Plus className="mr-1 size-4" />
-        ოფციების ჯგუფის დამატება
-      </Button>
+        ) : (
+          <Button type="button" variant="outline" onClick={addExclusionGroup}>
+            <Plus className="mr-1 size-4" />
+            გამონაკლისების დამატება
+          </Button>
+        )}
+      </div>
     </div>
   );
+}
+
+export function normalizeCustomizationGroupsForSubmit(
+  groups: ProductCustomizationGroup[],
+): ProductCustomizationGroup[] {
+  return mergeGroups(
+    groups.filter((group) => !isExclusionGroup(group)),
+    groups.find((group) => isExclusionGroup(group)) ?? null,
+  ).map((group, groupIndex) => ({
+    ...group,
+    kind: normalizeCustomizationGroupKind(group.kind),
+    sortOrder: groupIndex,
+  }));
 }

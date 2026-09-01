@@ -235,6 +235,7 @@ model ProductCustomizationGroup {
   productId     String
   name          String
   description   String?
+  kind          String   @default("option")
   required      Boolean  @default(false)
   minSelections Int      @default(0)
   maxSelections Int      @default(1)

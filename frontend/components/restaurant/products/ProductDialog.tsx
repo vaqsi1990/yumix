@@ -21,7 +21,10 @@ import {
 } from "@/components/ui/select";
 import ProductImageUpload from "@/components/restaurant/products/ProductImageUpload";
 import ProductSizeVariantsEditor from "@/components/products/ProductSizeVariantsEditor";
-import ProductCustomizationGroupsEditor from "@/components/products/ProductCustomizationGroupsEditor";
+import ProductCustomizationGroupsEditor, {
+  normalizeCustomizationGroupsForSubmit,
+} from "@/components/products/ProductCustomizationGroupsEditor";
+import { normalizeCustomizationGroupKind } from "@/lib/customization-groups";
 import type { ProductCustomizationGroup } from "@/components/admin/products/types";
 import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
 import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
@@ -67,6 +70,7 @@ function mapCustomizationGroupsFromProduct(
     id: group.id,
     name: group.name,
     description: group.description ?? "",
+    kind: normalizeCustomizationGroupKind(group.kind),
     required: group.required,
     minSelections: group.minSelections,
     maxSelections: group.maxSelections,
@@ -84,50 +88,7 @@ function mapCustomizationGroupsFromProduct(
 function sanitizeCustomizationGroupsForSubmit(
   groups: ProductCustomizationGroup[],
 ): ProductCustomizationGroup[] {
-  return groups
-    .map((group, groupIndex) => {
-      const name = group.name.trim();
-      if (!name) return null;
-
-      const options = group.options
-        .map((option, optionIndex) => {
-          const optionName = option.name.trim();
-          if (!optionName) return null;
-          return {
-            ...(option.id ? { id: option.id } : {}),
-            name: optionName,
-            price: Math.max(0, Number(option.price) || 0),
-            sortOrder: option.sortOrder ?? optionIndex,
-            isAvailable: option.isAvailable !== false,
-          };
-        })
-        .filter(Boolean) as ProductCustomizationGroup["options"];
-
-      if (options.length === 0) return null;
-
-      const required = Boolean(group.required);
-      const minSelections = Math.max(
-        0,
-        Math.min(20, group.minSelections ?? (required ? 1 : 0)),
-      );
-      let maxSelections = Math.max(
-        1,
-        Math.min(20, group.maxSelections ?? 1),
-      );
-      if (maxSelections < minSelections) maxSelections = minSelections;
-
-      return {
-        ...(group.id ? { id: group.id } : {}),
-        name,
-        description: group.description?.trim() || null,
-        required,
-        minSelections,
-        maxSelections,
-        sortOrder: group.sortOrder ?? groupIndex,
-        options,
-      };
-    })
-    .filter(Boolean) as ProductCustomizationGroup[];
+  return normalizeCustomizationGroupsForSubmit(groups);
 }
 
 function buildFormState(

@@ -116,6 +116,7 @@ const productWriteBaseSchema = z.object({
         id: z.string().optional(),
         name: z.string().trim().min(1),
         description: z.string().nullable().optional(),
+        kind: z.enum(["option", "exclusion"]).optional(),
         required: z.boolean().optional(),
         minSelections: z.number().int().min(0).max(20).optional(),
         maxSelections: z.number().int().min(1).max(20).optional(),

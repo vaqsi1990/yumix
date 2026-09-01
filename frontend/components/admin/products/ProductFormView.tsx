@@ -455,7 +455,7 @@ export default function ProductFormView({
               ოფციები
             </CardTitle>
             <p className="text-[14px] text-muted-foreground md:text-[16px]">
-              სოუსები, დამატებითი, ცხარობა — მომხმარებელი აირჩევს შეკვეთისას.
+              ოფციები და გამონაკლისები ცალკე სექციებშია.
             </p>
           </CardHeader>
           <CardContent>

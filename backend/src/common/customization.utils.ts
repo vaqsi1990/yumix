@@ -89,6 +89,7 @@ export function validateProductCustomizations(
 export type CustomizationGroupWriteInput = {
   name: string;
   description?: string | null;
+  kind?: 'option' | 'exclusion';
   required?: boolean;
   minSelections?: number;
   maxSelections?: number;
@@ -101,6 +102,10 @@ export type CustomizationGroupWriteInput = {
   }[];
 };
 
+function normalizeGroupKind(kind?: string | null): 'option' | 'exclusion' {
+  return kind === 'exclusion' ? 'exclusion' : 'option';
+}
+
 export function sanitizeCustomizationGroups(
   groups: CustomizationGroupWriteInput[] | undefined,
 ): CustomizationGroupWriteInput[] {
@@ -111,22 +116,30 @@ export function sanitizeCustomizationGroups(
       const name = group.name?.trim();
       if (!name) return null;
 
-      const required = Boolean(group.required);
-      const minSelections = Math.max(
-        0,
-        Math.min(20, Math.floor(Number(group.minSelections ?? (required ? 1 : 0)))),
-      );
-      let maxSelections = Math.max(
-        1,
-        Math.min(20, Math.floor(Number(group.maxSelections ?? 1))),
-      );
-      if (maxSelections < minSelections) maxSelections = minSelections;
+      const kind = normalizeGroupKind(group.kind);
+      const required =
+        kind === 'exclusion' ? false : Boolean(group.required);
+      const minSelections =
+        kind === 'exclusion'
+          ? 0
+          : Math.max(
+              0,
+              Math.min(
+                20,
+                Math.floor(
+                  Number(group.minSelections ?? (required ? 1 : 0)),
+                ),
+              ),
+            );
 
-      const options = (group.options ?? [])
+      let options = (group.options ?? [])
         .map((option, optionIndex) => {
           const optionName = option.name?.trim();
           if (!optionName) return null;
-          const price = Math.max(0, Number(option.price) || 0);
+          const price =
+            kind === 'exclusion'
+              ? 0
+              : Math.max(0, Number(option.price) || 0);
           return {
             name: optionName,
             price,
@@ -138,9 +151,19 @@ export function sanitizeCustomizationGroups(
 
       if (options.length === 0) return null;
 
+      let maxSelections =
+        kind === 'exclusion'
+          ? Math.min(20, Math.max(2, options.length))
+          : Math.max(
+              1,
+              Math.min(20, Math.floor(Number(group.maxSelections ?? 1))),
+            );
+      if (maxSelections < minSelections) maxSelections = minSelections;
+
       return {
-        name,
+        name: kind === 'exclusion' ? 'გამონაკლისები' : name,
         description: group.description?.trim() || null,
+        kind,
         required,
         minSelections,
         maxSelections,

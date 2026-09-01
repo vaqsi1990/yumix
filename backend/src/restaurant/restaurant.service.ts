@@ -930,6 +930,7 @@ export class RestaurantPanelService {
         id: group.id,
         name: group.name,
         description: group.description,
+        kind: group.kind === 'exclusion' ? 'exclusion' : 'option',
         required: group.required,
         minSelections: group.minSelections,
         maxSelections: group.maxSelections,

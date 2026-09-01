@@ -119,6 +119,7 @@ export type RestaurantProduct = {
     id: string;
     name: string;
     description?: string | null;
+    kind?: "option" | "exclusion";
     required: boolean;
     minSelections: number;
     maxSelections: number;
@@ -235,6 +236,7 @@ export type ProductWritePayload = {
     id?: string;
     name: string;
     description?: string | null;
+    kind?: "option" | "exclusion";
     required?: boolean;
     minSelections?: number;
     maxSelections?: number;

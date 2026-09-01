@@ -348,10 +348,11 @@ export class AccountService {
           customizationGroups: row.product.customizationGroups
             .filter((group) => group.options.length > 0)
             .map((group) => ({
-              id: group.id,
-              name: group.name,
-              description: group.description,
-              required: group.required,
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            kind: group.kind === 'exclusion' ? 'exclusion' : 'option',
+            required: group.required,
               minSelections: group.minSelections,
               maxSelections: group.maxSelections,
               sortOrder: group.sortOrder,

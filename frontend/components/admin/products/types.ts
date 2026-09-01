@@ -44,10 +44,13 @@ export type ProductCustomizationOption = {
   isAvailable?: boolean;
 };
 
+import type { CustomizationGroupKind } from "@/lib/customization-groups";
+
 export type ProductCustomizationGroup = {
   id?: string;
   name: string;
   description?: string | null;
+  kind?: CustomizationGroupKind;
   required?: boolean;
   minSelections?: number;
   maxSelections?: number;

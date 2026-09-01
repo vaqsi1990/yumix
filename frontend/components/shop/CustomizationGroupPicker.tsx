@@ -1,6 +1,7 @@
 "use client";
 
 import { formatGel } from "@/lib/admin/format";
+import { isExclusionGroup } from "@/lib/customization-groups";
 
 export type CustomizationOption = {
   id: string;
@@ -12,6 +13,7 @@ export type CustomizationGroup = {
   id: string;
   name: string;
   description?: string | null;
+  kind?: "option" | "exclusion";
   required: boolean;
   minSelections: number;
   maxSelections: number;
@@ -70,32 +72,37 @@ function GroupSection({
   group,
   selected,
   onChange,
+  hideTitle = false,
 }: {
   group: CustomizationGroup;
   selected: Record<string, number>;
   onChange: (next: Record<string, number>) => void;
+  hideTitle?: boolean;
 }) {
   const isSingle = group.maxSelections === 1;
   const count = groupSelectionCount(group, selected);
+  const isExclusion = isExclusionGroup(group);
 
   return (
     <div className="space-y-2">
-      <div>
-        <p className="text-sm font-semibold">
-          {group.name}
-          {group.required ? " *" : ""}
-        </p>
-        {group.description && (
-          <p className="text-xs text-muted-foreground">{group.description}</p>
-        )}
-        {!isSingle && group.maxSelections > 1 && (
-          <p className="text-xs text-neutral-400">
-            აირჩიე {group.minSelections > 0 ? `მინ. ${group.minSelections}, ` : ""}
-            მაქს. {group.maxSelections}
-            {count > 0 ? ` · არჩეულია ${count}` : ""}
+      {!hideTitle ? (
+        <div>
+          <p className="text-sm font-semibold">
+            {group.name}
+            {group.required ? " *" : ""}
           </p>
-        )}
-      </div>
+          {group.description && (
+            <p className="text-xs text-muted-foreground">{group.description}</p>
+          )}
+          {!isSingle && group.maxSelections > 1 && (
+            <p className="text-xs text-neutral-400">
+              აირჩიე {group.minSelections > 0 ? `მინ. ${group.minSelections}, ` : ""}
+              მაქს. {group.maxSelections}
+              {count > 0 ? ` · არჩეულია ${count}` : ""}
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         {group.options.map((option) => {
@@ -110,7 +117,9 @@ function GroupSection({
               key={option.id}
               className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-2.5 transition ${
                 checked
-                  ? "border-[#FF0050] bg-[#FF0050]/5"
+                  ? isExclusion
+                    ? "border-amber-400 bg-amber-50"
+                    : "border-[#FF0050] bg-[#FF0050]/5"
                   : "border-neutral-200 hover:border-neutral-300"
               } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
             >
@@ -151,9 +160,12 @@ export default function CustomizationGroupPicker({
 }: CustomizationGroupPickerProps) {
   if (groups.length === 0) return null;
 
+  const optionGroups = groups.filter((group) => !isExclusionGroup(group));
+  const exclusionGroups = groups.filter((group) => isExclusionGroup(group));
+
   return (
     <div className="mt-5 space-y-5">
-      {groups.map((group) => (
+      {optionGroups.map((group) => (
         <GroupSection
           key={group.id}
           group={group}
@@ -161,6 +173,26 @@ export default function CustomizationGroupPicker({
           onChange={onChange}
         />
       ))}
+
+      {exclusionGroups.length > 0 ? (
+        <div className="space-y-3 border-t border-neutral-200 pt-5">
+          <div>
+            <p className="text-sm font-semibold">გამონაკლისები</p>
+            <p className="text-xs text-muted-foreground">
+              აირჩიე რა არ გინდა კერძში
+            </p>
+          </div>
+          {exclusionGroups.map((group) => (
+            <GroupSection
+              key={group.id}
+              group={group}
+              selected={selected}
+              onChange={onChange}
+              hideTitle
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

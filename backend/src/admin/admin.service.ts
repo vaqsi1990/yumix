@@ -93,6 +93,7 @@ export type ProductWriteInput = {
     id?: string;
     name: string;
     description?: string | null;
+    kind?: 'option' | 'exclusion';
     required?: boolean;
     minSelections?: number;
     maxSelections?: number;
@@ -1594,6 +1595,7 @@ export class AdminService {
         id: group.id,
         name: group.name,
         description: group.description,
+        kind: group.kind === 'exclusion' ? 'exclusion' : 'option',
         required: group.required,
         minSelections: group.minSelections,
         maxSelections: group.maxSelections,
@@ -1652,6 +1654,7 @@ export class AdminService {
       (group) => ({
         name: group.name,
         description: group.description,
+        kind: group.kind ?? 'option',
         required: group.required ?? false,
         minSelections: group.minSelections ?? 0,
         maxSelections: group.maxSelections ?? 1,
@@ -1878,6 +1881,7 @@ export class AdminService {
           create: source.customizationGroups.map((group) => ({
             name: group.name,
             description: group.description,
+            kind: group.kind === 'exclusion' ? 'exclusion' : 'option',
             required: group.required,
             minSelections: group.minSelections,
             maxSelections: group.maxSelections,

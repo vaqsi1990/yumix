@@ -35,6 +35,7 @@ export type PublicMenuProduct = {
     id: string;
     name: string;
     description?: string | null;
+    kind?: "option" | "exclusion";
     required: boolean;
     minSelections: number;
     maxSelections: number;
