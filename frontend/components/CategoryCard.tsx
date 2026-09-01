@@ -28,26 +28,34 @@ export default function CategoryCard({
   image,
   description,
   compact = false,
+  list = false,
 }: {
   href: string;
   label: string;
   image: string | null;
   description?: string;
   compact?: boolean;
+  list?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={
-        compact
-          ? "flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF]"
-          : "flex h-full min-h-[140px] flex-col items-center justify-center gap-2.5 rounded-2xl bg-[#F5F5F5] px-3 py-5 text-center transition hover:bg-[#EFEFEF] sm:min-h-[160px]"
+        list
+          ? "flex min-h-[72px] w-full items-center gap-3 rounded-2xl bg-[#F5F5F5] px-4 py-3 transition hover:bg-[#EFEFEF] md:min-h-[160px] md:flex-col md:items-center md:justify-center md:gap-2.5 md:px-3 md:py-5 md:text-center"
+          : compact
+            ? "flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF]"
+            : "flex h-full min-h-[140px] flex-col items-center justify-center gap-2.5 rounded-2xl bg-[#F5F5F5] px-3 py-5 text-center transition hover:bg-[#EFEFEF] sm:min-h-[160px]"
       }
     >
       {image ? (
         <span
-          className={`relative block overflow-hidden rounded-xl ${
-            compact ? "size-14" : "size-16 sm:size-[72px]"
+          className={`relative block shrink-0 overflow-hidden rounded-xl ${
+            list
+              ? "size-12 md:size-16 lg:size-[72px]"
+              : compact
+                ? "size-14"
+                : "size-16 sm:size-[72px]"
           }`}
         >
           <Image
@@ -59,7 +67,7 @@ export default function CategoryCard({
           />
         </span>
       ) : (
-        <OtherIcon compact={compact} />
+        <OtherIcon compact={list || compact} />
       )}
       <span className="font-[family-name:var(--font-inter)] text-[16px] font-normal not-italic leading-snug text-neutral-900 md:text-[18px]">
         {label}
