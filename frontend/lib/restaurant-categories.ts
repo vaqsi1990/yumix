@@ -78,6 +78,10 @@ const FAST_FOOD_SUBCATEGORIES: CategorySubcategoryDef[] = [
   { slug: "combo-menu", label: "კომბო მენიუ", keywords: ["კომბო", "combo"] },
 ];
 
+const COMBO_MENU_SUBCATEGORIES: CategorySubcategoryDef[] = [
+  { slug: "combo-meal", label: "კომბო მენიუ", keywords: ["კომბო", "combo"] },
+];
+
 const BAKERY_SUBCATEGORIES: CategorySubcategoryDef[] = [
   { slug: "pizza", label: "პიცა", keywords: ["პიც", "pizza"] },
   { slug: "khachapuri", label: "ხაჭაპური", keywords: ["ხაჭაპ", "khachapuri"] },
@@ -502,6 +506,12 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
     description: "ბურგერები, შაურმა და ფასთფუდი",
     image: "/cat/2.png",
     subcategories: FAST_FOOD_SUBCATEGORIES,
+  },
+  "კომბო მენიუ": {
+    slug: "combo-menu",
+    description: "კომბო შეთავაზებები ფიქსირებული ფასით",
+    image: null,
+    subcategories: COMBO_MENU_SUBCATEGORIES,
   },
   გამომცხვრები: {
     slug: "bakery",

@@ -64,9 +64,11 @@ export const STANDARD_MENU_CATEGORIES = [
       'ტაკო',
       'wrap',
       'რაპ',
-      'combo',
-      'კომბო',
     ],
+  },
+  {
+    name: 'კომბო მენიუ',
+    aliases: ['combo menu', 'combo', 'კომბო', 'კომბო მენიუ', 'combo meal'],
   },
   {
     name: 'გამომცხვრები',
@@ -170,6 +172,13 @@ export const STANDARD_MENU_CATEGORIES = [
 
 export type StandardMenuCategoryName =
   (typeof STANDARD_MENU_CATEGORIES)[number]['name'];
+
+export const COMBO_MENU_CATEGORY_NAME = 'კომბო მენიუ';
+
+export function isComboMenuCategory(name: string) {
+  const matched = matchStandardMenuCategory(name);
+  return matched?.name === COMBO_MENU_CATEGORY_NAME;
+}
 
 const SKIP_CATEGORY_NAMES = new Set(['extras', '__yumix_extra__']);
 

@@ -64,9 +64,11 @@ export const STANDARD_MENU_CATEGORIES = [
       "ტაკო",
       "wrap",
       "რაპ",
-      "combo",
-      "კომბო",
     ],
+  },
+  {
+    name: "კომბო მენიუ",
+    aliases: ["combo menu", "combo", "კომბო", "კომბო მენიუ", "combo meal"],
   },
   {
     name: "გამომცხვრები",
@@ -167,6 +169,19 @@ export const STANDARD_MENU_CATEGORIES = [
     aliases: ["სოუს", "sauce", "კეტჩ", "ketchup", "მაიო", "mayo", "პესტ", "pesto", "აჯიკ", "ტყემალ"],
   },
 ] as const;
+
+export const COMBO_MENU_CATEGORY_NAME = "კომბო მენიუ";
+
+export function isComboMenuCategory(name: string) {
+  const matched = matchStandardMenuCategory(name);
+  return matched?.name === COMBO_MENU_CATEGORY_NAME;
+}
+
+export function findComboMenuCategoryId<
+  T extends { id: string; name: string },
+>(categories: T[]) {
+  return categories.find((category) => isComboMenuCategory(category.name))?.id;
+}
 
 export function isStandardMenuCategory(name: string) {
   return STANDARD_MENU_CATEGORIES.some((category) => category.name === name);

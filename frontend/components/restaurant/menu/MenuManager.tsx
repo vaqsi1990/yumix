@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { restaurantApi } from "@/lib/restaurant/api";
 import { formatCurrency } from "@/lib/restaurant/format";
-import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
+import { onlyStandardMenuCategories, findComboMenuCategoryId, isComboMenuCategory } from "@/lib/menu-category-order";
 import {
   KA,
   PRODUCT_AVAILABILITY_LABELS,
@@ -56,8 +56,16 @@ export default function MenuManager() {
     null,
   );
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>();
+  const [initialProductKind, setInitialProductKind] = useState<"item" | "combo">(
+    "item",
+  );
   const [deleteProductTarget, setDeleteProductTarget] =
     useState<RestaurantProduct | null>(null);
+
+  const comboCategoryId = useMemo(
+    () => findComboMenuCategoryId(productCategories),
+    [productCategories],
+  );
 
   const visibleCategories = useMemo(
     () => categories.filter(hasCategoryProducts),
@@ -100,12 +108,25 @@ export default function MenuManager() {
   function openCreateProduct(categoryId?: string) {
     setEditingProduct(null);
     setDefaultCategoryId(categoryId);
+    setInitialProductKind("item");
+    setProductDialogOpen(true);
+  }
+
+  function openCreateCombo(categoryId?: string) {
+    setEditingProduct(null);
+    setDefaultCategoryId(categoryId ?? comboCategoryId);
+    setInitialProductKind("combo");
     setProductDialogOpen(true);
   }
 
   function openEditProduct(product: RestaurantProduct) {
     setEditingProduct(product);
     setDefaultCategoryId(product.categoryId);
+    setInitialProductKind(
+      product.foodType === "combo" || isComboMenuCategory(product.categoryName)
+        ? "combo"
+        : "item",
+    );
     setProductDialogOpen(true);
   }
 
@@ -162,10 +183,16 @@ export default function MenuManager() {
         description={KA.menu.subtitle}
         actions={
           productCategories.length > 0 ? (
-            <Button onClick={() => openCreateProduct()}>
-              <Plus className="size-4" />
-              {KA.menu.addProduct}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => openCreateProduct()}>
+                <Plus className="size-4" />
+                {KA.menu.addProduct}
+              </Button>
+              <Button variant="outline" onClick={() => openCreateCombo()}>
+                <Plus className="size-4" />
+                {KA.menu.addCombo}
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -196,13 +223,23 @@ export default function MenuManager() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => openCreateProduct(category.id)}
-                    >
-                      <Plus className="size-4" />
-                      {KA.menu.addProduct}
-                    </Button>
+                    {isComboMenuCategory(category.name) ? (
+                      <Button
+                        size="sm"
+                        onClick={() => openCreateCombo(category.id)}
+                      >
+                        <Plus className="size-4" />
+                        {KA.menu.addCombo}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => openCreateProduct(category.id)}
+                      >
+                        <Plus className="size-4" />
+                        {KA.menu.addProduct}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -296,12 +333,16 @@ export default function MenuManager() {
       )}
 
       <ProductDialog
-        key={editingProduct?.id ?? `new-${defaultCategoryId ?? "none"}`}
+        key={
+          editingProduct?.id ??
+          `new-${initialProductKind}-${defaultCategoryId ?? "none"}`
+        }
         open={productDialogOpen}
         onOpenChange={setProductDialogOpen}
         product={editingProduct}
         categories={productCategories}
         defaultCategoryId={defaultCategoryId}
+        initialProductKind={initialProductKind}
         onSave={handleSaveProduct}
       />
 

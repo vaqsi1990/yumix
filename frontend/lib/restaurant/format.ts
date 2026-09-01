@@ -1,9 +1,5 @@
-export function formatCurrency(amount: number, currency = "GEL"): string {
-  return new Intl.NumberFormat("ka-GE", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+export function formatCurrency(amount: number, _currency = "GEL"): string {
+  return `₾${amount.toFixed(2)}`;
 }
 
 export function formatDate(date: string | Date): string {

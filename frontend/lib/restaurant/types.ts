@@ -110,6 +110,7 @@ export type RestaurantProduct = {
   price: number;
   discountPrice: number | null;
   preparationTime: number | null;
+  foodType?: string | null;
   availability: ProductAvailability;
   isAvailable: boolean;
   isHidden: boolean;
@@ -230,6 +231,7 @@ export type ProductWritePayload = {
   price: number;
   discountPrice?: number | null;
   preparationTime?: number | null;
+  foodType?: string | null;
   availability: ProductAvailability;
   variants?: { id?: string; name: string; price: number }[];
   customizationGroups?: {

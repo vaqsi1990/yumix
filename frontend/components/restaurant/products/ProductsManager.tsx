@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { restaurantApi } from "@/lib/restaurant/api";
 import { KA, translateApiError } from "@/lib/restaurant/labels";
-import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
+import { onlyStandardMenuCategories, isComboMenuCategory } from "@/lib/menu-category-order";
 import type {
   ProductCategory,
   ProductWritePayload,
@@ -30,6 +30,9 @@ export default function ProductsManager() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [initialProductKind, setInitialProductKind] = useState<"item" | "combo">(
+    "item",
+  );
   const [editing, setEditing] = useState<RestaurantProduct | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RestaurantProduct | null>(
     null,
@@ -131,16 +134,30 @@ export default function ProductsManager() {
         title={KA.products.title}
         description={KA.products.subtitle}
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
-            disabled={categories.length === 0}
-          >
-            <Plus className="size-4" />
-            {KA.products.create}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setInitialProductKind("item");
+                setDialogOpen(true);
+              }}
+              disabled={categories.length === 0}
+            >
+              <Plus className="size-4" />
+              {KA.products.create}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditing(null);
+                setInitialProductKind("combo");
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="size-4" />
+              {KA.products.createCombo}
+            </Button>
+          </div>
         }
       />
 
@@ -177,6 +194,11 @@ export default function ProductsManager() {
             products={paginated}
             onEdit={(p) => {
               setEditing(p);
+              setInitialProductKind(
+                p.foodType === "combo" || isComboMenuCategory(p.categoryName)
+                  ? "combo"
+                  : "item",
+              );
               setDialogOpen(true);
             }}
             onDuplicate={handleDuplicate}
@@ -187,11 +209,12 @@ export default function ProductsManager() {
       )}
 
       <ProductDialog
-        key={editing?.id ?? "new"}
+        key={editing?.id ?? `new-${initialProductKind}`}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         product={editing}
         categories={categories}
+        initialProductKind={initialProductKind}
         onSave={handleSave}
       />
 

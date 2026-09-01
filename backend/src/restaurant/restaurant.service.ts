@@ -915,6 +915,7 @@ export class RestaurantPanelService {
       price: row.price,
       discountPrice: row.discountPrice,
       preparationTime: row.preparationTime,
+      foodType: row.foodType,
       availability,
       isAvailable: row.isAvailable,
       isHidden: row.isHidden,

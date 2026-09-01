@@ -186,6 +186,7 @@ export const KA = {
     hide: "დამალვა",
     productsCount: "პროდუქტი",
     addProduct: "საჭმლის დამატება",
+    addCombo: "კომბოს დამატება",
     noProducts: "ამ კატეგორიაში პროდუქტები არ არის",
     noProductsDesc: "დაამატეთ პირველი საჭმელი ამ კატეგორიაში.",
     deleteCategoryBlocked:
@@ -195,7 +196,9 @@ export const KA = {
     title: "პროდუქტები",
     subtitle: "მართეთ რესტორნის პროდუქტების კატალოგი.",
     create: "პროდუქტის შექმნა",
+    createCombo: "კომბო მენიუს შექმნა",
     edit: "პროდუქტის რედაქტირება",
+    editCombo: "კომბო მენიუს რედაქტირება",
     search: "პროდუქტების ძებნა...",
     empty: "პროდუქტები ვერ მოიძებნა",
     emptyNoCategory: "კატეგორიები ავტომატურად იქმნება. განაახლეთ გვერდი.",
@@ -211,6 +214,11 @@ export const KA = {
     description: "აღწერა",
     name: "სახელი",
     category: "კატეგორია",
+    productKind: "ტიპი",
+    productKindItem: "კერძი",
+    productKindCombo: "კომბო მენიუ",
+    comboHint:
+      "კომბოს აქვს საკუთარი სურათი და ფიქსირებული ფასი. ვარიანტები არ გამოიყენება.",
     variants: "ზომები (არასავალდებულო)",
     variantsEmpty:
       "ზომები არ არის მითითებული — სურვილისამებრ შეიყვანეთ ფასი S, M, L, XL ან XXL ზომებისთვის",

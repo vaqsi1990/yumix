@@ -26,7 +26,8 @@ import ProductCustomizationGroupsEditor, {
 } from "@/components/products/ProductCustomizationGroupsEditor";
 import { normalizeCustomizationGroupKind } from "@/lib/customization-groups";
 import type { ProductCustomizationGroup } from "@/components/admin/products/types";
-import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
+import { onlyStandardMenuCategories, findComboMenuCategoryId, isComboMenuCategory, COMBO_MENU_CATEGORY_NAME } from "@/lib/menu-category-order";
+import { restaurantApi } from "@/lib/restaurant/api";
 import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
 import {
   normalizeProductVariants,
@@ -45,12 +46,15 @@ import type {
   RestaurantProduct,
 } from "@/lib/restaurant/types";
 
+type ProductKind = "item" | "combo";
+
 type ProductDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product?: RestaurantProduct | null;
   categories: ProductCategory[];
   defaultCategoryId?: string;
+  initialProductKind?: ProductKind;
   onSave: (data: ProductWritePayload) => void;
 };
 
@@ -91,24 +95,46 @@ function sanitizeCustomizationGroupsForSubmit(
   return normalizeCustomizationGroupsForSubmit(groups);
 }
 
+function detectProductKind(
+  product: RestaurantProduct | null | undefined,
+  categories: ProductCategory[],
+): ProductKind {
+  if (!product) return "item";
+  if (product.foodType === "combo") return "combo";
+  const category = categories.find((row) => row.id === product.categoryId);
+  return category && isComboMenuCategory(category.name) ? "combo" : "item";
+}
+
 function buildFormState(
   product: RestaurantProduct | null | undefined,
   categories: ProductCategory[],
   defaultCategoryId?: string,
+  initialProductKind: ProductKind = "item",
 ) {
   const menuCategories = onlyStandardMenuCategories(categories);
+  const comboCategoryId = findComboMenuCategoryId(menuCategories);
+  const productKind = product
+    ? detectProductKind(product, menuCategories)
+    : initialProductKind;
+  const isCombo = productKind === "combo";
+
   return {
+    productKind,
     name: product?.name ?? "",
     description: product?.description ?? "",
     image: product?.image ?? null,
     categoryId:
-      product?.categoryId ?? defaultCategoryId ?? menuCategories[0]?.id ?? "",
+      product?.categoryId ??
+      (isCombo ? comboCategoryId : undefined) ??
+      defaultCategoryId ??
+      menuCategories[0]?.id ??
+      "",
     price: product?.price != null ? String(product.price) : "",
     discountPrice: product?.discountPrice?.toString() ?? "",
     preparationTime:
       product?.preparationTime != null ? String(product.preparationTime) : "",
     availability: (product?.availability ?? "AVAILABLE") as ProductAvailability,
-    variants: mapVariantsFromProduct(product),
+    variants: isCombo ? [] : mapVariantsFromProduct(product),
     customizationGroups: mapCustomizationGroupsFromProduct(product),
   };
 }
@@ -119,10 +145,20 @@ export default function ProductDialog({
   product,
   categories,
   defaultCategoryId,
+  initialProductKind = "item",
   onSave,
 }: ProductDialogProps) {
-  const menuCategories = onlyStandardMenuCategories(categories);
-  const initial = buildFormState(product, categories, defaultCategoryId);
+  const [resolvedCategories, setResolvedCategories] =
+    useState<ProductCategory[]>(categories);
+  const menuCategories = onlyStandardMenuCategories(resolvedCategories);
+  const comboCategoryId = findComboMenuCategoryId(menuCategories);
+  const initial = buildFormState(
+    product,
+    categories,
+    defaultCategoryId,
+    initialProductKind,
+  );
+  const [productKind, setProductKind] = useState<ProductKind>(initial.productKind);
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [image, setImage] = useState<string | null>(initial.image);
@@ -148,8 +184,35 @@ export default function ProductDialog({
   }>({});
 
   useEffect(() => {
+    setResolvedCategories(categories);
+  }, [categories]);
+
+  useEffect(() => {
     if (!open) return;
-    const next = buildFormState(product, categories, defaultCategoryId);
+
+    let cancelled = false;
+    void restaurantApi
+      .categories()
+      .then((res) => {
+        if (cancelled) return;
+        setResolvedCategories(onlyStandardMenuCategories(res.categories));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const next = buildFormState(
+      product,
+      categories,
+      defaultCategoryId,
+      initialProductKind,
+    );
+    setProductKind(next.productKind);
     setName(next.name);
     setDescription(next.description);
     setImage(next.image);
@@ -163,7 +226,21 @@ export default function ProductDialog({
     setAvailability(next.availability);
     setVariants(next.variants);
     setCustomizationGroups(next.customizationGroups);
-  }, [open, product, categories, defaultCategoryId]);
+  }, [open, product, categories, defaultCategoryId, initialProductKind]);
+
+  useEffect(() => {
+    if (!open || !productKind || productKind !== "combo" || !comboCategoryId) return;
+    setCategoryId(comboCategoryId);
+    setVariants([]);
+  }, [open, productKind, comboCategoryId]);
+
+  function handleProductKindChange(nextKind: ProductKind) {
+    setProductKind(nextKind);
+    if (nextKind === "combo") {
+      if (comboCategoryId) setCategoryId(comboCategoryId);
+      setVariants([]);
+    }
+  }
 
   function handleOpenChange(next: boolean) {
     onOpenChange(next);
@@ -195,16 +272,28 @@ export default function ProductDialog({
       return;
     }
 
+    if (productKind === "combo" && !comboCategoryId) {
+      setFormError("კომბო მენიუს კატეგორია ვერ მოიძებნა. განაახლეთ გვერდი.");
+      return;
+    }
+
     const payload = {
       name: validation.data.name,
       description: validation.data.description ?? null,
       image: validation.data.image,
-      categoryId: validation.data.categoryId,
+      categoryId:
+        productKind === "combo" && comboCategoryId
+          ? comboCategoryId
+          : validation.data.categoryId,
       price: validation.data.price,
       discountPrice: validation.data.discountPrice ?? null,
       preparationTime: validation.data.preparationTime ?? null,
       availability: validation.data.availability,
-      variants: normalizeProductVariants(variants),
+      foodType: productKind === "combo" ? "combo" : null,
+      variants:
+        productKind === "combo"
+          ? []
+          : normalizeProductVariants(variants),
       customizationGroups: sanitizeCustomizationGroupsForSubmit(
         customizationGroups,
       ),
@@ -231,17 +320,49 @@ export default function ProductDialog({
     availability,
   });
 
+  const isCombo = productKind === "combo";
+  const dialogTitle = product
+    ? isCombo
+      ? KA.products.editCombo
+      : KA.products.edit
+    : isCombo
+      ? KA.products.createCombo
+      : KA.products.create;
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>
-              {product ? KA.products.edit : KA.products.create}
-            </DialogTitle>
+            <DialogTitle>{dialogTitle}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{KA.products.productKind}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={productKind === "item" ? "default" : "outline"}
+                  onClick={() => handleProductKindChange("item")}
+                >
+                  {KA.products.productKindItem}
+                </Button>
+                <Button
+                  type="button"
+                  variant={productKind === "combo" ? "default" : "outline"}
+                  onClick={() => handleProductKindChange("combo")}
+                >
+                  {KA.products.productKindCombo}
+                </Button>
+              </div>
+              {isCombo ? (
+                <p className="text-xs text-muted-foreground">
+                  {KA.products.comboHint}
+                </p>
+              ) : null}
+            </div>
+
             <div className="space-y-1">
               <ProductImageUpload
                 label={`${KA.image} *`}
@@ -291,21 +412,30 @@ export default function ProductDialog({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{KA.products.category} *</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={KA.products.selectCategory} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {menuCategories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isCombo ? (
+                <div className="space-y-2">
+                  <Label>{KA.products.category} *</Label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={KA.products.selectCategory} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {menuCategories
+                        .filter((cat) => !isComboMenuCategory(cat.name))
+                        .map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>{KA.products.category}</Label>
+                  <Input value={COMBO_MENU_CATEGORY_NAME} disabled />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>{KA.products.availability}</Label>
@@ -401,17 +531,19 @@ export default function ProductDialog({
               </div>
             </div>
 
-            <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
-              <Label className="text-sm font-semibold">
-                {KA.products.variants}
-              </Label>
-              <ProductSizeVariantsEditor
-                value={variants}
-                onChange={setVariants}
-                emptyHint={KA.products.variantsEmpty}
-                numberInputClass={numberInputClass}
-              />
-            </div>
+            {!isCombo ? (
+              <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
+                <Label className="text-sm font-semibold">
+                  {KA.products.variants}
+                </Label>
+                <ProductSizeVariantsEditor
+                  value={variants}
+                  onChange={setVariants}
+                  emptyHint={KA.products.variantsEmpty}
+                  numberInputClass={numberInputClass}
+                />
+              </div>
+            ) : null}
 
             <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
               <div>
