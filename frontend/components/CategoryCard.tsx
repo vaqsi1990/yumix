@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 function OtherIcon({ compact = false }: { compact?: boolean }) {
   return (
@@ -29,6 +30,7 @@ export default function CategoryCard({
   description,
   compact = false,
   list = false,
+  labelSingleLine = false,
 }: {
   href: string;
   label: string;
@@ -36,6 +38,7 @@ export default function CategoryCard({
   description?: string;
   compact?: boolean;
   list?: boolean;
+  labelSingleLine?: boolean;
 }) {
   return (
     <Link
@@ -44,7 +47,9 @@ export default function CategoryCard({
         list
           ? "flex min-h-[72px] w-full items-center gap-3 rounded-2xl bg-[#F5F5F5] px-4 py-3 transition hover:bg-[#EFEFEF] md:min-h-[160px] md:flex-col md:items-center md:justify-center md:gap-2.5 md:px-3 md:py-5 md:text-center"
           : compact
-            ? "flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF]"
+            ? labelSingleLine
+              ? "flex h-[108px] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF] md:min-h-[140px] md:h-auto md:gap-2.5 md:px-3 md:py-5"
+              : "flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl bg-[#F5F5F5] px-2 py-3 text-center transition hover:bg-[#EFEFEF]"
             : "flex h-full min-h-[140px] flex-col items-center justify-center gap-2.5 rounded-2xl bg-[#F5F5F5] px-3 py-5 text-center transition hover:bg-[#EFEFEF] sm:min-h-[160px]"
       }
     >
@@ -54,7 +59,9 @@ export default function CategoryCard({
             list
               ? "size-12 md:size-16 lg:size-[72px]"
               : compact
-                ? "size-14"
+                ? labelSingleLine
+                  ? "size-14 sm:size-16 md:size-[72px]"
+                  : "size-14"
                 : "size-16 sm:size-[72px]"
           }`}
         >
@@ -69,7 +76,14 @@ export default function CategoryCard({
       ) : (
         <OtherIcon compact={list || compact} />
       )}
-      <span className="font-[family-name:var(--font-inter)] text-[16px] font-normal not-italic leading-snug text-neutral-900 md:text-[18px]">
+      <span
+        className={cn(
+          "font-[family-name:var(--font-inter)] font-normal not-italic text-neutral-900",
+          labelSingleLine
+            ? "w-full min-w-0 truncate px-0.5 text-[16px] leading-snug md:text-[18px]"
+            : "text-[16px] leading-snug md:text-[18px]",
+        )}
+      >
         {label}
       </span>
      
