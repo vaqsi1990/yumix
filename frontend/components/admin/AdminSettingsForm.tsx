@@ -13,6 +13,7 @@ import {
   updateAddress,
 } from "@/lib/account-api";
 import type { Address } from "@/lib/shop-api";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const LocationMapPicker = dynamic(
   () => import("@/components/maps/LocationMapPicker"),
@@ -330,8 +331,7 @@ export default function AdminSettingsForm({
         <div className="mt-4 grid gap-3">
           <label className="grid gap-1">
             <span className="text-neutral-600">მიმდინარე პაროლი</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               className={inputClass}
               value={form.currentPassword}
@@ -342,8 +342,7 @@ export default function AdminSettingsForm({
           </label>
           <label className="grid gap-1">
             <span className="text-neutral-600">ახალი პაროლი</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               minLength={6}
               className={inputClass}
@@ -355,8 +354,7 @@ export default function AdminSettingsForm({
           </label>
           <label className="grid gap-1">
             <span className="text-neutral-600">გაიმეორე ახალი პაროლი</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               minLength={6}
               className={inputClass}

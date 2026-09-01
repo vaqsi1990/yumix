@@ -11,6 +11,7 @@ import {
   loginSchema,
   type LoginFormValues,
 } from "@/lib/validation/auth";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const inputClassName =
   "w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[#FF0050] focus:ring-2 focus:ring-[#FF0050]/20";
@@ -99,9 +100,8 @@ export default function LoginForm() {
           <label htmlFor="password" className={labelClassName}>
             პაროლი
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             className={inputClassName}
             placeholder="შენი პაროლი"

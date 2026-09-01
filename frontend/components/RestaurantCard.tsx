@@ -133,7 +133,13 @@ export default function RestaurantCard({
   return (
     <article className="group relative overflow-hidden rounded-2xl bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] transition hover:shadow-[0_2px_12px_0_rgba(0,0,0,0.12)]">
       <div className="relative h-[160px] w-full">
-        
+        <Image
+          src={restaurant.image}
+          alt={restaurant.name}
+          fill
+          sizes="(max-width: 768px) 100vw, 300px"
+          className="object-cover transition duration-300 group-hover:scale-[1.02]"
+        />
         <FavoriteRestaurantButton
           restaurantId={restaurant.id}
           className="absolute right-3 top-3"

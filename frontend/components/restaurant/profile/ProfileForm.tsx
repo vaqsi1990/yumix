@@ -6,6 +6,7 @@ import { Save } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -336,18 +337,16 @@ export default function ProfileForm() {
               <Label htmlFor="currentPassword">
                 {KA.profile.currentPassword}
               </Label>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">{KA.profile.newPassword}</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={KA.leavePasswordBlank}
@@ -357,9 +356,8 @@ export default function ProfileForm() {
               <Label htmlFor="confirmPassword">
                 {KA.profile.confirmPassword}
               </Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />

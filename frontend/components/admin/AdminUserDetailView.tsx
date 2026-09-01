@@ -8,6 +8,7 @@ import { ORDER_STATUS_KA, ROLE_KA, VEHICLE_KA } from "@/lib/admin/labels";
 import { adminTextClass as textClass } from "@/lib/admin/typography";
 import type { OrderStatus, Role } from "@/lib/types";
 import { adminUserUpdateSchema } from "@/lib/validation/admin";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export type AdminUserDetail = {
   id: string;
@@ -344,8 +345,7 @@ export default function AdminUserDetailView({
             </label>
             <label className="grid gap-1 sm:col-span-2">
               <span className="text-neutral-600">ახალი პაროლი (არასავალდებულო)</span>
-              <input
-                type="password"
+              <PasswordInput
                 minLength={6}
                 className={inputClass}
                 value={form.password}

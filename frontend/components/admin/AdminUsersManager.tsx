@@ -9,6 +9,7 @@ import { adminTextClass as textClass } from "@/lib/admin/typography";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { adminUserCreateSchema } from "@/lib/validation/admin";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export type AdminUserRow = {
   id: string;
@@ -544,8 +545,7 @@ export default function AdminUsersManager({
               </label>
               <label className={`grid gap-1 ${textClass} sm:col-span-2`}>
                 <span className="text-neutral-600">პაროლი</span>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   minLength={6}
                   className={inputClass}

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Avatar } from "@/components/ui/avatar";
 import AccountPageHeader from "@/components/account/AccountPageHeader";
@@ -133,9 +134,8 @@ export default function AccountProfileClient({ user }: { user: AccountUser }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="currentPassword">მიმდინარე პაროლი</Label>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 value={form.currentPassword}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, currentPassword: e.target.value }))
@@ -144,9 +144,8 @@ export default function AccountProfileClient({ user }: { user: AccountUser }) {
             </div>
             <div>
               <Label htmlFor="newPassword">ახალი პაროლი</Label>
-              <Input
+              <PasswordInput
                 id="newPassword"
-                type="password"
                 value={form.newPassword}
                 onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
               />

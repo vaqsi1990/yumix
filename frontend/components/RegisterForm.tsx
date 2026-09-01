@@ -14,6 +14,7 @@ import {
   type RegisterFormValues,
   type VerifyRegisterFormValues,
 } from "@/lib/validation/auth";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const LocationMapPicker = dynamic(
   () => import("@/components/maps/LocationMapPicker"),
@@ -440,9 +441,8 @@ export default function RegisterForm() {
             >
               პაროლი
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               className={inputClassName}
               placeholder="მინიმუმ 6 სიმბოლო"
@@ -461,9 +461,8 @@ export default function RegisterForm() {
             >
               პაროლის დადასტურება
             </label>
-            <input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               autoComplete="new-password"
               className={inputClassName}
               placeholder="გაიმეორე პაროლი"
