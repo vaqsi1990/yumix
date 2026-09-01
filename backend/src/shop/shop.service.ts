@@ -611,6 +611,9 @@ export class ShopService {
                 coverImage: true,
                 isOpen: true,
                 isApproved: true,
+                deliveryFee: true,
+                deliveryFeePerKm: true,
+                reviews: { select: { rating: true } },
               },
             },
           },
@@ -662,6 +665,9 @@ export class ShopService {
         logo: string | null;
         coverImage: string | null;
         isOpen: boolean;
+        deliveryFee: number | null;
+        deliveryFeePerKm?: number | null;
+        reviews: { rating: number }[];
       };
     },
   ) {
@@ -697,15 +703,33 @@ export class ShopService {
             price: option.price,
           })),
         })),
-      restaurant: {
-        slug: product.restaurant.slug,
-        name: product.restaurant.name,
-        logo:
-          product.restaurant.logo ||
-          product.restaurant.coverImage ||
-          DEMO_IMAGES[0],
-        isOpen: product.restaurant.isOpen,
-      },
+      restaurant: (() => {
+        const reviewCount = product.restaurant.reviews.length;
+        const rating =
+          reviewCount > 0
+            ? product.restaurant.reviews.reduce(
+                (sum, review) => sum + review.rating,
+                0,
+              ) / reviewCount
+            : 0;
+
+        return {
+          slug: product.restaurant.slug,
+          name: product.restaurant.name,
+          logo:
+            product.restaurant.logo ||
+            product.restaurant.coverImage ||
+            DEMO_IMAGES[0],
+          isOpen: product.restaurant.isOpen,
+          rating: Number(rating.toFixed(1)),
+          reviews: reviewCount,
+          time: product.restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
+          deliveryFeeLabel: formatDeliveryFeeLabel(
+            product.restaurant.deliveryFee,
+            product.restaurant.deliveryFeePerKm,
+          ),
+        };
+      })(),
     };
   }
 

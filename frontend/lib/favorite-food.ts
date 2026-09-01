@@ -7,6 +7,10 @@ export type FavoriteFoodProduct = PublicMenuProduct & {
     name: string;
     logo: string;
     isOpen: boolean;
+    rating: number;
+    reviews: number;
+    time: string;
+    deliveryFeeLabel: string;
   };
 };
 

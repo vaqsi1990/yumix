@@ -15,6 +15,17 @@ export type AddCartItemPayload = {
   customizations?: { optionId: string; quantity: number }[];
 };
 
+export const CART_REPLACED_NOTICE =
+  "წინა რესტორნის პროდუქტები წაიშალა კალათიდან";
+
+export function cartWasReplaced(data: unknown) {
+  return Boolean(
+    data &&
+      typeof data === "object" &&
+      (data as { replacedRestaurant?: boolean }).replacedRestaurant,
+  );
+}
+
 export type Address = {
   id: string;
   title: string;

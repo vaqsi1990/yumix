@@ -464,10 +464,11 @@ export class CartService {
     const unitPrice = resolveProductUnitPrice(product, variant);
 
     let cart = await this.getUserCart(userId);
+    let replacedRestaurant = false;
     if (cart && cart.restaurantId !== product.restaurantId) {
-      throw new BadRequestException(
-        'კალათაში სხვა რესტორნის პროდუქტებია. ჯერ გაასუფთავე კალათა.',
-      );
+      await this.prisma.cart.deleteMany({ where: { userId } });
+      cart = null;
+      replacedRestaurant = true;
     }
 
     if (!cart) {
@@ -579,7 +580,8 @@ export class CartService {
       });
     }
 
-    return this.getCart(userId);
+    const result = await this.getCart(userId);
+    return replacedRestaurant ? { ...result, replacedRestaurant: true } : result;
   }
 
   async addExtraItem(userId: string, input: AddCartExtraDto) {
