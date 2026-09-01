@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HorizontalScroll from "@/components/HorizontalScroll";
 import RestaurantCard from "@/components/RestaurantCard";
 import SearchBox from "@/components/SearchBox";
 import { getPublicRestaurants } from "@/lib/restaurants";
@@ -77,13 +78,16 @@ export default async function RestaurantsPage({ searchParams }: Props) {
           )}
         </div>
       ) : (
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <HorizontalScroll className="-mx-4 flex gap-4 px-4 pb-2 sm:-mx-5 sm:px-5 lg:-mx-8 lg:px-8">
           {restaurants.map((restaurant) => (
-            <li key={restaurant.id}>
-              <RestaurantCard restaurant={restaurant} />
+            <li
+              key={restaurant.id}
+              className="w-[300px] shrink-0 sm:w-[320px]"
+            >
+              <RestaurantCard restaurant={restaurant} variant="compact" />
             </li>
           ))}
-        </ul>
+        </HorizontalScroll>
       )}
     </section>
   );

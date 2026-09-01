@@ -34,26 +34,6 @@ function BikeIcon({ className }: { className?: string }) {
   );
 }
 
-function MapPinIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="11" r="2.25" />
-    </svg>
-  );
-}
-
 function TagIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -116,33 +96,33 @@ export default function RestaurantCard({
             )}
           </span>
 
-          <span className="mt-1.5 flex flex-col gap-1 font-[family-name:var(--font-inter)] text-[13px] text-neutral-500 sm:text-[14px]">
+          <span className="mt-1.5 flex flex-col gap-0.5 font-[family-name:var(--font-inter)] text-[13px] text-neutral-500 sm:text-[14px]">
             <span className="inline-flex items-center gap-1">
               <BikeIcon className="size-3.5 shrink-0 text-[#FF0050]" />
               {restaurant.deliveryFeeLabel}
             </span>
-            {restaurant.distanceLabel ? (
-              <span className="inline-flex items-center gap-1">
-                <MapPinIcon className="size-3.5 shrink-0 text-neutral-400" />
-                {restaurant.distanceLabel}
-              </span>
-            ) : null}
             <span>{restaurant.time}</span>
-            
-            
           </span>
 
-          {offersHint ? (
-            <span className="mt-1.5 flex items-center gap-1.5 font-[family-name:var(--font-inter)] text-[13px] font-medium text-sky-600 sm:text-[14px]">
-              <TagIcon className="size-3.5 shrink-0" />
-              {offersHint}
-            </span>
-          ) : null}
-
-          {discountBadge ? (
-            <span className="mt-1.5 flex items-center gap-1.5 font-[family-name:var(--font-inter)] text-[13px] font-medium text-sky-600 sm:text-[14px]">
-              <TagIcon className="size-3.5 shrink-0" />
-              {discountBadge}
+          {offersHint || discountBadge ? (
+            <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-[family-name:var(--font-inter)] text-[13px] font-medium text-sky-600 sm:text-[14px]">
+              {offersHint ? (
+                <span className="inline-flex shrink-0 items-center gap-1">
+                  <TagIcon className="size-3.5 shrink-0" />
+                  {offersHint}
+                </span>
+              ) : null}
+              {offersHint && discountBadge ? (
+                <span className="text-sky-300" aria-hidden="true">
+                  ·
+                </span>
+              ) : null}
+              {discountBadge ? (
+                <span className="inline-flex shrink-0 items-center gap-1">
+                  <TagIcon className="size-3.5 shrink-0" />
+                  {discountBadge}
+                </span>
+              ) : null}
             </span>
           ) : null}
         </span>
