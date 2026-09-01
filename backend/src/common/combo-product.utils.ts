@@ -1,17 +1,16 @@
 import { BadRequestException } from '@nestjs/common';
-import { sanitizeCustomizationGroups } from './customization.utils';
+import {
+  sanitizeCustomizationGroups,
+  type CustomizationGroupWriteInput,
+} from './customization.utils';
 import { isComboMenuCategory } from './menu-category-order';
 import { sanitizeProductVariants } from './product-sizes';
-
-type CustomizationGroupInput = Parameters<
-  typeof sanitizeCustomizationGroups
->[0][number];
 
 type ComboProductInput = {
   foodType?: string | null;
   categoryName?: string | null;
   variants?: { name: string; price: number }[] | null;
-  customizationGroups?: CustomizationGroupInput[] | null;
+  customizationGroups?: CustomizationGroupWriteInput[] | null;
 };
 
 export function assertComboProductRules(input: ComboProductInput) {
