@@ -113,26 +113,8 @@ export function sanitizeCustomizationGroups(
 
   return groups
     .map((group, groupIndex) => {
-      const name = group.name?.trim();
-      if (!name) return null;
-
       const kind = normalizeGroupKind(group.kind);
-      const required =
-        kind === 'exclusion' ? false : Boolean(group.required);
-      const minSelections =
-        kind === 'exclusion'
-          ? 0
-          : Math.max(
-              0,
-              Math.min(
-                20,
-                Math.floor(
-                  Number(group.minSelections ?? (required ? 1 : 0)),
-                ),
-              ),
-            );
-
-      let options = (group.options ?? [])
+      const options = (group.options ?? [])
         .map((option, optionIndex) => {
           const optionName = option.name?.trim();
           if (!optionName) return null;
@@ -150,6 +132,24 @@ export function sanitizeCustomizationGroups(
         .filter(Boolean) as CustomizationGroupWriteInput['options'];
 
       if (options.length === 0) return null;
+
+      const name =
+        group.name?.trim() ||
+        (kind === 'exclusion' ? 'გამონაკლისები' : `ოფცია ${groupIndex + 1}`);
+      const required =
+        kind === 'exclusion' ? false : Boolean(group.required);
+      const minSelections =
+        kind === 'exclusion'
+          ? 0
+          : Math.max(
+              0,
+              Math.min(
+                20,
+                Math.floor(
+                  Number(group.minSelections ?? (required ? 1 : 0)),
+                ),
+              ),
+            );
 
       let maxSelections =
         kind === 'exclusion'

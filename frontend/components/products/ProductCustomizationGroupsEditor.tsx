@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +18,23 @@ type ProductCustomizationGroupsEditorProps = {
   numberInputClass?: string;
 };
 
+const MIN_VARIANT_ROWS = 1;
+
+type OptionRow = ProductCustomizationGroup["options"][number];
+
+function emptyOptionRow(sortOrder: number): OptionRow {
+  return {
+    name: "",
+    price: 0,
+    sortOrder,
+    isAvailable: true,
+  };
+}
+
+function emptyOptionRows(count = MIN_VARIANT_ROWS): OptionRow[] {
+  return Array.from({ length: count }, (_, index) => emptyOptionRow(index));
+}
+
 function emptyOptionGroup(sortOrder: number): ProductCustomizationGroup {
   return {
     kind: "option",
@@ -28,7 +44,7 @@ function emptyOptionGroup(sortOrder: number): ProductCustomizationGroup {
     minSelections: 0,
     maxSelections: 1,
     sortOrder,
-    options: [],
+    options: emptyOptionRows(),
   };
 }
 
@@ -41,74 +57,41 @@ function emptyExclusionGroup(sortOrder: number): ProductCustomizationGroup {
     minSelections: 0,
     maxSelections: 20,
     sortOrder,
-    options: [],
+    options: emptyOptionRows(),
   };
 }
 
-function parseVariantsList(
-  text: string,
-  allowPrices: boolean,
-): ProductCustomizationGroup["options"] {
-  const parts = text
-    .split(/[,;]/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length === 0) return [];
-
-  return parts.map((part, index) => {
-    if (allowPrices) {
-      const priceMatch = part.match(/^(.+?)\s*\+\s*(\d+(?:[.,]\d+)?)\s*₾?$/);
-      if (priceMatch) {
-        return {
-          name: priceMatch[1].trim(),
-          price: Number(priceMatch[2].replace(",", ".")) || 0,
-          sortOrder: index,
-          isAvailable: true,
-        };
-      }
-    }
-
-    return {
-      name: part,
-      price: 0,
-      sortOrder: index,
-      isAvailable: true,
-    };
-  });
+function ensureMinOptionRows(options: OptionRow[], minRows = MIN_VARIANT_ROWS) {
+  const rows = options.length > 0 ? [...options] : [];
+  while (rows.length < minRows) {
+    rows.push(emptyOptionRow(rows.length));
+  }
+  return rows.map((row, index) => ({ ...row, sortOrder: index }));
 }
 
-function formatVariantsList(
-  options: ProductCustomizationGroup["options"],
-  allowPrices: boolean,
-): string {
-  return options
-    .map((option) => {
-      const name = option.name.trim();
-      if (!name) return "";
-      if (allowPrices && option.price > 0) {
-        return `${name} +${option.price}`;
-      }
-      return name;
-    })
-    .filter(Boolean)
-    .join(", ");
+function namedOptionCount(options: OptionRow[]) {
+  return options.filter((option) => option.name.trim()).length;
 }
 
 function syncOptionGroup(
   group: ProductCustomizationGroup,
+  index = 0,
 ): ProductCustomizationGroup {
-  const namedOptions = group.options.filter((option) => option.name.trim());
+  const options = ensureMinOptionRows(group.options);
+  const namedCount = namedOptionCount(options);
   const isMultiple = (group.maxSelections ?? 1) > 1;
   const required = Boolean(group.required);
+  const name =
+    group.name.trim() || (namedCount > 0 ? `ოფცია ${index + 1}` : "");
 
   return {
     ...group,
     kind: "option",
-    options: namedOptions,
+    name,
+    options,
     minSelections: required ? 1 : 0,
     maxSelections: isMultiple
-      ? Math.min(20, Math.max(2, namedOptions.length || 2))
+      ? Math.min(20, Math.max(2, namedCount || MIN_VARIANT_ROWS))
       : 1,
   };
 }
@@ -116,12 +99,11 @@ function syncOptionGroup(
 function syncExclusionGroup(
   group: ProductCustomizationGroup,
 ): ProductCustomizationGroup {
-  const namedOptions = group.options
-    .filter((option) => option.name.trim())
-    .map((option) => ({
-      ...option,
-      price: 0,
-    }));
+  const options = ensureMinOptionRows(group.options).map((option) => ({
+    ...option,
+    price: 0,
+  }));
+  const namedCount = namedOptionCount(options);
 
   return {
     ...group,
@@ -129,42 +111,94 @@ function syncExclusionGroup(
     name: EXCLUSION_GROUP_NAME,
     required: false,
     minSelections: 0,
-    maxSelections: Math.min(20, Math.max(2, namedOptions.length || 2)),
-    options: namedOptions,
+    maxSelections: Math.min(20, Math.max(2, namedCount || MIN_VARIANT_ROWS)),
+    options,
   };
 }
 
-function VariantListInput({
-  groupKey,
+function OptionRowsEditor({
   options,
   allowPrices,
-  placeholder,
+  numberInputClass,
+  namePlaceholder,
   onChange,
 }: {
-  groupKey: string;
-  options: ProductCustomizationGroup["options"];
+  options: OptionRow[];
   allowPrices: boolean;
-  placeholder: string;
-  onChange: (options: ProductCustomizationGroup["options"]) => void;
+  numberInputClass?: string;
+  namePlaceholder: string;
+  onChange: (options: OptionRow[]) => void;
 }) {
-  const [text, setText] = useState(() =>
-    formatVariantsList(options, allowPrices),
-  );
+  const rows = ensureMinOptionRows(options);
 
-  useEffect(() => {
-    setText(formatVariantsList(options, allowPrices));
-  }, [groupKey, allowPrices]);
+  function updateRow(index: number, patch: Partial<OptionRow>) {
+    onChange(
+      rows.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, ...patch } : row,
+      ),
+    );
+  }
+
+  function addRow() {
+    onChange([...rows, emptyOptionRow(rows.length)]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length <= MIN_VARIANT_ROWS) return;
+    onChange(
+      rows
+        .filter((_, rowIndex) => rowIndex !== index)
+        .map((row, rowIndex) => ({ ...row, sortOrder: rowIndex })),
+    );
+  }
 
   return (
-    <Input
-      value={text}
-      placeholder={placeholder}
-      onChange={(e) => {
-        const nextText = e.target.value;
-        setText(nextText);
-        onChange(parseVariantsList(nextText, allowPrices));
-      }}
-    />
+    <div className="space-y-2">
+      {rows.map((row, index) => (
+        <div key={`${index}-${row.id ?? "new"}`} className="flex gap-2">
+          <Input
+            value={row.name}
+            placeholder={namePlaceholder}
+            onChange={(e) => updateRow(index, { name: e.target.value })}
+            className="min-w-0 flex-1"
+          />
+          {allowPrices ? (
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={row.price > 0 ? String(row.price) : ""}
+              placeholder="+₾"
+              onChange={(e) => {
+                const parsed = Number(e.target.value.replace(",", "."));
+                updateRow(index, {
+                  price:
+                    e.target.value.trim() && Number.isFinite(parsed)
+                      ? parsed
+                      : 0,
+                });
+              }}
+              className={`w-24 shrink-0 ${numberInputClass ?? ""}`}
+            />
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-red-500"
+            disabled={rows.length <= MIN_VARIANT_ROWS}
+            onClick={() => removeRow(index)}
+            aria-label="ვარიანტის წაშლა"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      ))}
+      <Button type="button" variant="ghost" size="sm" onClick={addRow}>
+        <Plus className="mr-1 size-4" />
+        ვარიანტის დამატება
+      </Button>
+    </div>
   );
 }
 
@@ -185,13 +219,10 @@ function mergeGroups(
       ...group,
       kind: "option",
       sortOrder: index,
-    }),
+    }, index),
   );
 
-  if (
-    exclusionGroup &&
-    exclusionGroup.options.some((option) => option.name.trim())
-  ) {
+  if (exclusionGroup) {
     next.push(
       syncExclusionGroup({
         ...exclusionGroup,
@@ -206,6 +237,7 @@ function mergeGroups(
 export default function ProductCustomizationGroupsEditor({
   value,
   onChange,
+  numberInputClass,
 }: ProductCustomizationGroupsEditorProps) {
   const { optionGroups, exclusionGroup } = splitGroups(value);
 
@@ -221,7 +253,7 @@ export default function ProductCustomizationGroupsEditor({
     patch: Partial<ProductCustomizationGroup>,
   ) {
     const next = optionGroups.map((group, i) =>
-      i === index ? syncOptionGroup({ ...group, ...patch }) : group,
+      i === index ? syncOptionGroup({ ...group, ...patch }, index) : group,
     );
     commit(next, exclusionGroup);
   }
@@ -239,13 +271,11 @@ export default function ProductCustomizationGroupsEditor({
 
   function setMultiple(index: number, multiple: boolean) {
     const group = optionGroups[index];
-    const namedCount = group.options.filter((option) =>
-      option.name.trim(),
-    ).length;
+    const namedCount = namedOptionCount(group.options);
 
     updateOptionGroup(index, {
       maxSelections: multiple
-        ? Math.min(20, Math.max(2, namedCount || 2))
+        ? Math.min(20, Math.max(2, namedCount || MIN_VARIANT_ROWS))
         : 1,
       minSelections: group.required ? 1 : 0,
     });
@@ -258,9 +288,7 @@ export default function ProductCustomizationGroupsEditor({
     });
   }
 
-  function updateExclusionGroup(
-    patch: Partial<ProductCustomizationGroup>,
-  ) {
+  function updateExclusionGroup(patch: Partial<ProductCustomizationGroup>) {
     const base = exclusionGroup ?? emptyExclusionGroup(optionGroups.length);
     commit(optionGroups, syncExclusionGroup({ ...base, ...patch }));
   }
@@ -301,7 +329,7 @@ export default function ProductCustomizationGroupsEditor({
               <div className="flex items-center gap-2">
                 <Input
                   value={group.name}
-                  placeholder="ოფციის სახელი (მაგ. სოუსი, დამატებითი)"
+                  placeholder="ოფციის სახელი (მაგ. სოუსი) *"
                   onChange={(e) =>
                     updateOptionGroup(groupIndex, { name: e.target.value })
                   }
@@ -320,13 +348,13 @@ export default function ProductCustomizationGroupsEditor({
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">
-                  ვარიანტები (მძიმით)
+                  ვარიანტები
                 </Label>
-                <VariantListInput
-                  groupKey={groupKey}
+                <OptionRowsEditor
                   options={group.options}
                   allowPrices
-                  placeholder="მაგ. კეტჩუპი, მაიონეზი, ყველი +2"
+                  numberInputClass={numberInputClass}
+                  namePlaceholder="მაგ. კეტჩუპი"
                   onChange={(options) =>
                     updateOptionGroup(groupIndex, { options })
                   }
@@ -390,13 +418,12 @@ export default function ProductCustomizationGroupsEditor({
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">
-                  გამონაკლისები (მძიმით)
+                  გამონაკლისები
                 </Label>
-                <VariantListInput
-                  groupKey={exclusionGroup.id ?? "exclusion"}
+                <OptionRowsEditor
                   options={exclusionGroup.options}
                   allowPrices={false}
-                  placeholder="მაგ. კეტჩუპის გარეშე, ხახვის გარეშე, სალათის გარეშე"
+                  namePlaceholder="მაგ. კეტჩუპის გარეშე"
                   onChange={(options) => updateExclusionGroup({ options })}
                 />
               </div>
@@ -428,9 +455,23 @@ export function normalizeCustomizationGroupsForSubmit(
   return mergeGroups(
     groups.filter((group) => !isExclusionGroup(group)),
     groups.find((group) => isExclusionGroup(group)) ?? null,
-  ).map((group, groupIndex) => ({
-    ...group,
-    kind: normalizeCustomizationGroupKind(group.kind),
-    sortOrder: groupIndex,
-  }));
+  )
+    .filter((group) => {
+      const namedOptions = group.options.filter((option) => option.name.trim());
+      if (isExclusionGroup(group)) {
+        return namedOptions.length > 0;
+      }
+      return namedOptions.length > 0;
+    })
+    .map((group, groupIndex) => ({
+      ...group,
+      kind: normalizeCustomizationGroupKind(group.kind),
+      sortOrder: groupIndex,
+      options: group.options
+        .filter((option) => option.name.trim())
+        .map((option, optionIndex) => ({
+          ...option,
+          sortOrder: optionIndex,
+        })),
+    }));
 }

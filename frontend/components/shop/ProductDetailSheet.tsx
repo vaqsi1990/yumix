@@ -12,6 +12,10 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import FavoriteProductButton from "@/components/shop/FavoriteProductButton";
+import AddonPicker, {
+  addonSelectionTotal,
+  type SelectableAddon,
+} from "@/components/shop/AddonPicker";
 import CustomizationGroupPicker, {
   customizationSelectionTotal,
   validateCustomizationSelection,
@@ -29,6 +33,7 @@ type ProductDetailSheetProps = {
   onOpenChange: (open: boolean) => void;
   restaurantId: string;
   restaurantOpen: boolean;
+  addOns?: SelectableAddon[];
   initialVariantId?: string | null;
   initialQuantity?: number;
 };
@@ -39,6 +44,7 @@ export default function ProductDetailSheet({
   onOpenChange,
   restaurantId,
   restaurantOpen,
+  addOns = [],
   initialVariantId = null,
   initialQuantity = 1,
 }: ProductDetailSheetProps) {
@@ -50,6 +56,9 @@ export default function ProductDetailSheet({
   const [selectedCustomizations, setSelectedCustomizations] = useState<
     Record<string, number>
   >({});
+  const [selectedAddOns, setSelectedAddOns] = useState<Record<string, number>>(
+    {},
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,6 +73,7 @@ export default function ProductDetailSheet({
     setVariantId(initialVariantId ?? nextVariants[0]?.id ?? null);
     setQuantity(Math.min(99, Math.max(1, initialQuantity)));
     setSelectedCustomizations({});
+    setSelectedAddOns({});
     setError("");
   }, [open, product, initialVariantId, initialQuantity]);
 
@@ -85,12 +95,18 @@ export default function ProductDetailSheet({
     [customizationGroups, selectedCustomizations],
   );
 
-  const lineTotal = (unitPrice + customizationTotal) * quantity;
+  const addonTotal = useMemo(
+    () => addonSelectionTotal(addOns, selectedAddOns),
+    [addOns, selectedAddOns],
+  );
+
+  const lineTotal = (unitPrice + customizationTotal + addonTotal) * quantity;
 
   function resetState() {
     setVariantId(null);
     setQuantity(1);
     setSelectedCustomizations({});
+    setSelectedAddOns({});
     setError("");
   }
 
@@ -139,6 +155,10 @@ export default function ProductDetailSheet({
             quantity: qty,
           }),
         ),
+        addOns: Object.entries(selectedAddOns).map(([addonId, qty]) => ({
+          addonId,
+          quantity: qty,
+        })),
       });
       applyCartResponse(result);
       handleOpenChange(false);
@@ -215,6 +235,12 @@ export default function ProductDetailSheet({
           groups={customizationGroups}
           selected={selectedCustomizations}
           onChange={setSelectedCustomizations}
+        />
+
+        <AddonPicker
+          addOns={addOns}
+          selected={selectedAddOns}
+          onChange={setSelectedAddOns}
         />
 
         <div className="mt-5 flex items-center justify-between">

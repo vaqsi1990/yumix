@@ -10,17 +10,19 @@ import type {
   PublicMenuProduct,
   PublicMenuCategory,
   PublicRestaurantDetail,
+  RestaurantMenuResponse,
 } from "@/lib/restaurants";
 
 type RestaurantMenuClientProps = {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
-  addOns?: unknown;
+  addOns?: RestaurantMenuResponse["addOns"];
 };
 
 export default function RestaurantMenuClient({
   restaurant,
   menu,
+  addOns = [],
 }: RestaurantMenuClientProps) {
   const { user, status } = useAuth();
   const { applyCartResponse } = useCart();
@@ -63,6 +65,7 @@ export default function RestaurantMenuClient({
         onOpenChange={setSheetOpen}
         restaurantId={restaurant.id}
         restaurantOpen={restaurant.isOpen}
+        addOns={addOns}
         initialVariantId={initialVariantId}
         initialQuantity={initialQuantity}
       />
