@@ -205,6 +205,7 @@ export default function AccountFavoritesClient({
         product={sheetProduct}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
+        restaurantId={selectedProduct?.restaurant.id ?? ""}
         restaurantOpen
       />
     </div>

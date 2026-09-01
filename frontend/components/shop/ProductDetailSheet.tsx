@@ -18,7 +18,7 @@ import CustomizationGroupPicker, {
 } from "@/components/shop/CustomizationGroupPicker";
 import { formatGel } from "@/lib/admin/format";
 import { addToCart } from "@/lib/shop-api";
-import { syncCartFromResponse, useCart } from "@/components/cart-context";
+import { useCart } from "@/components/cart-context";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
 import { useRequireLogin } from "@/lib/use-require-login";
@@ -27,6 +27,7 @@ type ProductDetailSheetProps = {
   product: PublicMenuProduct | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  restaurantId: string;
   restaurantOpen: boolean;
   initialVariantId?: string | null;
   initialQuantity?: number;
@@ -36,13 +37,14 @@ export default function ProductDetailSheet({
   product,
   open,
   onOpenChange,
+  restaurantId,
   restaurantOpen,
   initialVariantId = null,
   initialQuantity = 1,
 }: ProductDetailSheetProps) {
   const router = useRouter();
   const { authReady, requireLogin } = useRequireLogin();
-  const { setItemCount } = useCart();
+  const { applyCartResponse } = useCart();
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedCustomizations, setSelectedCustomizations] = useState<
@@ -128,6 +130,7 @@ export default function ProductDetailSheet({
     try {
       const result = await addToCart({
         productId: product.id,
+        restaurantId,
         variantId,
         quantity,
         customizations: Object.entries(selectedCustomizations).map(
@@ -137,7 +140,7 @@ export default function ProductDetailSheet({
           }),
         ),
       });
-      setItemCount(syncCartFromResponse(result));
+      applyCartResponse(result);
       handleOpenChange(false);
       router.refresh();
     } catch (e) {

@@ -71,6 +71,7 @@ export default function RecommendedProductsRow({
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
+        restaurantId={selected?.restaurant.id ?? ""}
         restaurantOpen={selected?.restaurant.isOpen ?? true}
       />
     </>

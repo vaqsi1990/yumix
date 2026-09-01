@@ -9,7 +9,7 @@ import {
   type AddonCategory,
 } from "@/lib/addon-categories";
 import { addExtraToCart } from "@/lib/shop-api";
-import { syncCartFromResponse, useCart } from "@/components/cart-context";
+import { useCart } from "@/components/cart-context";
 import { useRequireLogin } from "@/lib/use-require-login";
 
 type CartExtra = {
@@ -50,7 +50,7 @@ function ExtraChip({
 
 export default function CartQuickExtras({ addOns }: CartQuickExtrasProps) {
   const router = useRouter();
-  const { setItemCount } = useCart();
+  const { applyCartResponse } = useCart();
   const { requireLogin } = useRequireLogin();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -66,7 +66,7 @@ export default function CartQuickExtras({ addOns }: CartQuickExtrasProps) {
     setError("");
     try {
       const result = await addExtraToCart(addonId, 1);
-      setItemCount(syncCartFromResponse(result));
+      applyCartResponse(result);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "დამატება ვერ მოხერხდა");

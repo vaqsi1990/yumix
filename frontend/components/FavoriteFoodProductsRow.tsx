@@ -29,7 +29,7 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="relative aspect-[4/3] w-full bg-neutral-100 md:h-[160px] md:aspect-auto"
+          className="relative cursor-pointer aspect-[4/3] w-full bg-neutral-100 md:h-[160px] md:aspect-auto"
           aria-label={product.name}
         >
           {product.image ? (
@@ -54,9 +54,9 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
             </p>
           </button>
 
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-[family-name:var(--font-inter)] text-[12px] text-neutral-500 md:text-[14px]">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-[family-name:var(--font-inter)] text-[12px] text-neutral-500 md:text-[14px]">
             <span className="inline-flex items-center gap-1">
-              <StarIcon className="size-3.5 text-[#F5C518]" />
+              <StarIcon className="size-3.5 shrink-0 text-[#F5C518]" />
               <span className="font-semibold text-neutral-900">
                 {restaurant.rating > 0 ? restaurant.rating.toFixed(1) : "—"}
               </span>
@@ -64,13 +64,9 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
                 <span className="text-neutral-400">({restaurant.reviews})</span>
               ) : null}
             </span>
-            <span className="text-neutral-300" aria-hidden="true">
-              ·
-            </span>
+            <span className="text-neutral-300">·</span>
             <span>{restaurant.time}</span>
-            <span className="text-neutral-300" aria-hidden="true">
-              ·
-            </span>
+            <span className="text-neutral-300">·</span>
             <span>{restaurant.deliveryFeeLabel}</span>
           </div>
         </div>
@@ -80,6 +76,7 @@ function FavoriteFoodProductCard({ product }: { product: FavoriteFoodProduct }) 
         product={product}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
+        restaurantId={restaurant.id}
         restaurantOpen={restaurant.isOpen}
       />
     </>

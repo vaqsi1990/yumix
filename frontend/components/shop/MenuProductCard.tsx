@@ -5,8 +5,8 @@ import { useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { formatGel } from "@/lib/admin/format";
-import { addToCart, cartWasReplaced, CART_REPLACED_NOTICE } from "@/lib/shop-api";
-import { syncCartFromResponse, useCart } from "@/components/cart-context";
+import { addToCart } from "@/lib/shop-api";
+import { useCart } from "@/components/cart-context";
 import { useRequireLogin } from "@/lib/use-require-login";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import { productHasSelectableOptions } from "@/lib/product-customization";
@@ -14,10 +14,12 @@ import type { PublicMenuProduct } from "@/lib/restaurants";
 
 export default function MenuProductCard({
   product,
+  restaurantId,
   restaurantOpen,
   onOpenDetails,
 }: {
   product: PublicMenuProduct;
+  restaurantId: string;
   restaurantOpen: boolean;
   onOpenDetails?: (
     product: PublicMenuProduct,
@@ -27,7 +29,7 @@ export default function MenuProductCard({
 }) {
   const router = useRouter();
   const { authReady, requireLogin } = useRequireLogin();
-  const { setItemCount } = useCart();
+  const { applyCartResponse } = useCart();
   const variants = useMemo(
     () => sortVariantsBySize(product.variants),
     [product.variants],
@@ -39,7 +41,6 @@ export default function MenuProductCard({
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   const selectedVariant = variants.find((variant) => variant.id === variantId);
   const basePrice =
@@ -57,7 +58,6 @@ export default function MenuProductCard({
   async function handleAdd(e: MouseEvent) {
     e.stopPropagation();
     setError("");
-    setNotice("");
 
     if (unavailable) return;
     const allowed = requireLogin();
@@ -79,14 +79,11 @@ export default function MenuProductCard({
     try {
       const result = await addToCart({
         productId: product.id,
+        restaurantId,
         variantId,
         quantity,
       });
-      setItemCount(syncCartFromResponse(result));
-      if (cartWasReplaced(result)) {
-        setNotice(CART_REPLACED_NOTICE);
-        window.setTimeout(() => setNotice(""), 2500);
-      }
+      applyCartResponse(result);
       setAdded(true);
       window.setTimeout(() => setAdded(false), 1600);
       router.refresh();
@@ -188,11 +185,7 @@ export default function MenuProductCard({
         </div>
 
         <div className="mt-auto flex flex-wrap items-center justify-end gap-3 pt-3">
-          {notice ? (
-            <p className="min-w-0 flex-1 text-right text-[14px] text-amber-700">
-              {notice}
-            </p>
-          ) : error ? (
+          {error ? (
             <p className="min-w-0 flex-1 text-right text-[14px] text-[#FF0050]">
               {error}
             </p>

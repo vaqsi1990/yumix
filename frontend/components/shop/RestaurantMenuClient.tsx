@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RestaurantMenuView from "@/components/RestaurantMenuView";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
+import { useAuth } from "@/components/auth-context";
+import { useCart } from "@/components/cart-context";
+import { ensureCartRestaurant } from "@/lib/shop-api";
 import type {
   PublicMenuProduct,
   PublicMenuCategory,
@@ -19,11 +22,22 @@ export default function RestaurantMenuClient({
   restaurant,
   menu,
 }: RestaurantMenuClientProps) {
+  const { user, status } = useAuth();
+  const { applyCartResponse } = useCart();
   const [selectedProduct, setSelectedProduct] =
     useState<PublicMenuProduct | null>(null);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [initialQuantity, setInitialQuantity] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !user) return;
+
+    void ensureCartRestaurant(restaurant.id).then((cleared) => {
+      if (!cleared) return;
+      applyCartResponse({ cart: { items: [] }, totals: { itemCount: 0 } });
+    });
+  }, [restaurant.id, user, status, applyCartResponse]);
 
   function openProduct(
     product: PublicMenuProduct,
@@ -47,6 +61,7 @@ export default function RestaurantMenuClient({
         product={selectedProduct}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
+        restaurantId={restaurant.id}
         restaurantOpen={restaurant.isOpen}
         initialVariantId={initialVariantId}
         initialQuantity={initialQuantity}

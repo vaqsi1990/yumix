@@ -215,6 +215,20 @@ export class CartService {
     return { cleared: true };
   }
 
+  private async switchCartRestaurant(
+    userId: string,
+    cartId: string,
+    restaurantId: string,
+  ) {
+    await this.prisma.$transaction([
+      this.prisma.cartItem.deleteMany({ where: { cartId } }),
+      this.prisma.cart.update({
+        where: { id: cartId, userId },
+        data: { restaurantId, couponId: null },
+      }),
+    ]);
+  }
+
   async updateItem(
     userId: string,
     itemId: string,
@@ -466,9 +480,13 @@ export class CartService {
     let cart = await this.getUserCart(userId);
     let replacedRestaurant = false;
     if (cart && cart.restaurantId !== product.restaurantId) {
-      await this.prisma.cart.deleteMany({ where: { userId } });
-      cart = null;
+      await this.switchCartRestaurant(
+        userId,
+        cart.id,
+        product.restaurantId,
+      );
       replacedRestaurant = true;
+      cart = await this.getUserCart(userId);
     }
 
     if (!cart) {

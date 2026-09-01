@@ -24,10 +24,12 @@ function StarIcon({ className }: { className?: string }) {
 
 function MenuCategorySection({
   category,
+  restaurantId,
   restaurantOpen,
   onProductClick,
 }: {
   category: PublicMenuCategory;
+  restaurantId: string;
   restaurantOpen: boolean;
   onProductClick?: (
     product: PublicMenuProduct,
@@ -45,6 +47,7 @@ function MenuCategorySection({
           <li key={product.id}>
             <MenuProductCard
               product={product}
+              restaurantId={restaurantId}
               restaurantOpen={restaurantOpen}
               onOpenDetails={onProductClick}
             />
@@ -197,6 +200,7 @@ export default function RestaurantMenuView({
               <MenuCategorySection
                 key={category.id}
                 category={category}
+                restaurantId={restaurant.id}
                 restaurantOpen={restaurant.isOpen}
                 onProductClick={onProductClick}
               />

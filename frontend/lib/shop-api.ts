@@ -11,6 +11,7 @@ export type AddCartItemPayload = {
   productId: string;
   variantId?: string | null;
   quantity: number;
+  restaurantId?: string;
   addOns?: { addonId: string; quantity: number }[];
   customizations?: { optionId: string; quantity: number }[];
 };
@@ -50,20 +51,95 @@ export type CreateOrderPayload = {
 
 async function parseError(res: Response) {
   const data = (await res.json().catch(() => ({}))) as {
-    message?: string;
+    message?: string | string[];
     error?: string;
   };
-  return data.message ?? data.error ?? "მოთხოვნა ვერ შესრულდა";
+  const message = data.message ?? data.error ?? "მოთხოვნა ვერ შესრულდა";
+  return Array.isArray(message) ? message.join(", ") : message;
 }
 
-export async function addToCart(payload: AddCartItemPayload) {
-  const res = await fetch("/api/backend/cart/items", {
+function isDifferentRestaurantCartError(message: string) {
+  return (
+    message.includes("სხვა რესტორნის") ||
+    message.includes("გაასუფთავე კალათა")
+  );
+}
+
+async function postCartItem(
+  payload: Omit<AddCartItemPayload, "restaurantId">,
+) {
+  return fetch("/api/backend/cart/items", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+export async function clearCart() {
+  const res = await fetch("/api/backend/cart", { method: "DELETE" });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
+}
+
+export async function fetchCartSummary() {
+  const res = await fetch("/api/backend/cart", { cache: "no-store" });
+  if (!res.ok) {
+    return { itemCount: 0, restaurantId: null, restaurantSlug: null };
+  }
+  const data = (await res.json()) as {
+    totals?: { itemCount?: number } | null;
+    cart?: {
+      items?: { quantity: number }[];
+      restaurant?: { id?: string; slug?: string } | null;
+    } | null;
+  };
+  return {
+    itemCount: countCartLineItems(data),
+    restaurantId: data.cart?.restaurant?.id ?? null,
+    restaurantSlug: data.cart?.restaurant?.slug ?? null,
+  };
+}
+
+export async function ensureCartRestaurant(restaurantId: string) {
+  const summary = await fetchCartSummary();
+  if (
+    summary.itemCount > 0 &&
+    summary.restaurantId &&
+    summary.restaurantId !== restaurantId
+  ) {
+    await clearCart();
+    return true;
+  }
+  return false;
+}
+
+export async function addToCart(payload: AddCartItemPayload) {
+  const { restaurantId, ...item } = payload;
+  let replacedRestaurant = false;
+
+  if (restaurantId) {
+    replacedRestaurant = await ensureCartRestaurant(restaurantId);
+  }
+
+  const res = await postCartItem(item);
+  if (res.ok) {
+    const data = await res.json();
+    return replacedRestaurant ? { ...data, replacedRestaurant: true } : data;
+  }
+
+  const message = await parseError(res);
+  if (!isDifferentRestaurantCartError(message)) {
+    throw new Error(message);
+  }
+
+  await clearCart();
+  const retry = await postCartItem(item);
+  if (!retry.ok) {
+    throw new Error(await parseError(retry));
+  }
+
+  const data = await retry.json();
+  return { ...data, replacedRestaurant: true };
 }
 
 export async function addExtraToCart(addonId: string, quantity = 1) {
@@ -74,16 +150,6 @@ export async function addExtraToCart(addonId: string, quantity = 1) {
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
-}
-
-export async function fetchCartSummary() {
-  const res = await fetch("/api/backend/cart");
-  if (!res.ok) return { itemCount: 0 };
-  const data = (await res.json()) as {
-    totals?: { itemCount?: number } | null;
-    cart?: { items?: { quantity: number }[] } | null;
-  };
-  return { itemCount: countCartLineItems(data) };
 }
 
 export async function fetchCartQuote(addressId?: string) {

@@ -3,6 +3,7 @@ import type { PublicMenuProduct, PublicRestaurant } from "@/lib/restaurants";
 
 export type RecommendedProduct = PublicMenuProduct & {
   restaurant: {
+    id: string;
     slug: string;
     name: string;
     logo: string;

@@ -653,6 +653,7 @@ export class ShopService {
         id: string;
         name: string;
         description: string | null;
+        kind: string;
         required: boolean;
         minSelections: number;
         maxSelections: number;
@@ -1018,6 +1019,7 @@ export class ShopService {
             })),
           })),
         restaurant: {
+          id: row.product.restaurant.id,
           slug: row.product.restaurant.slug,
           name: row.product.restaurant.name,
           logo:
