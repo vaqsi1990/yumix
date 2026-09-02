@@ -17,12 +17,14 @@ type RestaurantMenuClientProps = {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
   addOns?: RestaurantMenuResponse["addOns"];
+  deliveryUnavailableReason?: string;
 };
 
 export default function RestaurantMenuClient({
   restaurant,
   menu,
   addOns = [],
+  deliveryUnavailableReason,
 }: RestaurantMenuClientProps) {
   const { user, status } = useAuth();
   const { applyCartResponse, showNotice } = useCart();
@@ -53,6 +55,9 @@ export default function RestaurantMenuClient({
     setSheetOpen(true);
   }
 
+  const orderingEnabled =
+    restaurant.isOpen && restaurant.deliverable !== false;
+
   return (
     <>
       <RestaurantMenuView
@@ -60,13 +65,15 @@ export default function RestaurantMenuClient({
         menu={menu}
         hasRestaurantAddOns={addOns.length > 0}
         onProductClick={openProduct}
+        orderingEnabled={orderingEnabled}
+        deliveryUnavailableReason={deliveryUnavailableReason}
       />
       <ProductDetailSheet
         product={selectedProduct}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         restaurantId={restaurant.id}
-        restaurantOpen={restaurant.isOpen}
+        restaurantOpen={orderingEnabled}
         addOns={addOns}
         initialVariantId={initialVariantId}
         initialQuantity={initialQuantity}

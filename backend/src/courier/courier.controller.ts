@@ -8,6 +8,11 @@ import {
   type AuthUser,
 } from '../common/decorators/current-user.decorator';
 import type { OrderStatus } from '../generated/prisma/client';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import {
+  courierLocationSchema,
+  courierOnlineStatusSchema,
+} from './dto/courier.schemas';
 
 @Controller('courier')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -15,14 +20,36 @@ import type { OrderStatus } from '../generated/prisma/client';
 export class CourierController {
   constructor(private courier: CourierService) {}
 
+  @Get('status')
+  status(@CurrentUser() user: AuthUser) {
+    return this.courier.getStatus(user.id);
+  }
+
+  @Patch('status')
+  setStatus(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(courierOnlineStatusSchema)) body: { isOnline: boolean },
+  ) {
+    return this.courier.setOnlineStatus(user.id, body.isOnline);
+  }
+
+  @Patch('location')
+  updateLocation(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(courierLocationSchema))
+    body: { latitude: number; longitude: number },
+  ) {
+    return this.courier.updateLocation(user.id, body);
+  }
+
   @Get('dashboard')
   dashboard(@CurrentUser() user: AuthUser) {
     return this.courier.getDashboard(user.id);
   }
 
   @Get('available')
-  available() {
-    return this.courier.getAvailable();
+  available(@CurrentUser() user: AuthUser) {
+    return this.courier.getAvailable(user.id);
   }
 
   @Get('active')
@@ -41,7 +68,7 @@ export class CourierController {
   }
 
   @Patch('orders/:id/status')
-  updateStatus(
+  updateOrderStatus(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
     @Body() body: { status: OrderStatus },

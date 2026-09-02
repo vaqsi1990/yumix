@@ -93,6 +93,7 @@ export type CustomerOrder = {
 
 export type NotificationItem = {
   id: string;
+  orderId?: string | null;
   title: string;
   message: string;
   type: string;

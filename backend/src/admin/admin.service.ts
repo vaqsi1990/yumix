@@ -13,6 +13,7 @@ import {
 } from '../common/product-sizes';
 import { sanitizeCustomizationGroups } from '../common/customization.utils';
 import { orderInclude } from '../common/order.utils';
+import { notifyCustomerOrderStatus } from '../common/order-status.utils';
 import { parseAddonCategory } from '../common/addon-categories';
 import { assertComboProductRules } from '../common/combo-product.utils';
 import {
@@ -328,13 +329,12 @@ export class AdminService {
         });
       }
 
-      await tx.notification.create({
-        data: {
-          userId: next.userId,
-          title: 'შეკვეთის სტატუსი',
-          message: `${next.orderNumber}: ${status}`,
-          type: 'ORDER_STATUS',
-        },
+      await notifyCustomerOrderStatus(tx, {
+        userId: next.userId,
+        orderId: next.id,
+        orderNumber: next.orderNumber,
+        status,
+        previousStatus: order.status,
       });
 
       return next;

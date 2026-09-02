@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
+import { calculateDeliveryEta } from './eta.utils';
 
 type ProductForPricing = {
   price: number;
@@ -66,12 +67,33 @@ export function assertMinimumOrder(
 
 export function estimateDeliveryMinutes(
   items: { product: { preparationTime: number | null } }[],
+  distanceKm?: number | null,
 ) {
-  const maxPrep = items.reduce(
-    (max, item) => Math.max(max, item.product.preparationTime ?? 25),
-    25,
+  const eta = calculateDeliveryEta(
+    items.map((item) => item.product.preparationTime),
+    distanceKm,
   );
-  return maxPrep + 20;
+  return eta.totalMax;
+}
+
+export function buildOrderEtaSnapshot(
+  items: { product: { preparationTime: number | null } }[],
+  distanceKm?: number | null,
+) {
+  const eta = calculateDeliveryEta(
+    items.map((item) => item.product.preparationTime),
+    distanceKm,
+  );
+  return {
+    estimatedTime: eta.totalMax,
+    etaPrepMin: eta.prepMin,
+    etaPrepMax: eta.prepMax,
+    etaTravelMin: eta.travelMin,
+    etaTravelMax: eta.travelMax,
+    etaTotalMin: eta.totalMin,
+    etaTotalMax: eta.totalMax,
+    eta,
+  };
 }
 
 export function addonKey(addonId: string, quantity: number) {
@@ -121,6 +143,8 @@ export const orderInclude = {
       phone: true,
       address: true,
       city: true,
+      latitude: true,
+      longitude: true,
     },
   },
   address: true,
@@ -139,6 +163,13 @@ export const orderInclude = {
       firstName: true,
       lastName: true,
       phone: true,
+      courier: {
+        select: {
+          currentLatitude: true,
+          currentLongitude: true,
+          locationUpdatedAt: true,
+        },
+      },
     },
   },
   coupon: {

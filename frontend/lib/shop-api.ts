@@ -1,4 +1,5 @@
 import type { AddonCategory } from "@/lib/addon-categories";
+import type { DeliveryEta } from "@/lib/delivery";
 
 export type PublicAddOn = {
   id: string;
@@ -170,6 +171,7 @@ export async function fetchCartQuote(addressId?: string) {
       fee: number;
       distanceKm: number | null;
       outOfRange: boolean;
+      eta?: DeliveryEta | null;
     } | null;
   }>;
 }

@@ -34,7 +34,7 @@ export function CourierAcceptButton({ orderId }: { orderId: string }) {
         disabled={busy}
         onClick={() => void handleAccept()}
       >
-        {busy ? "..." : "მიღება"}
+        {busy ? "..." : "შეკვეთის მიღება"}
       </Button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
@@ -74,7 +74,7 @@ export function CourierStatusButtons({
           disabled={busy}
           onClick={() => void update("ON_THE_WAY")}
         >
-          გზაშია
+          გზაში ვარ
         </Button>
       )}
       {status === "ON_THE_WAY" && (
@@ -84,7 +84,7 @@ export function CourierStatusButtons({
           disabled={busy}
           onClick={() => void update("DELIVERED")}
         >
-          მიწოდებული
+          ჩავაბარე
         </Button>
       )}
       {error && <p className="w-full text-xs text-red-600">{error}</p>}

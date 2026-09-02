@@ -1,3 +1,4 @@
+import { enrichRestaurantsWithDeliveryContext } from "@/lib/restaurants";
 import { getAccessToken, serverApiFetch } from "@/lib/session";
 import type { PublicRestaurant } from "@/lib/restaurants";
 
@@ -12,9 +13,13 @@ export async function getNearbyRestaurants(): Promise<NearbyRestaurantsData | nu
   if (!token) return null;
 
   try {
-    return await serverApiFetch<NearbyRestaurantsData>("/shop/nearby", {
+    const data = await serverApiFetch<NearbyRestaurantsData>("/shop/nearby", {
       token,
     });
+    const restaurants = await enrichRestaurantsWithDeliveryContext(
+      data.restaurants,
+    );
+    return { ...data, restaurants };
   } catch {
     return null;
   }

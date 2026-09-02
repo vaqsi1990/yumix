@@ -3,6 +3,7 @@ import HorizontalScroll from "@/components/HorizontalScroll";
 import OfferCard from "@/components/OfferCard";
 import RestaurantCard from "@/components/RestaurantCard";
 import { getPublicOffers, type OfferRestaurant } from "@/lib/offers";
+import { enrichRestaurantsWithDeliveryContext } from "@/lib/restaurants";
 
 function restaurantsFromOffers(
   offers: Awaited<ReturnType<typeof getPublicOffers>>["offers"],
@@ -69,7 +70,9 @@ export default async function Offers() {
     restaurants =
       data.restaurants?.length > 0
         ? data.restaurants
-        : restaurantsFromOffers(offers);
+        : await enrichRestaurantsWithDeliveryContext(
+            restaurantsFromOffers(offers),
+          );
   } catch {
     restaurants = [];
     offers = [];

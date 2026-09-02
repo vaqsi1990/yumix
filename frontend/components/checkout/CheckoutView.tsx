@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { formatGel } from "@/lib/admin/format";
 import type { CartViewData } from "@/components/CartView";
+import type { DeliveryEta } from "@/lib/delivery";
 import {
   createAddress,
   createOrder,
@@ -73,6 +74,7 @@ export default function CheckoutView({
   const [totals, setTotals] = useState(initialTotals);
   const [outOfRange, setOutOfRange] = useState(false);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [eta, setEta] = useState<DeliveryEta | null>(null);
 
   const belowMinimum =
     cart.restaurant.minimumOrder != null &&
@@ -87,6 +89,7 @@ export default function CheckoutView({
         if (data.totals) setTotals(data.totals);
         setOutOfRange(Boolean(data.delivery?.outOfRange));
         setDistanceKm(data.delivery?.distanceKm ?? null);
+        setEta(data.delivery?.eta ?? null);
       })
       .catch((e) => {
         if (cancelled) return;
@@ -371,9 +374,13 @@ export default function CheckoutView({
             <dd>{formatGel(totals.total)}</dd>
           </div>
         </dl>
-        <p className="mt-3 text-sm text-neutral-500">
-          სავარაუდო მიწოდება: 35-55 წთ
-        </p>
+        {eta ? (
+          <div className="mt-3 space-y-1 text-sm text-neutral-600">
+            <p>{eta.label}</p>
+            <p className="text-neutral-500">მომზადება {eta.prepLabel}</p>
+            <p className="text-neutral-500">გზაში {eta.travelLabel}</p>
+          </div>
+        ) : null}
         {belowMinimum && (
           <p className="mt-3 text-sm text-[#FF0050]">
             მინიმალური შეკვეთა: {formatGel(cart.restaurant.minimumOrder ?? 0)}
@@ -381,7 +388,7 @@ export default function CheckoutView({
         )}
         {outOfRange && (
           <p className="mt-3 text-sm text-[#FF0050]">
-            ეს მისამართი მიწოდების რადიუსს სცდება
+            ამ მისამართზე მიწოდება მიუწვდომელია
           </p>
         )}
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}

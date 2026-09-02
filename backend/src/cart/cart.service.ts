@@ -13,6 +13,7 @@ import {
   resolveProductUnitPrice,
 } from '../common/order.utils';
 import { quoteDeliveryFee } from '../common/delivery.utils';
+import { calculateDeliveryEta } from '../common/eta.utils';
 import {
   normalizeCustomizationInputs,
   validateProductCustomizations,
@@ -65,6 +66,7 @@ export class CartService {
                 price: true,
                 discountPrice: true,
                 isAvailable: true,
+                preparationTime: true,
                 variants: {
                   select: { id: true, name: true, price: true },
                 },
@@ -207,7 +209,15 @@ export class CartService {
     }
 
     const totals = this.calcCartTotals(cart.items, delivery.fee, discount);
-    return { cart: { ...cart, addOns }, totals, delivery };
+    const eta = calculateDeliveryEta(
+      cart.items.map((item) => item.product.preparationTime),
+      delivery.distanceKm,
+    );
+    return {
+      cart: { ...cart, addOns },
+      totals,
+      delivery: { ...delivery, eta },
+    };
   }
 
   async clearCart(userId: string) {

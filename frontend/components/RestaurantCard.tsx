@@ -94,6 +94,11 @@ export default function RestaurantCard({
                 დახურულია
               </span>
             )}
+            {restaurant.deliverable === false && (
+              <span className="shrink-0 rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-700">
+                მიუწვდომელი
+              </span>
+            )}
           </span>
 
           <span className="mt-1.5 flex flex-col gap-0.5 font-[family-name:var(--font-inter)] text-[13px] text-neutral-500 sm:text-[14px]">
@@ -153,6 +158,11 @@ export default function RestaurantCard({
           {!restaurant.isOpen && (
             <span className="rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white">
               დახურულია
+            </span>
+          )}
+          {restaurant.deliverable === false && (
+            <span className="rounded-md bg-red-600/90 px-2 py-1 text-xs font-medium text-white">
+              მიუწვდომელი
             </span>
           )}
         </div>

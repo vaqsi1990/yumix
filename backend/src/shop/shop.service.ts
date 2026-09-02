@@ -19,7 +19,9 @@ import {
   formatDistanceKm,
   formatMoneyLabel,
   haversineKm,
+  quoteDeliveryFee,
 } from '../common/delivery.utils';
+import { calculateDeliveryEta } from '../common/eta.utils';
 import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
 
 export type PublicRestaurant = {
@@ -37,6 +39,23 @@ export type PublicRestaurant = {
   isOpen: boolean;
   distanceKm?: number;
   distanceLabel?: string;
+  deliverable?: boolean;
+  outOfRange?: boolean;
+  deliveryFee?: number;
+  minimumOrder?: number | null;
+  etaLabel?: string;
+  eta?: {
+    prepMin: number;
+    prepMax: number;
+    travelMin: number;
+    travelMax: number;
+    totalMin: number;
+    totalMax: number;
+    prepLabel: string;
+    travelLabel: string;
+    totalLabel: string;
+    label: string;
+  };
 };
 
 const DEMO_IMAGES = [
@@ -119,12 +138,22 @@ export class ShopService {
       isOpen: boolean;
       deliveryFee: number | null;
       deliveryFeePerKm?: number | null;
+      deliveryRadius?: number | null;
+      minimumOrder?: number | null;
+      latitude?: number | null;
+      longitude?: number | null;
       coverImage: string | null;
       logo: string | null;
       categories: { category: { name: string } }[];
       reviews: { rating: number }[];
     },
     index: number,
+    deliveryContext?: {
+      distanceKm: number | null;
+      deliverable: boolean;
+      fee: number;
+      eta: ReturnType<typeof calculateDeliveryEta>;
+    },
   ): PublicRestaurant {
     const reviewCount = restaurant.reviews.length;
     const rating =
@@ -143,15 +172,159 @@ export class ShopService {
       categories: categoryNames || restaurant.city,
       rating: Number(rating.toFixed(1)),
       reviews: reviewCount,
-      time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
+      time: deliveryContext
+        ? deliveryContext.eta.totalLabel
+        : restaurant.isOpen
+          ? '25-45 წთ'
+          : 'დახურულია',
       deliveryFeeLabel: formatDeliveryFeeLabel(
-        restaurant.deliveryFee,
+        deliveryContext?.fee ?? restaurant.deliveryFee,
         restaurant.deliveryFeePerKm,
       ),
       image: restaurant.coverImage || restaurant.logo || fallbackImage,
       logo: restaurant.logo || restaurant.coverImage || fallbackImage,
       city: restaurant.city,
       isOpen: restaurant.isOpen,
+      ...(deliveryContext
+        ? {
+            distanceKm: deliveryContext.distanceKm ?? undefined,
+            distanceLabel:
+              deliveryContext.distanceKm != null
+                ? formatDistanceKm(deliveryContext.distanceKm)
+                : undefined,
+            deliverable: deliveryContext.deliverable,
+            outOfRange: !deliveryContext.deliverable,
+            deliveryFee: deliveryContext.fee,
+            minimumOrder: restaurant.minimumOrder ?? null,
+            etaLabel: deliveryContext.eta.label,
+            eta: deliveryContext.eta,
+          }
+        : {}),
+    };
+  }
+
+  private buildDeliveryContext(
+    restaurant: {
+      deliveryFee: number | null;
+      deliveryFeePerKm?: number | null;
+      deliveryRadius?: number | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    },
+    dest?: { latitude: number | null; longitude: number | null } | null,
+  ) {
+    const quote = quoteDeliveryFee(
+      {
+        deliveryFee: restaurant.deliveryFee,
+        deliveryFeePerKm: restaurant.deliveryFeePerKm ?? null,
+        deliveryRadius: restaurant.deliveryRadius ?? null,
+        latitude: restaurant.latitude ?? null,
+        longitude: restaurant.longitude ?? null,
+      },
+      dest ?? null,
+    );
+    const deliverable = !quote.outOfRange;
+    const eta = calculateDeliveryEta([], quote.distanceKm);
+    return {
+      distanceKm: quote.distanceKm,
+      deliverable,
+      fee: quote.fee,
+      eta,
+      outOfRange: quote.outOfRange,
+    };
+  }
+
+  async getRestaurantsDeliveryContext(userId: string, addressId?: string) {
+    const address = addressId
+      ? await this.prisma.address.findFirst({
+          where: { id: addressId, userId },
+        })
+      : await this.prisma.address.findFirst({
+          where: { userId },
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        });
+
+    const hasLocation =
+      address?.latitude != null &&
+      address?.longitude != null &&
+      Number.isFinite(address.latitude) &&
+      Number.isFinite(address.longitude);
+
+    const restaurants = await this.prisma.restaurant.findMany({
+      where: { isApproved: true },
+      include: {
+        categories: {
+          include: { category: { select: { name: true } } },
+        },
+        reviews: { select: { rating: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      hasLocation,
+      address: address
+        ? {
+            id: address.id,
+            latitude: address.latitude,
+            longitude: address.longitude,
+          }
+        : null,
+      restaurants: restaurants.map((restaurant, index) =>
+        this.mapRestaurantRow(
+          restaurant,
+          index,
+          hasLocation
+            ? this.buildDeliveryContext(restaurant, address)
+            : undefined,
+        ),
+      ),
+    };
+  }
+
+  async getRestaurantDeliveryQuote(
+    slug: string,
+    userId: string,
+    addressId?: string,
+  ) {
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { slug, isApproved: true },
+    });
+    if (!restaurant) throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+
+    const address = addressId
+      ? await this.prisma.address.findFirst({
+          where: { id: addressId, userId },
+        })
+      : await this.prisma.address.findFirst({
+          where: { userId },
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        });
+
+    if (
+      !address ||
+      address.latitude == null ||
+      address.longitude == null ||
+      !Number.isFinite(address.latitude) ||
+      !Number.isFinite(address.longitude)
+    ) {
+      return {
+        deliverable: false,
+        outOfRange: true,
+        reason: 'მისამართი არ არის არჩეული',
+      };
+    }
+
+    const context = this.buildDeliveryContext(restaurant, address);
+    return {
+      restaurantId: restaurant.id,
+      slug: restaurant.slug,
+      deliverable: context.deliverable,
+      outOfRange: context.outOfRange,
+      deliveryFee: context.fee,
+      distanceKm: context.distanceKm,
+      minimumOrder: restaurant.minimumOrder,
+      eta: context.eta,
     };
   }
 

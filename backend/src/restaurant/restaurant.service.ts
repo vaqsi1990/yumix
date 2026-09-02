@@ -16,6 +16,11 @@ import {
   onlyStandardMenuCategories,
 } from '../common/menu-category-order';
 import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
+import {
+  assertOrderTransition,
+  notifyCustomerOrderStatus,
+  OWNER_ORDER_TRANSITIONS,
+} from '../common/order-status.utils';
 import type { OrderStatus, Prisma } from '../generated/prisma/client';
 
 const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
@@ -24,13 +29,6 @@ const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   'PREPARING',
   'READY',
 ];
-
-const OWNER_ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
-  PENDING: ['ACCEPTED', 'PREPARING', 'CANCELLED'],
-  ACCEPTED: ['PREPARING', 'CANCELLED'],
-  PREPARING: ['READY', 'CANCELLED'],
-  READY: ['CANCELLED'],
-};
 
 const restaurantOrderItemInclude = {
   product: { select: { name: true } },
@@ -733,12 +731,7 @@ export class RestaurantPanelService {
     });
     if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
 
-    const allowed = OWNER_ORDER_TRANSITIONS[order.status] ?? [];
-    if (!allowed.includes(status)) {
-      throw new BadRequestException(
-        `Cannot transition from ${order.status} to ${status}`,
-      );
-    }
+    assertOrderTransition(order.status, status, OWNER_ORDER_TRANSITIONS);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const next = await tx.order.update({
@@ -761,13 +754,12 @@ export class RestaurantPanelService {
         },
       });
 
-      await tx.notification.create({
-        data: {
-          userId: next.userId,
-          title: 'შეკვეთის სტატუსი',
-          message: `${next.orderNumber}: ${status}`,
-          type: 'ORDER_STATUS',
-        },
+      await notifyCustomerOrderStatus(tx, {
+        userId: next.userId,
+        orderId: next.id,
+        orderNumber: next.orderNumber,
+        status,
+        previousStatus: order.status,
       });
 
       return next;

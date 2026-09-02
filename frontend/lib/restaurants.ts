@@ -1,4 +1,6 @@
-import { serverApiFetch } from "@/lib/session";
+import { getAccessToken, serverApiFetch } from "@/lib/session";
+
+import type { DeliveryEta } from "@/lib/delivery";
 
 export type PublicRestaurant = {
   id: string;
@@ -15,6 +17,12 @@ export type PublicRestaurant = {
   isOpen: boolean;
   distanceKm?: number;
   distanceLabel?: string;
+  deliverable?: boolean;
+  outOfRange?: boolean;
+  deliveryFee?: number;
+  minimumOrder?: number | null;
+  etaLabel?: string;
+  eta?: DeliveryEta;
 };
 
 export type PublicRestaurantDetail = PublicRestaurant & {
@@ -133,6 +141,16 @@ export async function getPublicRestaurants(query?: string): Promise<{
   fromDatabase: boolean;
   pendingCount?: number;
 }> {
+  const data = await getPublicRestaurantsRaw(query);
+  const restaurants = await enrichRestaurantsWithDeliveryContext(data.restaurants);
+  return { ...data, restaurants };
+}
+
+async function getPublicRestaurantsRaw(query?: string): Promise<{
+  restaurants: PublicRestaurant[];
+  fromDatabase: boolean;
+  pendingCount?: number;
+}> {
   const q = query?.trim();
   const path = q
     ? `/shop/restaurants?q=${encodeURIComponent(q)}`
@@ -146,6 +164,120 @@ export async function getPublicRestaurants(query?: string): Promise<{
     }>(path);
   } catch {
     return { restaurants: filterDemo(q), fromDatabase: false, pendingCount: 0 };
+  }
+}
+
+export type RestaurantDeliveryQuote = {
+  restaurantId: string;
+  slug: string;
+  deliverable: boolean;
+  outOfRange: boolean;
+  deliveryFee?: number;
+  distanceKm?: number | null;
+  minimumOrder?: number | null;
+  eta?: DeliveryEta | null;
+  reason?: string;
+};
+
+export async function fetchDeliveryContextMap(addressId?: string) {
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  try {
+    const params = addressId
+      ? `?addressId=${encodeURIComponent(addressId)}`
+      : "";
+    const data = await serverApiFetch<{
+      hasLocation: boolean;
+      restaurants: PublicRestaurant[];
+    }>(`/shop/restaurants/delivery-context${params}`, { token });
+    return new Map(data.restaurants.map((restaurant) => [restaurant.id, restaurant]));
+  } catch {
+    return null;
+  }
+}
+
+export function mergeRestaurantDeliveryFields(
+  restaurant: PublicRestaurant,
+  enriched?: PublicRestaurant,
+): PublicRestaurant {
+  if (!enriched) return restaurant;
+  return {
+    ...restaurant,
+    deliverable: enriched.deliverable,
+    outOfRange: enriched.outOfRange,
+    distanceKm: enriched.distanceKm ?? restaurant.distanceKm,
+    distanceLabel: enriched.distanceLabel ?? restaurant.distanceLabel,
+    deliveryFee: enriched.deliveryFee ?? restaurant.deliveryFee,
+    minimumOrder: enriched.minimumOrder ?? restaurant.minimumOrder,
+    etaLabel: enriched.etaLabel ?? restaurant.etaLabel,
+    eta: enriched.eta ?? restaurant.eta,
+    time: enriched.eta?.totalLabel ?? enriched.time ?? restaurant.time,
+    deliveryFeeLabel: enriched.deliveryFeeLabel ?? restaurant.deliveryFeeLabel,
+  };
+}
+
+export async function enrichRestaurantsWithDeliveryContext<T extends PublicRestaurant>(
+  restaurants: T[],
+  addressId?: string,
+): Promise<T[]> {
+  const map = await fetchDeliveryContextMap(addressId);
+  if (!map) return restaurants;
+
+  const bySlug = new Map(
+    [...map.values()].map((restaurant) => [restaurant.slug, restaurant]),
+  );
+
+  return restaurants.map((restaurant) => {
+    const enriched =
+      map.get(restaurant.id) ?? bySlug.get(restaurant.slug);
+    return mergeRestaurantDeliveryFields(restaurant, enriched) as T;
+  });
+}
+
+export function applyDeliveryQuoteToRestaurant<
+  T extends PublicRestaurantDetail,
+>(restaurant: T, quote: RestaurantDeliveryQuote | null): T {
+  if (!quote) return restaurant;
+
+  return {
+    ...restaurant,
+    deliverable: quote.deliverable,
+    outOfRange: quote.outOfRange,
+    deliveryFee: quote.deliveryFee ?? restaurant.deliveryFee,
+    distanceKm: quote.distanceKm ?? restaurant.distanceKm,
+    minimumOrder: quote.minimumOrder ?? restaurant.minimumOrder,
+    minimumOrderLabel:
+      quote.minimumOrder != null
+        ? `₾${quote.minimumOrder.toFixed(2)}`
+        : restaurant.minimumOrderLabel,
+    deliveryFeeLabel:
+      quote.deliveryFee != null
+        ? `₾${quote.deliveryFee.toFixed(2)}`
+        : restaurant.deliveryFeeLabel,
+    eta: quote.eta ?? restaurant.eta,
+    etaLabel: quote.eta?.label ?? restaurant.etaLabel,
+    time: quote.eta?.totalLabel ?? restaurant.time,
+  };
+}
+
+export async function getRestaurantDeliveryQuote(
+  slug: string,
+  addressId?: string,
+): Promise<RestaurantDeliveryQuote | null> {
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  try {
+    const params = addressId
+      ? `?addressId=${encodeURIComponent(addressId)}`
+      : "";
+    return await serverApiFetch<RestaurantDeliveryQuote>(
+      `/shop/restaurants/${encodeURIComponent(slug)}/delivery-quote${params}`,
+      { token },
+    );
+  } catch {
+    return null;
   }
 }
 
@@ -167,11 +299,15 @@ export async function getPublicRestaurantsByMenuFood(
   const path = `/shop/restaurants?menu=${encodeURIComponent(normalized.join(","))}`;
 
   try {
-    return await serverApiFetch<{
+    const data = await serverApiFetch<{
       restaurants: PublicRestaurant[];
       fromDatabase: boolean;
       pendingCount?: number;
     }>(path);
+    const restaurants = await enrichRestaurantsWithDeliveryContext(
+      data.restaurants,
+    );
+    return { ...data, restaurants };
   } catch {
     const filtered = DEMO_RESTAURANTS.filter((restaurant) => {
       const haystack = `${restaurant.name} ${restaurant.categories}`.toLowerCase();

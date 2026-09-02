@@ -1,0 +1,10 @@
+import { z } from 'zod';
+
+export const courierOnlineStatusSchema = z.object({
+  isOnline: z.boolean(),
+});
+
+export const courierLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});

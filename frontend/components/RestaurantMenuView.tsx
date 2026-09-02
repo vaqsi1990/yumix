@@ -69,6 +69,8 @@ export default function RestaurantMenuView({
   menu: rawMenu,
   hasRestaurantAddOns = false,
   onProductClick,
+  orderingEnabled,
+  deliveryUnavailableReason,
 }: {
   restaurant: PublicRestaurantDetail;
   menu: PublicMenuCategory[];
@@ -78,8 +80,11 @@ export default function RestaurantMenuView({
     variantId?: string,
     quantity?: number,
   ) => void;
+  orderingEnabled?: boolean;
+  deliveryUnavailableReason?: string;
 }) {
   const menu = onlyCustomerMenuCategories(rawMenu);
+  const canOrder = orderingEnabled ?? restaurant.isOpen;
 
   return (
     <div className="pb-12">
@@ -159,7 +164,19 @@ export default function RestaurantMenuView({
               დახურულია
             </span>
           )}
+          {restaurant.deliverable === false && (
+            <span className="rounded-md bg-red-600 px-2.5 py-1 text-[16px] font-medium text-white md:text-[18px]">
+              მიუწვდომელი
+            </span>
+          )}
         </div>
+
+        {restaurant.deliverable === false && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[16px] text-red-800 md:text-[18px]">
+            {deliveryUnavailableReason ??
+              "ამ რესტორანიდან მიწოდება შენს მისამართზე არ ხდება. სცადე სხვა რესტორანი ან განაახლე მისამართი."}
+          </div>
+        )}
 
         {restaurant.description && (
           <p className="mt-4 text-center text-[16px] text-neutral-600 md:text-[18px]">
@@ -206,7 +223,7 @@ export default function RestaurantMenuView({
                 key={category.id}
                 category={category}
                 restaurantId={restaurant.id}
-                restaurantOpen={restaurant.isOpen}
+                restaurantOpen={canOrder}
                 hasRestaurantAddOns={hasRestaurantAddOns}
                 onProductClick={onProductClick}
               />

@@ -1,5 +1,9 @@
 import { getAccessToken, serverApiFetch } from "@/lib/session";
-import type { PublicMenuProduct, PublicRestaurant } from "@/lib/restaurants";
+import {
+  enrichRestaurantsWithDeliveryContext,
+  type PublicMenuProduct,
+  type PublicRestaurant,
+} from "@/lib/restaurants";
 
 export type RecommendedProduct = PublicMenuProduct & {
   restaurant: {
@@ -22,9 +26,13 @@ export async function getRecommendedForYou(): Promise<RecommendedForYouData | nu
   if (!token) return null;
 
   try {
-    return await serverApiFetch<RecommendedForYouData>("/shop/recommended", {
+    const data = await serverApiFetch<RecommendedForYouData>("/shop/recommended", {
       token,
     });
+    const restaurants = await enrichRestaurantsWithDeliveryContext(
+      data.restaurants,
+    );
+    return { ...data, restaurants };
   } catch {
     return { restaurants: [], products: [], topCategories: [] };
   }

@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Headphones, Phone, RotateCcw } from "lucide-react";
 import OrderTimeline from "@/components/orders/OrderTimeline";
+import OrderTrackingMap from "@/components/orders/OrderTrackingMap";
+import type { DeliveryEta } from "@/lib/delivery";
+import { ORDER_STATUS_ACTIVE_HINTS } from "@/lib/delivery";
 import { Button } from "@/components/ui/button";
 import { formatGel } from "@/lib/admin/format";
 import {
@@ -27,13 +30,26 @@ type OrderDetail = {
   discount: number;
   total: number;
   estimatedTime: number | null;
+  eta?: DeliveryEta | null;
   customerNote: string | null;
   createdAt: string;
-  restaurant: { name: string; slug: string; phone: string; logo?: string | null };
+  restaurant: {
+    name: string;
+    slug: string;
+    phone: string;
+    logo?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
   courier: {
     firstName: string;
     lastName: string;
     phone: string;
+    location?: {
+      latitude: number | null;
+      longitude: number | null;
+      updatedAt: string | null;
+    } | null;
   } | null;
   address: {
     city: string;
@@ -41,6 +57,8 @@ type OrderDetail = {
     building: string | null;
     apartment: string | null;
     deliveryNote: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   items: Array<{
     id: string;
@@ -129,10 +147,39 @@ export default function AccountOrderDetailClient({
         <div className="space-y-6">
           <section className="rounded-2xl border border-neutral-200 bg-white p-5">
             <h2 className="font-bold">სტატუსი</h2>
-            {isActive && order.estimatedTime && (
-              <p className="mt-2 text-sm text-neutral-500">
-                სავარაუდო მიწოდება: ~{order.estimatedTime} წთ
-              </p>
+            <p className="mt-1 text-sm text-neutral-500">
+              {ORDER_STATUS_ACTIVE_HINTS[order.status] ?? ""}
+            </p>
+            {isActive && order.eta && (
+              <div className="mt-2 text-sm text-neutral-600">
+                <p>{order.eta.label}</p>
+                <p className="text-neutral-500">მომზადება {order.eta.prepLabel}</p>
+                <p className="text-neutral-500">გზაში {order.eta.travelLabel}</p>
+              </div>
+            )}
+            {(order.status === "PICKED_UP" || order.status === "ON_THE_WAY") && (
+              <div className="mt-4">
+                <OrderTrackingMap
+                  points={[
+                    order.address.latitude != null && order.address.longitude != null
+                      ? {
+                          latitude: order.address.latitude,
+                          longitude: order.address.longitude,
+                        }
+                      : null,
+                    order.courier?.location?.latitude != null &&
+                    order.courier?.location?.longitude != null
+                      ? {
+                          latitude: order.courier.location.latitude,
+                          longitude: order.courier.location.longitude,
+                        }
+                      : null,
+                  ].filter(
+                    (point): point is { latitude: number; longitude: number } =>
+                      point != null,
+                  )}
+                />
+              </div>
             )}
             <div className="mt-4">
               <OrderTimeline status={order.status} />

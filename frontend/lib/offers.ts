@@ -1,5 +1,8 @@
 import { serverApiFetch } from "@/lib/session";
-import type { PublicRestaurant } from "@/lib/restaurants";
+import {
+  enrichRestaurantsWithDeliveryContext,
+  type PublicRestaurant,
+} from "@/lib/restaurants";
 
 export type PublicOffer = {
   id: string;
@@ -27,11 +30,15 @@ export async function getPublicOffers(): Promise<{
   fromDatabase: boolean;
 }> {
   try {
-    return await serverApiFetch<{
+    const data = await serverApiFetch<{
       offers: PublicOffer[];
       restaurants: OfferRestaurant[];
       fromDatabase: boolean;
     }>("/shop/offers");
+    const restaurants = await enrichRestaurantsWithDeliveryContext(
+      data.restaurants,
+    );
+    return { ...data, restaurants };
   } catch {
     return { offers: [], restaurants: [], fromDatabase: false };
   }

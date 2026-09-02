@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import RestaurantMenuClient from "@/components/shop/RestaurantMenuClient";
-import { getRestaurantMenu } from "@/lib/restaurants";
+import {
+  applyDeliveryQuoteToRestaurant,
+  getRestaurantDeliveryQuote,
+  getRestaurantMenu,
+} from "@/lib/restaurants";
 
 export const dynamic = "force-dynamic";
 
@@ -10,17 +14,28 @@ type Props = {
 
 export default async function RestaurantMenuPage({ params }: Props) {
   const { slug } = await params;
-  const data = await getRestaurantMenu(slug);
+  const [data, deliveryQuote] = await Promise.all([
+    getRestaurantMenu(slug),
+    getRestaurantDeliveryQuote(slug),
+  ]);
 
   if (!data) {
     notFound();
   }
 
+  const restaurant = applyDeliveryQuoteToRestaurant(
+    data.restaurant,
+    deliveryQuote,
+  );
+
   return (
     <RestaurantMenuClient
-      restaurant={data.restaurant}
+      restaurant={restaurant}
       menu={data.menu}
       addOns={data.addOns ?? []}
+      deliveryUnavailableReason={
+        deliveryQuote?.deliverable === false ? deliveryQuote.reason : undefined
+      }
     />
   );
 }

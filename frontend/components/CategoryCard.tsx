@@ -31,6 +31,7 @@ export default function CategoryCard({
   compact = false,
   list = false,
   labelSingleLine = false,
+  unavailable = false,
 }: {
   href: string;
   label: string;
@@ -39,6 +40,7 @@ export default function CategoryCard({
   compact?: boolean;
   list?: boolean;
   labelSingleLine?: boolean;
+  unavailable?: boolean;
 }) {
   const isLogoTile = compact && labelSingleLine;
 
@@ -65,6 +67,11 @@ export default function CategoryCard({
               sizes="(max-width: 768px) 112px, 160px"
               className="object-cover"
             />
+            {unavailable ? (
+              <span className="absolute inset-x-0 bottom-0 bg-red-600/90 px-1 py-0.5 text-[10px] font-medium leading-tight text-white">
+                მიუწვდომელი
+              </span>
+            ) : null}
           </span>
         ) : (
           <span className="flex aspect-square w-full items-center justify-center rounded-2xl bg-[#F5F5F5] transition group-hover:bg-[#EFEFEF]">

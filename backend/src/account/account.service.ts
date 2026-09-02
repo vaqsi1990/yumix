@@ -402,6 +402,7 @@ export class AccountService {
     return {
       notifications: notifications.map((n) => ({
         id: n.id,
+        orderId: n.orderId,
         title: n.title,
         message: n.message,
         type: n.type,

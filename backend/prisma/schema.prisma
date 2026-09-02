@@ -351,6 +351,12 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
   status        OrderStatus   @default(PENDING)
   estimatedTime Int?
+  etaPrepMin    Int?
+  etaPrepMax    Int?
+  etaTravelMin  Int?
+  etaTravelMax  Int?
+  etaTotalMin   Int?
+  etaTotalMax   Int?
   customerNote  String?
   coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
   couponId      String?
@@ -425,6 +431,7 @@ model Courier {
   isOnline         Boolean     @default(false)
   currentLatitude  Float?
   currentLongitude Float?
+  locationUpdatedAt DateTime?
   rating           Float?
 }
 
@@ -510,6 +517,7 @@ model Notification {
   id      String  @id @default(cuid())
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId  String
+  orderId String?
   title   String
   message String
   type    String

@@ -24,6 +24,7 @@ export default function RestaurantsTileList({
                 image={restaurant.logo}
                 compact
                 labelSingleLine
+                unavailable={restaurant.deliverable === false}
               />
             </li>
           ))}
@@ -38,6 +39,7 @@ export default function RestaurantsTileList({
                 image={restaurant.logo}
                 compact
                 labelSingleLine
+                unavailable={restaurant.deliverable === false}
               />
             </li>
           ))}
@@ -56,6 +58,7 @@ export default function RestaurantsTileList({
             image={restaurant.logo}
             compact
             labelSingleLine
+            unavailable={restaurant.deliverable === false}
           />
         </li>
       ))}

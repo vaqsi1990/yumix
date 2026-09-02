@@ -22,6 +22,25 @@ export class ShopController {
     return this.shop.getNearbyRestaurants(user.id);
   }
 
+  @Get('restaurants/delivery-context')
+  @UseGuards(JwtAuthGuard)
+  getDeliveryContext(
+    @CurrentUser() user: AuthUser,
+    @Query('addressId') addressId?: string,
+  ) {
+    return this.shop.getRestaurantsDeliveryContext(user.id, addressId);
+  }
+
+  @Get('restaurants/:slug/delivery-quote')
+  @UseGuards(JwtAuthGuard)
+  getRestaurantDeliveryQuote(
+    @CurrentUser() user: AuthUser,
+    @Param('slug') slug: string,
+    @Query('addressId') addressId?: string,
+  ) {
+    return this.shop.getRestaurantDeliveryQuote(slug, user.id, addressId);
+  }
+
   @Get('restaurants')
   getRestaurants(@Query('q') q?: string, @Query('menu') menu?: string) {
     if (menu?.trim()) {

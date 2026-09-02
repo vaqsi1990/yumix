@@ -114,7 +114,12 @@ export default function AccountHeader({ defaultAddress }: AccountHeaderProps) {
                   <DropdownMenuItem
                     key={n.id}
                     className="cursor-pointer flex-col items-start gap-0.5 py-2"
-                    onClick={() => void handleRead(n.id)}
+                    onClick={() => {
+                      void handleRead(n.id);
+                      if (n.orderId) {
+                        window.location.href = `/account/orders/${n.orderId}`;
+                      }
+                    }}
                   >
                     <span className={n.isRead ? "text-neutral-500" : "font-medium"}>
                       {n.title}

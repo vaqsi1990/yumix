@@ -9,12 +9,14 @@ import {
   assertMinimumOrder,
   assertProductOrderable,
   assertRestaurantOrderable,
-  estimateDeliveryMinutes,
+  buildOrderEtaSnapshot,
   generateOrderNumber,
   orderInclude,
 } from '../common/order.utils';
 import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
 import { quoteDeliveryFee } from '../common/delivery.utils';
+import { etaFromOrderSnapshot } from '../common/eta.utils';
+import { notifyCustomerOrderStatus } from '../common/order-status.utils';
 import type { CreateOrderDto } from './dto/order.schemas';
 import type { PaymentMethod, PaymentStatus } from '../generated/prisma/client';
 import { AddressesService } from './addresses.service';
@@ -28,6 +30,16 @@ export class OrdersService {
   ) {}
 
   private mapOrder(order: Awaited<ReturnType<typeof this.fetchOrder>>) {
+    const eta = etaFromOrderSnapshot(order);
+    const courierLocation = order.courier?.courier
+      ? {
+          latitude: order.courier.courier.currentLatitude,
+          longitude: order.courier.courier.currentLongitude,
+          updatedAt:
+            order.courier.courier.locationUpdatedAt?.toISOString() ?? null,
+        }
+      : null;
+
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -39,12 +51,27 @@ export class OrdersService {
       discount: order.discount,
       total: order.total,
       estimatedTime: order.estimatedTime,
+      etaPrepMin: order.etaPrepMin,
+      etaPrepMax: order.etaPrepMax,
+      etaTravelMin: order.etaTravelMin,
+      etaTravelMax: order.etaTravelMax,
+      etaTotalMin: order.etaTotalMin,
+      etaTotalMax: order.etaTotalMax,
+      eta,
       customerNote: order.customerNote,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
       restaurant: order.restaurant,
       address: order.address,
-      courier: order.courier,
+      courier: order.courier
+        ? {
+            id: order.courier.id,
+            firstName: order.courier.firstName,
+            lastName: order.courier.lastName,
+            phone: order.courier.phone,
+            location: courierLocation,
+          }
+        : null,
       coupon: order.coupon,
       items: order.items.map((item) => ({
         id: item.id,
@@ -186,14 +213,24 @@ export class OrdersService {
     }
 
     const address = await this.addresses.getOwned(userId, input.addressId);
+    if (
+      address.latitude == null ||
+      address.longitude == null ||
+      !Number.isFinite(address.latitude) ||
+      !Number.isFinite(address.longitude)
+    ) {
+      throw new BadRequestException(
+        'მიწოდების მისამართს სჭირდება სწორი მდებარეობა რუკაზე',
+      );
+    }
 
     const delivery = quoteDeliveryFee(restaurant, address);
     if (delivery.outOfRange) {
       const maxKm = restaurant.deliveryRadius;
       throw new BadRequestException(
         maxKm != null
-          ? `მიწოდება ამ მისამართზე არ ხდება (${maxKm} კმ რადიუსი)`
-          : 'მიწოდება ამ მისამართზე არ ხდება',
+          ? `ამ მისამართზე მიწოდება მიუწვდომელია (მაქს. ${maxKm} კმ)`
+          : 'ამ მისამართზე მიწოდება მიუწვდომელია',
       );
     }
 
@@ -221,10 +258,11 @@ export class OrdersService {
 
     const subtotal = totals.subtotal;
     const total = Math.max(0, subtotal + deliveryFee - discount);
-    const estimatedTime = estimateDeliveryMinutes(
+    const etaSnapshot = buildOrderEtaSnapshot(
       cart.items.map((item) => ({
-        product: { preparationTime: null },
+        product: { preparationTime: item.product.preparationTime ?? null },
       })),
+      delivery.distanceKm,
     );
 
     const paymentStatus = this.resolveInitialPaymentStatus(input.paymentMethod);
@@ -254,7 +292,13 @@ export class OrdersService {
           paymentMethod: input.paymentMethod,
           paymentStatus,
           status: 'PENDING',
-          estimatedTime,
+          estimatedTime: etaSnapshot.estimatedTime,
+          etaPrepMin: etaSnapshot.etaPrepMin,
+          etaPrepMax: etaSnapshot.etaPrepMax,
+          etaTravelMin: etaSnapshot.etaTravelMin,
+          etaTravelMax: etaSnapshot.etaTravelMax,
+          etaTotalMin: etaSnapshot.etaTotalMin,
+          etaTotalMax: etaSnapshot.etaTotalMax,
           customerNote: input.customerNote?.trim() || null,
           couponId,
           items: {
@@ -336,12 +380,20 @@ export class OrdersService {
         await tx.notification.create({
           data: {
             userId: owner.ownerId,
+            orderId: created.id,
             title: 'ახალი შეკვეთა',
             message: `${created.orderNumber} — ${owner.name}`,
             type: 'ORDER_NEW',
           },
         });
       }
+
+      await notifyCustomerOrderStatus(tx, {
+        userId: created.userId,
+        orderId: created.id,
+        orderNumber: created.orderNumber,
+        status: 'PENDING',
+      });
 
       return created;
     });
