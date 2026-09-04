@@ -422,7 +422,11 @@ export class CartService {
     const product = await this.prisma.product.findUnique({
       where: { id: input.productId },
       include: {
-        restaurant: true,
+        restaurant: {
+          include: {
+            workingHours: { orderBy: { day: 'asc' } },
+          },
+        },
         variants: true,
         customizationGroups: {
           orderBy: { sortOrder: 'asc' },
@@ -616,7 +620,13 @@ export class CartService {
     const quantity = input.quantity ?? 1;
     const addon = await this.prisma.productAddon.findUnique({
       where: { id: input.addonId },
-      include: { restaurant: true },
+      include: {
+        restaurant: {
+          include: {
+            workingHours: { orderBy: { day: 'asc' } },
+          },
+        },
+      },
     });
     if (!addon) throw new NotFoundException('დამატება ვერ მოიძებნა');
 

@@ -193,6 +193,9 @@ export class OrdersService {
 
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: cart.restaurantId },
+      include: {
+        workingHours: { orderBy: { day: 'asc' } },
+      },
     });
     if (!restaurant) throw new NotFoundException('რესტორანი ვერ მოიძებნა');
 

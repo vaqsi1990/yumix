@@ -1,6 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { calculateDeliveryEta } from './eta.utils';
+import {
+  isRestaurantAcceptingOrdersNow,
+  type WorkingHourRow,
+} from './working-hours.utils';
 
 type ProductForPricing = {
   price: number;
@@ -17,6 +21,7 @@ type RestaurantForOrder = {
   isApproved: boolean;
   minimumOrder: number | null;
   deliveryFee: number | null;
+  workingHours?: WorkingHourRow[];
 };
 
 export function generateOrderNumber() {
@@ -49,7 +54,12 @@ export function assertRestaurantOrderable(restaurant: RestaurantForOrder) {
   if (!restaurant.isApproved) {
     throw new BadRequestException('რესტორანი ჯერ არ არის დამტკიცებული');
   }
-  if (!restaurant.isOpen) {
+  if (
+    !isRestaurantAcceptingOrdersNow({
+      isOpen: restaurant.isOpen,
+      workingHours: restaurant.workingHours ?? [],
+    })
+  ) {
     throw new BadRequestException('რესტორანი დახურულია');
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { sortVariantsBySize } from '../common/product-sizes';
-import { mapRestaurantWorkingHours } from '../common/working-hours.utils';
+import { mapRestaurantWorkingHours, resolvePublicRestaurantIsOpen } from '../common/working-hours.utils';
 import {
   isAuxiliaryMenuCategory,
   onlyCustomerMenuCategories,
@@ -147,6 +147,12 @@ export class ShopService {
       logo: string | null;
       categories: { category: { name: string } }[];
       reviews: { rating: number }[];
+      workingHours?: {
+        day: number;
+        openTime: string;
+        closeTime: string;
+        isClosed: boolean;
+      }[];
     },
     index: number,
     deliveryContext?: {
@@ -165,6 +171,7 @@ export class ShopService {
       .map((c) => c.category.name)
       .join(', ');
     const fallbackImage = DEMO_IMAGES[index % DEMO_IMAGES.length];
+    const acceptingOrders = resolvePublicRestaurantIsOpen(restaurant);
 
     return {
       id: restaurant.id,
@@ -175,7 +182,7 @@ export class ShopService {
       reviews: reviewCount,
       time: deliveryContext
         ? deliveryContext.eta.totalLabel
-        : restaurant.isOpen
+        : acceptingOrders
           ? '25-45 წთ'
           : 'დახურულია',
       deliveryFeeLabel: formatDeliveryFeeLabel(
@@ -185,7 +192,7 @@ export class ShopService {
       image: restaurant.coverImage || restaurant.logo || fallbackImage,
       logo: restaurant.logo || restaurant.coverImage || fallbackImage,
       city: restaurant.city,
-      isOpen: restaurant.isOpen,
+      isOpen: acceptingOrders,
       ...(deliveryContext
         ? {
             distanceKm: deliveryContext.distanceKm ?? undefined,
@@ -258,6 +265,7 @@ export class ShopService {
           include: { category: { select: { name: true } } },
         },
         reviews: { select: { rating: true } },
+        workingHours: { orderBy: { day: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -369,6 +377,7 @@ export class ShopService {
             include: { category: { select: { name: true } } },
           },
           reviews: { select: { rating: true } },
+          workingHours: { orderBy: { day: 'asc' } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -423,6 +432,7 @@ export class ShopService {
             include: { category: { select: { name: true } } },
           },
           reviews: { select: { rating: true } },
+          workingHours: { orderBy: { day: 'asc' } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -485,6 +495,7 @@ export class ShopService {
           include: { category: { select: { name: true } } },
         },
         reviews: { select: { rating: true } },
+        workingHours: { orderBy: { day: 'asc' } },
       },
     });
 
@@ -584,6 +595,7 @@ export class ShopService {
       .map((c) => c.category.name)
       .join(', ');
     const fallbackImage = DEMO_IMAGES[0];
+    const acceptingOrders = resolvePublicRestaurantIsOpen(restaurant);
 
     const publicRestaurant = {
       id: restaurant.id,
@@ -593,7 +605,7 @@ export class ShopService {
       categories: categoryNames || restaurant.city,
       rating: Number(rating.toFixed(1)),
       reviews: reviewCount,
-      time: restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
+      time: acceptingOrders ? '25-45 წთ' : 'დახურულია',
       deliveryFeeLabel: formatDeliveryFeeLabel(
         restaurant.deliveryFee,
         restaurant.deliveryFeePerKm,
@@ -602,7 +614,7 @@ export class ShopService {
       image: restaurant.coverImage || restaurant.logo || fallbackImage,
       logo: restaurant.logo || restaurant.coverImage || fallbackImage,
       city: restaurant.city,
-      isOpen: restaurant.isOpen,
+      isOpen: acceptingOrders,
       workingHours: mapRestaurantWorkingHours(restaurant.workingHours),
     };
 
@@ -706,6 +718,7 @@ export class ShopService {
               include: { category: { select: { name: true } } },
             },
             reviews: { select: { rating: true } },
+            workingHours: { orderBy: { day: 'asc' } },
           },
         },
       },
@@ -808,6 +821,7 @@ export class ShopService {
                 deliveryFee: true,
                 deliveryFeePerKm: true,
                 reviews: { select: { rating: true } },
+                workingHours: { orderBy: { day: 'asc' } },
               },
             },
           },
@@ -863,6 +877,12 @@ export class ShopService {
         deliveryFee: number | null;
         deliveryFeePerKm?: number | null;
         reviews: { rating: number }[];
+        workingHours?: {
+          day: number;
+          openTime: string;
+          closeTime: string;
+          isClosed: boolean;
+        }[];
       };
     },
   ) {
@@ -908,6 +928,11 @@ export class ShopService {
               ) / reviewCount
             : 0;
 
+        const acceptingOrders = resolvePublicRestaurantIsOpen({
+          isOpen: product.restaurant.isOpen,
+          workingHours: product.restaurant.workingHours ?? [],
+        });
+
         return {
           slug: product.restaurant.slug,
           name: product.restaurant.name,
@@ -915,10 +940,10 @@ export class ShopService {
             product.restaurant.logo ||
             product.restaurant.coverImage ||
             DEMO_IMAGES[0],
-          isOpen: product.restaurant.isOpen,
+          isOpen: acceptingOrders,
           rating: Number(rating.toFixed(1)),
           reviews: reviewCount,
-          time: product.restaurant.isOpen ? '25-45 წთ' : 'დახურულია',
+          time: acceptingOrders ? '25-45 წთ' : 'დახურულია',
           deliveryFeeLabel: formatDeliveryFeeLabel(
             product.restaurant.deliveryFee,
             product.restaurant.deliveryFeePerKm,
@@ -1078,6 +1103,7 @@ export class ShopService {
             include: { category: { select: { name: true } } },
           },
           reviews: { select: { rating: true } },
+          workingHours: { orderBy: { day: 'asc' } },
         },
       }),
       this.prisma.product.findMany({
