@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 import { useCart } from "@/components/cart-context";
 
-export default function CartCountSync({ count }: { count: number }) {
-  const { setItemCount } = useCart();
+export default function CartCountSync() {
+  const { refresh } = useCart();
 
   useEffect(() => {
-    setItemCount(count);
-  }, [count, setItemCount]);
+    void refresh();
+  }, [refresh]);
 
   return null;
 }

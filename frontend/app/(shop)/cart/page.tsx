@@ -104,7 +104,7 @@ export default async function CartPage() {
         </Link>
       </div>
 
-      {totals ? <CartCountSync count={totals.itemCount} /> : null}
+      {totals ? <CartCountSync /> : null}
       <CartView cart={cart} totals={totals} />
     </section>
   );

@@ -13,6 +13,7 @@ import { useAuth } from "@/components/auth-context";
 import {
   CART_REPLACED_NOTICE,
   cartWasReplaced,
+  clearCart as clearCartApi,
   fetchCartSummary,
   parseCartSummary,
   type CartSummary,
@@ -24,16 +25,17 @@ const EMPTY_CART_SUMMARY: CartSummary = {
   subtotal: 0,
   restaurantId: null,
   restaurantSlug: null,
+  restaurantName: null,
 };
 
 type CartContextValue = CartSummary & {
   ready: boolean;
   notice: string | null;
   refresh: () => Promise<void>;
-  setItemCount: (count: number) => void;
   applyCartResponse: (data: unknown) => boolean;
   showNotice: (message: string) => void;
   clearNotice: () => void;
+  clearCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -63,8 +65,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const applyCartResponse = useCallback(
     (data: unknown) => {
-      setSummary(parseCartSummary(data as Parameters<typeof parseCartSummary>[0]));
-      void refresh();
+      const next = parseCartSummary(
+        data as Parameters<typeof parseCartSummary>[0],
+      );
+      setSummary(next);
 
       if (cartWasReplaced(data)) {
         setNotice(CART_REPLACED_NOTICE);
@@ -73,8 +77,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       return false;
     },
-    [refresh],
+    [],
   );
+
+  const clearCart = useCallback(async () => {
+    await clearCartApi();
+    setSummary(EMPTY_CART_SUMMARY);
+    setNotice(null);
+  }, []);
 
   const clearNotice = useCallback(() => {
     setNotice(null);
@@ -82,12 +92,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const showNotice = useCallback((message: string) => {
     setNotice(message);
-  }, []);
-
-  const setItemCount = useCallback((count: number) => {
-    setSummary((prev) =>
-      prev.itemCount === count ? prev : { ...prev, itemCount: count },
-    );
   }, []);
 
   useEffect(() => {
@@ -108,12 +112,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ready,
       notice,
       refresh,
-      setItemCount,
       applyCartResponse,
       showNotice,
       clearNotice,
+      clearCart,
     }),
-    [summary, ready, notice, refresh, setItemCount, applyCartResponse, showNotice, clearNotice],
+    [summary, ready, notice, refresh, applyCartResponse, showNotice, clearNotice, clearCart],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -127,8 +131,8 @@ export function useCart() {
   return ctx;
 }
 
-export function syncCartFromResponse(data: unknown) {
+export function syncCartFromResponse(data: unknown): CartSummary {
   return parseCartSummary(
     data as Parameters<typeof parseCartSummary>[0],
-  ).itemCount;
+  );
 }

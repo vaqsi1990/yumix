@@ -21,7 +21,11 @@ import CustomizationGroupPicker, {
   validateCustomizationSelection,
 } from "@/components/shop/CustomizationGroupPicker";
 import { formatGel } from "@/lib/admin/format";
-import { addToCart } from "@/lib/shop-api";
+import {
+  addToCart,
+  cartTargetsDifferentRestaurant,
+  confirmCartRestaurantSwitch,
+} from "@/lib/shop-api";
 import { useCart } from "@/components/cart-context";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
@@ -33,6 +37,7 @@ type ProductDetailSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   restaurantId: string;
+  restaurantName: string;
   restaurantOpen: boolean;
   addOns?: SelectableAddon[];
   initialVariantId?: string | null;
@@ -58,6 +63,7 @@ export default function ProductDetailSheet({
   open,
   onOpenChange,
   restaurantId,
+  restaurantName,
   restaurantOpen,
   addOns = [],
   initialVariantId = null,
@@ -66,7 +72,8 @@ export default function ProductDetailSheet({
   const router = useRouter();
   const isMobile = useIsMobileSheet();
   const { authReady, requireLogin } = useRequireLogin();
-  const { applyCartResponse } = useCart();
+  const cart = useCart();
+  const { applyCartResponse } = cart;
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedCustomizations, setSelectedCustomizations] = useState<
@@ -138,6 +145,9 @@ export default function ProductDetailSheet({
     if (!restaurantOpen) {
       setError("რესტორანი დახურულია");
       return;
+    }
+    if (cartTargetsDifferentRestaurant(cart, restaurantId)) {
+      if (!confirmCartRestaurantSwitch(cart, restaurantName)) return;
     }
     if (product.outOfStock) {
       setError("პროდუქტი ამოწურულია");

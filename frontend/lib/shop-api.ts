@@ -91,6 +91,7 @@ export async function fetchCartSummary(): Promise<CartSummary> {
       subtotal: 0,
       restaurantId: null,
       restaurantSlug: null,
+      restaurantName: null,
     };
   }
   const data = (await res.json()) as Parameters<typeof parseCartSummary>[0];
@@ -188,29 +189,65 @@ export type CartSummary = {
   subtotal: number;
   restaurantId: string | null;
   restaurantSlug: string | null;
+  restaurantName: string | null;
 };
+
+export function cartTargetsDifferentRestaurant(
+  summary: CartSummary,
+  restaurantId: string,
+) {
+  return (
+    summary.itemCount > 0 &&
+    summary.restaurantId != null &&
+    summary.restaurantId !== restaurantId
+  );
+}
+
+export function confirmCartRestaurantSwitch(
+  summary: CartSummary,
+  nextRestaurantName?: string,
+) {
+  const from = summary.restaurantName ?? "სხვა რესტორანი";
+  const to = nextRestaurantName ?? "ახალი რესტორანი";
+  return window.confirm(
+    `კალათაში გაქვს პროდუქტები „${from}“-დან. თუ გააგრძელებ, ისინი წაიშლება და დაამატებ „${to}“-დან.`,
+  );
+}
 
 export function parseCartSummary(data: {
   totals?: { itemCount?: number; subtotal?: number } | null;
   cart?: {
     items?: { quantity?: number }[] | null;
-    restaurant?: { id?: string; slug?: string } | null;
+    restaurant?: { id?: string; slug?: string; name?: string } | null;
     restaurantId?: string | null;
   } | null;
 }): CartSummary {
   const items = data.cart?.items ?? [];
+  const lineCount = countCartLineItems(data);
   const totalQuantity = items.reduce(
     (sum, item) => sum + Math.max(0, item.quantity ?? 0),
     0,
   );
 
+  if (lineCount === 0) {
+    return {
+      itemCount: 0,
+      totalQuantity: 0,
+      subtotal: 0,
+      restaurantId: null,
+      restaurantSlug: null,
+      restaurantName: null,
+    };
+  }
+
   return {
-    itemCount: countCartLineItems(data),
-    totalQuantity: totalQuantity || countCartLineItems(data),
+    itemCount: lineCount,
+    totalQuantity: totalQuantity || lineCount,
     subtotal: data.totals?.subtotal ?? 0,
     restaurantId:
       data.cart?.restaurant?.id ?? data.cart?.restaurantId ?? null,
     restaurantSlug: data.cart?.restaurant?.slug ?? null,
+    restaurantName: data.cart?.restaurant?.name ?? null,
   };
 }
 

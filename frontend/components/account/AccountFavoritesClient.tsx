@@ -208,6 +208,7 @@ export default function AccountFavoritesClient({
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         restaurantId={selectedProduct?.restaurant.id ?? ""}
+        restaurantName={selectedProduct?.restaurant.name ?? ""}
         restaurantOpen={selectedProduct?.restaurant.isOpen ?? true}
         addOns={addOns}
       />

@@ -5,7 +5,11 @@ import { useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { formatGel } from "@/lib/admin/format";
-import { addToCart } from "@/lib/shop-api";
+import {
+  addToCart,
+  cartTargetsDifferentRestaurant,
+  confirmCartRestaurantSwitch,
+} from "@/lib/shop-api";
 import { useCart } from "@/components/cart-context";
 import { useRequireLogin } from "@/lib/use-require-login";
 import { sortVariantsBySize } from "@/lib/product-sizes";
@@ -31,7 +35,8 @@ export default function MenuProductCard({
 }) {
   const router = useRouter();
   const { authReady, requireLogin } = useRequireLogin();
-  const { applyCartResponse } = useCart();
+  const cart = useCart();
+  const { applyCartResponse } = cart;
   const variants = useMemo(
     () => sortVariantsBySize(product.variants),
     [product.variants],
@@ -67,6 +72,9 @@ export default function MenuProductCard({
     if (!restaurantOpen) {
       setError("რესტორანი დახურულია");
       return;
+    }
+    if (cartTargetsDifferentRestaurant(cart, restaurantId)) {
+      if (!confirmCartRestaurantSwitch(cart)) return;
     }
     if (variants.length > 0 && !variantId) {
       setError("აირჩიე ზომა");

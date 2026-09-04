@@ -74,6 +74,7 @@ export default function RecommendedProductsRow({
           if (!open) setSelected(null);
         }}
         restaurantId={selected?.restaurant.id ?? ""}
+        restaurantName={selected?.restaurant.name ?? ""}
         restaurantOpen={selected?.restaurant.isOpen ?? true}
         addOns={addOns}
       />

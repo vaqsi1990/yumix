@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import CartQuickExtras from "@/components/shop/CartQuickExtras";
-import { syncCartFromResponse, useCart } from "@/components/cart-context";
+import { useCart } from "@/components/cart-context";
 import { ADDON_CARRIER_PRODUCT_NAME } from "@/lib/addon-categories";
 import type { AddonCategory } from "@/lib/addon-categories";
 import { sortVariantsBySize } from "@/lib/product-sizes";
@@ -147,7 +147,7 @@ export default function CartView({
   totals: Totals | null;
 }) {
   const router = useRouter();
-  const { setItemCount } = useCart();
+  const { applyCartResponse, clearCart: clearCartState } = useCart();
   const [localCart, setLocalCart] = useState(cart);
   const [localTotals, setLocalTotals] = useState(totals);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -168,7 +168,7 @@ export default function CartView({
   }) {
     if (data.cart !== undefined) setLocalCart(data.cart);
     if (data.totals !== undefined) setLocalTotals(data.totals);
-    setItemCount(syncCartFromResponse(data));
+    applyCartResponse(data);
   }
 
   async function updateItem(
@@ -219,7 +219,7 @@ export default function CartView({
       });
       if (!res.ok) return;
       const data = await res.json();
-      setItemCount(syncCartFromResponse(data));
+      applyCartResponse(data);
       router.refresh();
     } finally {
       setBusyId(null);
@@ -230,9 +230,7 @@ export default function CartView({
     if (!window.confirm("კალათის გასუფთავება გინდა?")) return;
     setClearing(true);
     try {
-      const res = await fetch("/api/backend/cart", { method: "DELETE" });
-      if (!res.ok) return;
-      setItemCount(0);
+      await clearCartState();
       router.refresh();
     } finally {
       setClearing(false);
