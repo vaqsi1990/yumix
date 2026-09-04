@@ -547,6 +547,18 @@ export default function RestaurantFormView({
           <FormField label="Email" htmlFor="email">
             <Input id="email" type="email" {...register("email")} />
           </FormField>
+          <FormField
+            label="IBAN"
+            htmlFor="iban"
+            error={errors.iban?.message}
+            className="sm:col-span-2"
+          >
+            <Input
+              id="iban"
+              {...register("iban")}
+              placeholder="GE29NB0000000101904917"
+            />
+          </FormField>
           <FormField label="ვებსაიტი" htmlFor="website" className="sm:col-span-2">
             <Input id="website" {...register("website")} placeholder="https://" />
           </FormField>

@@ -68,6 +68,7 @@ export type AdminRestaurant = {
   estimatedDeliveryMinutes: number;
   phone: string;
   email: string | null;
+  iban: string;
   website: string | null;
   rating: number;
   reviewCount: number;

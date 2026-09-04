@@ -41,3 +41,11 @@ export function formatPercent(value: number): string {
 export function formatMinutes(minutes: number): string {
   return `${minutes} წთ`;
 }
+
+export function normalizeIban(value: string): string {
+  return value.trim().replace(/\s/g, "").toUpperCase();
+}
+
+export function isValidIban(value: string): boolean {
+  return /^GE\d{2}[A-Z0-9]{18}$/.test(normalizeIban(value));
+}

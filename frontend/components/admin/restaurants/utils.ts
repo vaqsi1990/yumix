@@ -194,6 +194,7 @@ export type ApiRestaurantRow = {
   minimumOrder: number | null;
   phone: string;
   email: string | null;
+  iban: string;
   isOpen: boolean;
   isApproved: boolean;
   createdAt: string;
@@ -276,6 +277,7 @@ export function mapApiRestaurant(row: ApiRestaurantRow): AdminRestaurant {
     estimatedDeliveryMinutes: 35,
     phone: row.phone,
     email: row.email,
+    iban: row.iban,
     website: null,
     rating,
     reviewCount: reviews.length,
@@ -354,6 +356,7 @@ export function restaurantToFormValues(
     estimatedDeliveryMinutes: restaurant.estimatedDeliveryMinutes,
     phone: restaurant.phone,
     email: restaurant.email ?? "",
+    iban: restaurant.iban,
     website: restaurant.website ?? "",
     facebook: "",
     instagram: "",

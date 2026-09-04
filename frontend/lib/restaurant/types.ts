@@ -37,6 +37,7 @@ export type RestaurantSummary = {
   coverImage: string | null;
   isApproved?: boolean;
   isOpen?: boolean;
+  hasIban?: boolean;
   _count?: { products: number; orders: number; reviews: number };
 };
 
@@ -163,6 +164,7 @@ export type RestaurantSettings = {
   coverImage: string | null;
   phone: string;
   email: string;
+  iban: string;
   city: string;
   address: string;
   latitude: number | null;

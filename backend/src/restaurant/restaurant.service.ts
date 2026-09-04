@@ -11,6 +11,7 @@ import {
 } from '../admin/admin.service';
 import { sortVariantsBySize } from '../common/product-sizes';
 import { ensureStandardMenuCategories } from '../common/ensure-menu-categories';
+import { assertValidIban, assertRestaurantHasIban, isValidIban } from '../common/iban.utils';
 import {
   isStandardMenuCategory,
   onlyStandardMenuCategories,
@@ -115,6 +116,7 @@ export class RestaurantPanelService {
         coverImage: restaurant.coverImage,
         isApproved: restaurant.isApproved,
         isOpen: restaurant.isOpen,
+        hasIban: isValidIban(restaurant.iban),
         _count: restaurant._count,
       },
       owner: account.user,
@@ -578,6 +580,7 @@ export class RestaurantPanelService {
     input: Omit<ProductWriteInput, 'restaurantId'>,
   ) {
     const restaurant = await this.getOwnedRestaurant(userId, role);
+    assertRestaurantHasIban(restaurant.iban);
     return this.admin.createProduct({
       ...input,
       restaurantId: restaurant.id,
@@ -617,6 +620,7 @@ export class RestaurantPanelService {
 
   async duplicateProduct(userId: string, role: string, id: string) {
     const restaurant = await this.getOwnedRestaurant(userId, role);
+    assertRestaurantHasIban(restaurant.iban);
     const existing = await this.prisma.product.findFirst({
       where: { id, restaurantId: restaurant.id },
     });
@@ -823,6 +827,8 @@ export class RestaurantPanelService {
     const emailRaw =
       body.email != null ? String(body.email).trim() : undefined;
     const email = emailRaw === undefined ? undefined : emailRaw || null;
+    const iban =
+      body.iban != null ? assertValidIban(body.iban) : undefined;
     const city = body.city != null ? String(body.city).trim() : undefined;
     const address =
       body.address != null ? String(body.address).trim() : undefined;
@@ -857,6 +863,7 @@ export class RestaurantPanelService {
           ...(description !== undefined ? { description } : {}),
           ...(phone !== undefined ? { phone } : {}),
           ...(email !== undefined ? { email } : {}),
+          ...(iban !== undefined ? { iban } : {}),
           ...(city !== undefined ? { city } : {}),
           ...(address !== undefined ? { address } : {}),
           ...(logo !== undefined ? { logo } : {}),
@@ -1127,6 +1134,7 @@ export class RestaurantPanelService {
       coverImage: restaurant.coverImage,
       phone: restaurant.phone,
       email: restaurant.email ?? '',
+      iban: restaurant.iban,
       city: restaurant.city,
       address: restaurant.address,
       latitude: restaurant.latitude,

@@ -5,6 +5,8 @@ import RestaurantSidebar from "./RestaurantSidebar";
 import RestaurantNavbar from "./RestaurantNavbar";
 import RestaurantOnboardingForm from "./RestaurantOnboardingForm";
 import PendingApprovalBanner from "./PendingApprovalBanner";
+import MissingIbanBanner from "./MissingIbanBanner";
+import { RestaurantShellProvider } from "./RestaurantShellContext";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type { ShellData } from "@/lib/restaurant/types";
 
@@ -76,9 +78,11 @@ export default function RestaurantShell({
   const restaurantLogo = shellData.restaurant.logo ?? "/yumix-logo.svg";
   const ownerName = `${shellData.owner.firstName} ${shellData.owner.lastName}`;
   const ownerAvatar = shellData.owner.avatar ?? "";
+  const hasIban = shellData.restaurant.hasIban ?? false;
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden bg-background">
+    <RestaurantShellProvider hasIban={hasIban}>
+      <div className="flex min-h-0 flex-1 overflow-hidden bg-background">
       <div className="hidden lg:flex">
         <RestaurantSidebar
           collapsed={collapsed}
@@ -113,10 +117,12 @@ export default function RestaurantShell({
             {shellData.restaurant.isApproved === false && (
               <PendingApprovalBanner />
             )}
+            {!hasIban && <MissingIbanBanner />}
             {children}
           </div>
         </main>
       </div>
-    </div>
+      </div>
+    </RestaurantShellProvider>
   );
 }

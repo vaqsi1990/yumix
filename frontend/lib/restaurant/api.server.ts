@@ -21,7 +21,10 @@ export async function fetchShellData(): Promise<ShellData> {
       }>("/restaurant/dashboard");
       return {
         hasRestaurant: true,
-        restaurant: dashboard.restaurant,
+        restaurant: {
+          ...dashboard.restaurant,
+          hasIban: dashboard.restaurant.hasIban ?? false,
+        },
         owner: account.user,
         pendingOrders: dashboard.stats.pendingOrders,
       };

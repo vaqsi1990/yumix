@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
 import ProductDialog from "@/components/restaurant/products/ProductDialog";
 import ConfirmDialog from "@/components/restaurant/ConfirmDialog";
@@ -24,6 +24,7 @@ import type {
   ProductWritePayload,
   RestaurantProduct,
 } from "@/lib/restaurant/types";
+import { useRestaurantShell } from "@/components/restaurant/RestaurantShellContext";
 
 function normalizeMenuCategories(menu: MenuCategory[]): MenuCategory[] {
   return menu.map((category) => ({
@@ -45,6 +46,7 @@ function hasCategoryProducts(category: MenuCategory) {
 }
 
 export default function MenuManager() {
+  const { hasIban } = useRestaurantShell();
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [productCategories, setProductCategories] = useState<ProductCategory[]>(
     [],
@@ -94,18 +96,8 @@ export default function MenuManager() {
     loadMenu();
   }, [loadMenu]);
 
-  async function handleToggleVisibility(category: MenuCategory) {
-    try {
-      await restaurantApi.toggleMenuVisibility(category.id, !category.visible);
-      await loadMenu();
-    } catch (e) {
-      alert(
-        translateApiError(e instanceof Error ? e.message : KA.failedSave),
-      );
-    }
-  }
-
   function openCreateProduct(categoryId?: string) {
+    if (!hasIban) return;
     setEditingProduct(null);
     setDefaultCategoryId(categoryId);
     setInitialProductKind("item");
@@ -113,6 +105,7 @@ export default function MenuManager() {
   }
 
   function openCreateCombo(categoryId?: string) {
+    if (!hasIban) return;
     setEditingProduct(null);
     setDefaultCategoryId(categoryId ?? comboCategoryId);
     setInitialProductKind("combo");
@@ -184,11 +177,15 @@ export default function MenuManager() {
         actions={
           productCategories.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => openCreateProduct()}>
+              <Button onClick={() => openCreateProduct()} disabled={!hasIban}>
                 <Plus className="size-4" />
                 {KA.menu.addProduct}
               </Button>
-              <Button variant="outline" onClick={() => openCreateCombo()}>
+              <Button
+                variant="outline"
+                onClick={() => openCreateCombo()}
+                disabled={!hasIban}
+              >
                 <Plus className="size-4" />
                 {KA.menu.addCombo}
               </Button>
@@ -202,8 +199,8 @@ export default function MenuManager() {
           icon={UtensilsCrossed}
           title={KA.menu.noProducts}
           description={KA.menu.noProductsDesc}
-          actionLabel={KA.menu.addProduct}
-          onAction={() => openCreateProduct()}
+          actionLabel={hasIban ? KA.menu.addProduct : undefined}
+          onAction={hasIban ? () => openCreateProduct() : undefined}
         />
       ) : (
         <div className="space-y-4">
@@ -227,6 +224,7 @@ export default function MenuManager() {
                       <Button
                         size="sm"
                         onClick={() => openCreateCombo(category.id)}
+                        disabled={!hasIban}
                       >
                         <Plus className="size-4" />
                         {KA.menu.addCombo}
@@ -235,28 +233,12 @@ export default function MenuManager() {
                       <Button
                         size="sm"
                         onClick={() => openCreateProduct(category.id)}
+                        disabled={!hasIban}
                       >
                         <Plus className="size-4" />
                         {KA.menu.addProduct}
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleVisibility(category)}
-                    >
-                      {category.visible ? (
-                        <>
-                          <EyeOff className="size-4" />
-                          {KA.menu.hide}
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="size-4" />
-                          {KA.menu.show}
-                        </>
-                      )}
-                    </Button>
                   </div>
                 </div>
 

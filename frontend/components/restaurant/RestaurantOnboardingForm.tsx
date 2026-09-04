@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { KA, translateApiError } from "@/lib/restaurant/labels";
+import { isValidIban, normalizeIban } from "@/lib/restaurant/format";
 import { restaurantApi } from "@/lib/restaurant/api";
 import type { ApiUser } from "@/lib/api";
 import LocationMapPicker from "@/components/maps/LocationMapPicker";
@@ -32,6 +33,7 @@ export default function RestaurantOnboardingForm({
   const [street, setStreet] = useState("");
   const [phone, setPhone] = useState(owner.phone ?? "");
   const [email, setEmail] = useState(owner.email ?? "");
+  const [iban, setIban] = useState("");
   const [logo, setLogo] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [latitude, setLatitude] = useState("");
@@ -48,6 +50,7 @@ export default function RestaurantOnboardingForm({
     const trimmedName = name.trim();
     const trimmedStreet = street.trim();
     const trimmedPhone = phone.trim();
+    const trimmedIban = normalizeIban(iban);
 
     if (!trimmedName) {
       setError("რესტორნის სახელი სავალდებულოა");
@@ -65,6 +68,14 @@ export default function RestaurantOnboardingForm({
       setError("ტელეფონი სავალდებულოა");
       return;
     }
+    if (!trimmedIban) {
+      setError("IBAN სავალდებულოა");
+      return;
+    }
+    if (!isValidIban(trimmedIban)) {
+      setError("IBAN არასწორი ფორმატია");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -77,6 +88,7 @@ export default function RestaurantOnboardingForm({
         street: trimmedStreet,
         phone: trimmedPhone,
         email: email.trim() || undefined,
+        iban: trimmedIban,
         logo,
         coverImage,
         latitude: latitude || undefined,
@@ -178,6 +190,17 @@ export default function RestaurantOnboardingForm({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="info@restaurant.ge"
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="iban">{KA.settings.iban} *</Label>
+              <Input
+                id="iban"
+                value={iban}
+                onChange={(e) => setIban(e.target.value.toUpperCase())}
+                placeholder={KA.settings.ibanHint}
+                required
               />
             </div>
 

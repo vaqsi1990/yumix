@@ -20,6 +20,7 @@ import {
   ensureAllRestaurantMenuCategories,
   ensureStandardMenuCategories,
 } from '../common/ensure-menu-categories';
+import { assertValidIban } from '../common/iban.utils';
 import {
   isStandardMenuCategory,
   onlyStandardMenuCategories,
@@ -470,6 +471,8 @@ export class AdminService {
       throw new BadRequestException('ტელეფონი სავალდებულოა');
     }
 
+    const iban = assertValidIban(body.iban);
+
     const slugTaken = await this.prisma.restaurant.findUnique({ where: { slug } });
     if (slugTaken) {
       throw new ConflictException('slug უკვე გამოყენებულია');
@@ -553,6 +556,7 @@ export class AdminService {
           coverImage: (body.coverImage as string | null) ?? null,
           phone,
           email,
+          iban,
           city,
           address: addressParts.join(', '),
           latitude,
@@ -681,6 +685,8 @@ export class AdminService {
       throw new BadRequestException('ტელეფონი სავალდებულოა');
     }
 
+    const iban = assertValidIban(body.iban);
+
     const slugTaken = await this.prisma.restaurant.findFirst({
       where: { slug, NOT: { id } },
     });
@@ -774,6 +780,7 @@ export class AdminService {
           coverImage: (body.coverImage as string | null) ?? null,
           phone,
           email,
+          iban,
           city,
           address: addressParts.join(', '),
           latitude,

@@ -19,10 +19,12 @@ import type {
   ProductWritePayload,
   RestaurantProduct,
 } from "@/lib/restaurant/types";
+import { useRestaurantShell } from "@/components/restaurant/RestaurantShellContext";
 
 const PAGE_SIZE = 10;
 
 export default function ProductsManager() {
+  const { hasIban } = useRestaurantShell();
   const [products, setProducts] = useState<RestaurantProduct[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,7 @@ export default function ProductsManager() {
       if (editing) {
         await restaurantApi.updateProduct(editing.id, data);
       } else {
+        if (!hasIban) return;
         await restaurantApi.createProduct(data);
       }
       await loadProducts();
@@ -88,6 +91,7 @@ export default function ProductsManager() {
   }
 
   async function handleDuplicate(product: RestaurantProduct) {
+    if (!hasIban) return;
     try {
       await restaurantApi.duplicateProduct(product.id);
       await loadProducts();
@@ -137,11 +141,12 @@ export default function ProductsManager() {
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => {
+                if (!hasIban) return;
                 setEditing(null);
                 setInitialProductKind("item");
                 setDialogOpen(true);
               }}
-              disabled={categories.length === 0}
+              disabled={categories.length === 0 || !hasIban}
             >
               <Plus className="size-4" />
               {KA.products.create}
@@ -149,10 +154,12 @@ export default function ProductsManager() {
             <Button
               variant="outline"
               onClick={() => {
+                if (!hasIban) return;
                 setEditing(null);
                 setInitialProductKind("combo");
                 setDialogOpen(true);
               }}
+              disabled={!hasIban}
             >
               <Plus className="size-4" />
               {KA.products.createCombo}
@@ -183,9 +190,13 @@ export default function ProductsManager() {
               ? KA.products.emptyNoCategory
               : KA.products.emptySearch
           }
-          actionLabel={categories.length > 0 ? KA.products.create : undefined}
+          actionLabel={
+            categories.length > 0 && hasIban ? KA.products.create : undefined
+          }
           onAction={
-            categories.length > 0 ? () => setDialogOpen(true) : undefined
+            categories.length > 0 && hasIban
+              ? () => setDialogOpen(true)
+              : undefined
           }
         />
       ) : (

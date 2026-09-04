@@ -176,6 +176,7 @@ export const restaurantApi = {
     street: string;
     phone: string;
     email?: string;
+    iban: string;
     logo?: string | null;
     coverImage?: string | null;
     latitude?: string;

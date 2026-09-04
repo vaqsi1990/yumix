@@ -142,6 +142,7 @@ model Restaurant {
   coverImage     String?
   phone          String
   email          String? @unique
+  iban           String  @default("")
   city           String
   address        String
   latitude         Float?

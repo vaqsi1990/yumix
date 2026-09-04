@@ -55,6 +55,14 @@ export const restaurantFormSchema = z.object({
   estimatedDeliveryMinutes: z.number().min(1),
   phone: z.string(),
   email: z.string(),
+  iban: z
+    .string()
+    .trim()
+    .min(1, "IBAN სავალდებულოა")
+    .transform((value) => value.replace(/\s/g, "").toUpperCase())
+    .refine((value) => /^GE\d{2}[A-Z0-9]{18}$/.test(value), {
+      message: "IBAN არასწორი ფორმატია",
+    }),
   website: z.string(),
   facebook: z.string(),
   instagram: z.string(),
@@ -143,6 +151,7 @@ export function createDefaultRestaurantForm(): RestaurantFormValues {
     estimatedDeliveryMinutes: 35,
     phone: "",
     email: "",
+    iban: "",
     website: "",
     facebook: "",
     instagram: "",

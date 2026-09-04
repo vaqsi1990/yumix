@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DAY_LABELS, KA, translateApiError } from "@/lib/restaurant/labels";
+import { isValidIban, normalizeIban } from "@/lib/restaurant/format";
 import { restaurantApi } from "@/lib/restaurant/api";
 import type { DayOfWeek, RestaurantSettings, WorkingHour } from "@/lib/restaurant/types";
 import LocationMapPicker from "@/components/maps/LocationMapPicker";
@@ -48,6 +50,7 @@ function withFullWeek(hours: WorkingHour[]): WorkingHour[] {
 }
 
 export default function RestaurantSettingsForm() {
+  const router = useRouter();
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -111,6 +114,17 @@ export default function RestaurantSettingsForm() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!settings) return;
+
+    const trimmedIban = normalizeIban(settings.iban);
+    if (!trimmedIban) {
+      alert("IBAN სავალდებულოა");
+      return;
+    }
+    if (!isValidIban(trimmedIban)) {
+      alert("IBAN არასწორი ფორმატია");
+      return;
+    }
+
     try {
       const {
         deliveryFee: _deliveryFee,
@@ -121,6 +135,7 @@ export default function RestaurantSettingsForm() {
       } = settings;
       const res = await restaurantApi.updateSettings({
         ...ownerSettings,
+        iban: trimmedIban,
         workingHours: withFullWeek(settings.workingHours),
       });
       setSettings({
@@ -128,6 +143,7 @@ export default function RestaurantSettingsForm() {
         workingHours: withFullWeek(res.settings.workingHours),
       });
       setSaved(true);
+      router.refresh();
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       alert(
@@ -230,6 +246,18 @@ export default function RestaurantSettingsForm() {
                       type="email"
                       value={settings.email}
                       onChange={(e) => updateField("email", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="iban">{KA.settings.iban} *</Label>
+                    <Input
+                      id="iban"
+                      value={settings.iban}
+                      onChange={(e) =>
+                        updateField("iban", e.target.value.toUpperCase())
+                      }
+                      placeholder={KA.settings.ibanHint}
+                      required
                     />
                   </div>
                 </div>
