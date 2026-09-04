@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import AccountEmptyState from "@/components/account/AccountEmptyState";
 import AccountPageHeader from "@/components/account/AccountPageHeader";
+import OrderLiveTracking from "@/components/orders/OrderLiveTracking";
 import { formatGel } from "@/lib/admin/format";
 import { formatAddressLine, ORDER_STATUS_LABELS } from "@/lib/account/constants";
+import ClientDateTime from "@/components/account/ClientDateTime";
 import { reorderOrder, type DashboardData } from "@/lib/account-api";
 import type { OrderStatus } from "@/lib/types";
 
@@ -106,6 +108,17 @@ export default function AccountDashboardClient({
         </Card>
       )}
 
+      {data.activeOrder &&
+      (data.activeOrder.status === "PICKED_UP" ||
+        data.activeOrder.status === "ON_THE_WAY") ? (
+        <div className="mb-6">
+          <OrderLiveTracking
+            orderId={data.activeOrder.id}
+            title="სად არის კურიერი?"
+          />
+        </div>
+      ) : null}
+
       <section className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">ბოლო შეკვეთები</h2>
@@ -135,7 +148,7 @@ export default function AccountDashboardClient({
                   <p className="font-semibold">#{order.orderNumber}</p>
                   <p className="text-sm text-neutral-500">{order.restaurant.name}</p>
                   <p className="mt-1 text-xs text-neutral-400">
-                    {new Date(order.createdAt).toLocaleString("ka-GE")} ·{" "}
+                    <ClientDateTime value={order.createdAt} /> ·{" "}
                     {ORDER_STATUS_LABELS[order.status as OrderStatus] ?? order.status}
                   </p>
                 </div>

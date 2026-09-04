@@ -1,4 +1,4 @@
-import PanelShell from "@/components/panels/PanelShell";
+import CourierPageHeader from "@/components/courier/CourierPageHeader";
 import { serverApiFetch } from "@/lib/session";
 
 type HistoryOrder = {
@@ -20,7 +20,8 @@ export default async function CourierHistoryPage() {
   }
 
   return (
-    <PanelShell title="მიწოდების ისტორია" backHref="/courier">
+    <div>
+      <CourierPageHeader title="მიწოდების ისტორია" />
       <div className="overflow-x-auto rounded-2xl border border-neutral-200">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-[#F3F4F6] text-neutral-600">
@@ -52,6 +53,6 @@ export default async function CourierHistoryPage() {
           </tbody>
         </table>
       </div>
-    </PanelShell>
+    </div>
   );
 }

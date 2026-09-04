@@ -15,6 +15,7 @@ import {
   ORDER_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/account/constants";
+import ClientDateTime from "@/components/account/ClientDateTime";
 import { reorderOrder, type CustomerOrder } from "@/lib/account-api";
 import { Package } from "lucide-react";
 import type { OrderStatus } from "@/lib/types";
@@ -69,7 +70,7 @@ function OrderCard({ order }: { order: CustomerOrder }) {
             <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{productNames}</p>
           )}
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400">
-            <span>{new Date(order.createdAt).toLocaleString("ka-GE")}</span>
+            <span><ClientDateTime value={order.createdAt} /></span>
             <span>{PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}</span>
             {order.estimatedTime && ACTIVE_STATUSES.includes(order.status as OrderStatus) && (
               <span>~{order.estimatedTime} წთ</span>

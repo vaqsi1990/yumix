@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import PanelShell from "@/components/panels/PanelShell";
+import CourierPageHeader from "@/components/courier/CourierPageHeader";
 import {
   CourierStatusButtons,
 } from "@/components/courier/CourierOrderActions";
@@ -50,7 +50,8 @@ export default function CourierActiveClient() {
   }, []);
 
   return (
-    <PanelShell title="აქტიური მიწოდება" backHref="/courier">
+    <div>
+      <CourierPageHeader title="აქტიური მიწოდება" />
       <CourierLocationTracker enabled={orders.length > 0} />
       {loading ? (
         <p className="rounded-2xl bg-[#F3F4F6] px-4 py-8 text-center text-neutral-500">
@@ -111,6 +112,6 @@ export default function CourierActiveClient() {
           ))}
         </div>
       )}
-    </PanelShell>
+    </div>
   );
 }

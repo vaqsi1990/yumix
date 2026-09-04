@@ -8,7 +8,13 @@ import {
   updateCourierOrderStatus,
 } from "@/lib/shop-api";
 
-export function CourierAcceptButton({ orderId }: { orderId: string }) {
+export function CourierAcceptButton({
+  orderId,
+  onAccepted,
+}: {
+  orderId: string;
+  onAccepted?: () => void;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -18,6 +24,7 @@ export function CourierAcceptButton({ orderId }: { orderId: string }) {
     setError("");
     try {
       await acceptCourierOrder(orderId);
+      onAccepted?.();
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "მიღება ვერ მოხერხდა");

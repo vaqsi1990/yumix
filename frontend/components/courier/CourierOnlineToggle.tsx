@@ -7,7 +7,11 @@ import {
   setCourierOnlineStatus,
 } from "@/lib/courier-api";
 
-export default function CourierOnlineToggle() {
+export default function CourierOnlineToggle({
+  onStatusChange,
+}: {
+  onStatusChange?: (isOnline: boolean) => void;
+}) {
   const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -27,6 +31,7 @@ export default function CourierOnlineToggle() {
       const next = !isOnline;
       const data = await setCourierOnlineStatus(next);
       setIsOnline(data.isOnline);
+      onStatusChange?.(data.isOnline);
     } catch (e) {
       setError(e instanceof Error ? e.message : "სტატუსის შეცვლა ვერ მოხერხდა");
     } finally {

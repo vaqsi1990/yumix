@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import CourierShell from "@/components/courier/CourierShell";
 import { requireAuth } from "@/lib/auth-guard";
 
 export default async function CourierLayout({
@@ -9,9 +10,9 @@ export default async function CourierLayout({
   await requireAuth(["COURIER", "ADMIN"]);
 
   return (
-    <>
+    <div className="flex min-h-dvh flex-col">
       <Header />
-      {children}
-    </>
+      <CourierShell>{children}</CourierShell>
+    </div>
   );
 }

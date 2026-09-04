@@ -57,3 +57,27 @@ export async function fetchCourierDashboard() {
     deliveredCount: number;
   }>;
 }
+
+export type CourierAvailableOrder = {
+  id: string;
+  orderNumber: string;
+  total: number;
+  status: string;
+  restaurant: { name: string; address: string; city: string; phone?: string };
+  address: {
+    city: string;
+    street: string;
+    building?: string | null;
+    apartment?: string | null;
+  };
+};
+
+export async function fetchCourierAvailable() {
+  const res = await fetch("/api/backend/courier/available", { cache: "no-store" });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{
+    orders: CourierAvailableOrder[];
+    upcoming: CourierAvailableOrder[];
+    isOnline: boolean;
+  }>;
+}

@@ -63,3 +63,15 @@ export function formatAddressLine(address: {
   if (address.apartment) parts.push(`ბ. ${address.apartment}`);
   return parts.join(", ");
 }
+
+/** Fixed timezone so SSR and browser render the same string. */
+export function formatAccountDateTime(value: string | Date) {
+  return new Intl.DateTimeFormat("ka-GE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tbilisi",
+  }).format(new Date(value));
+}

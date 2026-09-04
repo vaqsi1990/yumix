@@ -1,8 +1,8 @@
 "use client";
 
 import PanelCard from "@/components/panels/PanelCard";
-import PanelShell from "@/components/panels/PanelShell";
 import CourierOnlineToggle from "@/components/courier/CourierOnlineToggle";
+import CourierPageHeader from "@/components/courier/CourierPageHeader";
 import {
   ActiveOrdersIcon,
   CourierIcon,
@@ -31,7 +31,11 @@ export default function CourierDashboardClient() {
   }, []);
 
   return (
-    <PanelShell title="კურიერის პანელი" subtitle="მიწოდების მართვა" backHref="/">
+    <div>
+      <CourierPageHeader
+        title="კურიერის პანელი"
+        description="მიწოდების მართვა"
+      />
       <div className="mb-4">
         <CourierOnlineToggle />
       </div>
@@ -58,6 +62,6 @@ export default function CourierDashboardClient() {
           icon={<CourierIcon className="size-7" />}
         />
       </div>
-    </PanelShell>
+    </div>
   );
 }

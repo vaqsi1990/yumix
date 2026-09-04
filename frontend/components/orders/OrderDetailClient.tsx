@@ -74,8 +74,13 @@ export default function OrderDetailClient({
   initialOrder: OrderDetail;
 }) {
   const [order, setOrder] = useState(initialOrder);
+  const [mounted, setMounted] = useState(false);
   const isTrackable =
     order.status === "PICKED_UP" || order.status === "ON_THE_WAY";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (order.status === "DELIVERED" || order.status === "CANCELLED") return;
@@ -149,7 +154,11 @@ export default function OrderDetailClient({
                 : "კურიერი მიმდინარეობს"}
             </p>
             <div className="mt-4">
-              <OrderTrackingMap points={mapPoints} />
+              {mounted ? (
+                <OrderTrackingMap points={mapPoints} />
+              ) : (
+                <div className="h-64 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100" />
+              )}
             </div>
           </section>
         ) : null}

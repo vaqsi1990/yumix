@@ -14,6 +14,7 @@ import {
 import { etaFromOrderSnapshot } from '../common/eta.utils';
 
 const AVAILABLE_STATUSES: OrderStatus[] = ['READY'];
+const UPCOMING_STATUSES: OrderStatus[] = ['PENDING', 'ACCEPTED', 'PREPARING'];
 const ACTIVE_STATUSES: OrderStatus[] = ['PICKED_UP', 'ON_THE_WAY'];
 
 @Injectable()
@@ -224,37 +225,55 @@ export class CourierService {
   async getAvailable(courierUserId: string) {
     const profile = await this.getCourierProfile(courierUserId);
     if (!profile.isOnline) {
-      return { orders: [], isOnline: false };
+      return { orders: [], upcoming: [], isOnline: false };
     }
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        courierId: null,
-        status: { in: AVAILABLE_STATUSES },
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        restaurant: {
-          select: {
-            name: true,
-            address: true,
-            city: true,
-            phone: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
-        address: true,
-        items: {
-          take: 5,
-          include: {
-            product: { select: { name: true } },
-            variant: { select: { name: true } },
-          },
+    const include = {
+      restaurant: {
+        select: {
+          name: true,
+          address: true,
+          city: true,
+          phone: true,
+          latitude: true,
+          longitude: true,
         },
       },
-    });
-    return { orders: orders.map((o) => this.mapOrder(o)), isOnline: true };
+      address: true,
+      items: {
+        take: 5,
+        include: {
+          product: { select: { name: true } },
+          variant: { select: { name: true } },
+        },
+      },
+    } as const;
+
+    const [orders, upcoming] = await Promise.all([
+      this.prisma.order.findMany({
+        where: {
+          courierId: null,
+          status: { in: AVAILABLE_STATUSES },
+        },
+        orderBy: { createdAt: 'desc' },
+        include,
+      }),
+      this.prisma.order.findMany({
+        where: {
+          courierId: null,
+          status: { in: UPCOMING_STATUSES },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include,
+      }),
+    ]);
+
+    return {
+      orders: orders.map((o) => this.mapOrder(o)),
+      upcoming: upcoming.map((o) => this.mapOrder(o)),
+      isOnline: true,
+    };
   }
 
   async getActive(courierUserId: string) {
@@ -325,6 +344,22 @@ export class CourierService {
     });
     if (activeCount > 0) {
       throw new BadRequestException('ჯერ დაასრულე აქტიური მიწოდება');
+    }
+
+    const existing = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true, courierId: true, orderNumber: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+    }
+    if (existing.courierId && existing.courierId !== courierUserId) {
+      throw new BadRequestException('შეკვეთა უკვე მიღებულია სხვა კურიერის მიერ');
+    }
+    if (existing.status !== 'READY') {
+      throw new BadRequestException(
+        `შეკვეთა #${existing.orderNumber} ჯერ არ არის მზად (სტატუსი: ${existing.status}). რესტორანმა უნდა დააყენოს «მზადაა».`,
+      );
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {

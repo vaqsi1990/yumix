@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Headphones, Phone, RotateCcw } from "lucide-react";
 import OrderTimeline from "@/components/orders/OrderTimeline";
-import OrderTrackingMap from "@/components/orders/OrderTrackingMap";
+import OrderLiveTracking from "@/components/orders/OrderLiveTracking";
 import type { DeliveryEta } from "@/lib/delivery";
 import { ORDER_STATUS_ACTIVE_HINTS } from "@/lib/delivery";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   ORDER_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/account/constants";
+import ClientDateTime from "@/components/account/ClientDateTime";
 import { reorderOrder } from "@/lib/account-api";
 import type { OrderStatus } from "@/lib/types";
 
@@ -135,7 +136,7 @@ export default function AccountOrderDetailClient({
         <div>
           <h1 className="text-2xl font-bold">#{order.orderNumber}</h1>
           <p className="text-sm text-neutral-500">
-            {new Date(order.createdAt).toLocaleString("ka-GE")}
+            <ClientDateTime value={order.createdAt} />
           </p>
         </div>
         <span className="rounded-full bg-[#FF0050]/10 px-3 py-1 text-sm font-medium text-[#FF0050]">
@@ -145,6 +146,13 @@ export default function AccountOrderDetailClient({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
+          <OrderLiveTracking
+            orderId={order.id}
+            initialOrder={order}
+            poll={isActive}
+            showWaitingHint={isActive}
+          />
+
           <section className="rounded-2xl border border-neutral-200 bg-white p-5">
             <h2 className="font-bold">სტატუსი</h2>
             <p className="mt-1 text-sm text-neutral-500">
@@ -155,30 +163,6 @@ export default function AccountOrderDetailClient({
                 <p>{order.eta.label}</p>
                 <p className="text-neutral-500">მომზადება {order.eta.prepLabel}</p>
                 <p className="text-neutral-500">გზაში {order.eta.travelLabel}</p>
-              </div>
-            )}
-            {(order.status === "PICKED_UP" || order.status === "ON_THE_WAY") && (
-              <div className="mt-4">
-                <OrderTrackingMap
-                  points={[
-                    order.address.latitude != null && order.address.longitude != null
-                      ? {
-                          latitude: order.address.latitude,
-                          longitude: order.address.longitude,
-                        }
-                      : null,
-                    order.courier?.location?.latitude != null &&
-                    order.courier?.location?.longitude != null
-                      ? {
-                          latitude: order.courier.location.latitude,
-                          longitude: order.courier.location.longitude,
-                        }
-                      : null,
-                  ].filter(
-                    (point): point is { latitude: number; longitude: number } =>
-                      point != null,
-                  )}
-                />
               </div>
             )}
             <div className="mt-4">
