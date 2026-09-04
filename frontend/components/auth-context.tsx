@@ -30,17 +30,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/session", { cache: "no-store" });
-      if (!res.ok) {
+      if (res.status === 401) {
         setUser(null);
         setStatus("unauthenticated");
+        return;
+      }
+      if (!res.ok) {
+        setStatus((prev) => (prev === "authenticated" ? prev : "unauthenticated"));
         return;
       }
       const data = (await res.json()) as { user: ApiUser };
       setUser(data.user);
       setStatus("authenticated");
     } catch {
-      setUser(null);
-      setStatus("unauthenticated");
+      setStatus((prev) => (prev === "authenticated" ? prev : "unauthenticated"));
     }
   }, []);
 

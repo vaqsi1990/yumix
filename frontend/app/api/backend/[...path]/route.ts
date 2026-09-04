@@ -17,12 +17,20 @@ async function proxy(request: NextRequest, path: string[]) {
     body = isMultipart ? await request.arrayBuffer() : await request.text();
   }
 
-  const res = await fetch(target, {
-    method: request.method,
-    headers,
-    body,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(target, {
+      method: request.method,
+      headers,
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json(
+      { message: "API unreachable" },
+      { status: 503 },
+    );
+  }
 
   const text = await res.text();
   const response = new NextResponse(text, {
@@ -33,8 +41,12 @@ async function proxy(request: NextRequest, path: string[]) {
     },
   });
 
-  if (token && res.status !== 401) {
-    response.cookies.set(AUTH_COOKIE, token, authCookieOptions());
+  if (token) {
+    if (res.status === 401) {
+      response.cookies.set(AUTH_COOKIE, "", { ...authCookieOptions(), maxAge: 0 });
+    } else {
+      response.cookies.set(AUTH_COOKIE, token, authCookieOptions());
+    }
   }
 
   return response;

@@ -82,7 +82,11 @@ function syncOptionGroup(
   const isMultiple = (group.maxSelections ?? 1) > 1;
   const required = Boolean(group.required);
   const name =
-    group.name.trim() || (namedCount > 0 ? `ოფცია ${index + 1}` : "");
+    group.name.trim().length > 0
+      ? group.name
+      : namedCount > 0
+        ? `ოფცია ${index + 1}`
+        : "";
 
   return {
     ...group,
@@ -466,11 +470,13 @@ export function normalizeCustomizationGroupsForSubmit(
     .map((group, groupIndex) => ({
       ...group,
       kind: normalizeCustomizationGroupKind(group.kind),
+      name: isExclusionGroup(group) ? EXCLUSION_GROUP_NAME : group.name.trim(),
       sortOrder: groupIndex,
       options: group.options
         .filter((option) => option.name.trim())
         .map((option, optionIndex) => ({
           ...option,
+          name: option.name.trim(),
           sortOrder: optionIndex,
         })),
     }));
