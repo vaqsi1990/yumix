@@ -8,6 +8,7 @@ import type {
   PublicRestaurantDetail,
 } from "@/lib/restaurants";
 import { onlyCustomerMenuCategories } from "@/lib/menu-category-order";
+import { formatRestaurantClosedBanner } from "@/lib/working-hours";
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -85,6 +86,9 @@ export default function RestaurantMenuView({
 }) {
   const menu = onlyCustomerMenuCategories(rawMenu);
   const canOrder = orderingEnabled ?? restaurant.isOpen;
+  const closedBanner = !restaurant.isOpen
+    ? formatRestaurantClosedBanner(restaurant.workingHours)
+    : null;
 
   return (
     <div className="pb-12">
@@ -170,6 +174,17 @@ export default function RestaurantMenuView({
             </span>
           )}
         </div>
+
+        {closedBanner && (
+          <div className="mt-4 rounded-2xl bg-[#FF0050] px-4 py-3.5 text-center text-white shadow-sm">
+            <p className="text-[15px] font-semibold leading-snug sm:text-base">
+              {closedBanner.title}
+            </p>
+            <p className="mt-1 text-[14px] leading-snug text-white/95 sm:text-[15px]">
+              {closedBanner.subtitle}
+            </p>
+          </div>
+        )}
 
         {restaurant.deliverable === false && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[16px] text-red-800 md:text-[18px]">

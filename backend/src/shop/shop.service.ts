@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { sortVariantsBySize } from '../common/product-sizes';
+import { mapRestaurantWorkingHours } from '../common/working-hours.utils';
 import {
   isAuxiliaryMenuCategory,
   onlyCustomerMenuCategories,
@@ -558,6 +559,7 @@ export class ShopService {
           },
         },
         addOns: { orderBy: [{ category: 'asc' }, { name: 'asc' }] },
+        workingHours: { orderBy: { day: 'asc' } },
       },
     });
 
@@ -601,6 +603,7 @@ export class ShopService {
       logo: restaurant.logo || restaurant.coverImage || fallbackImage,
       city: restaurant.city,
       isOpen: restaurant.isOpen,
+      workingHours: mapRestaurantWorkingHours(restaurant.workingHours),
     };
 
     const menu = onlyCustomerMenuCategories(restaurant.productCategories)

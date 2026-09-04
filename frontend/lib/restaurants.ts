@@ -28,6 +28,14 @@ export type PublicRestaurant = {
 export type PublicRestaurantDetail = PublicRestaurant & {
   description?: string | null;
   minimumOrderLabel?: string;
+  workingHours?: PublicWorkingHour[];
+};
+
+export type PublicWorkingHour = {
+  day: string;
+  open: string;
+  close: string;
+  closed: boolean;
 };
 
 export type PublicMenuProduct = {
