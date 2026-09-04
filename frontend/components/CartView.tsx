@@ -314,32 +314,36 @@ export default function CartView({
     localTotals.subtotal < localCart.restaurant.minimumOrder;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      <div>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-neutral-500">რესტორანი</p>
-            <Link
-              href={`/restaurants/${localCart.restaurant.slug}`}
-              className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 hover:text-[#FF0050] md:text-[20px]"
+    <>
+      <div className="grid gap-6 pb-[calc(var(--mobile-sticky-bottom)+var(--cart-checkout-bar-height)+1rem)] lg:grid-cols-[1fr_340px] lg:pb-0">
+        <div className="min-w-0">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm text-neutral-500">რესტორანი</p>
+              <Link
+                href={`/restaurants/${localCart.restaurant.slug}`}
+                className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 hover:text-[#FF0050] md:text-[20px]"
+              >
+                {localCart.restaurant.name}
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={clearCart}
+              disabled={clearing}
+              className="self-start text-[16px] text-neutral-500 underline-offset-2 hover:text-[#FF0050] hover:underline disabled:opacity-50 sm:self-auto md:text-[18px]"
             >
-              {localCart.restaurant.name}
-            </Link>
+              გასუფთავება
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={clearCart}
-            disabled={clearing}
-            className="text-[16px] text-neutral-500 underline-offset-2 hover:text-[#FF0050] hover:underline disabled:opacity-50 md:text-[18px]"
-          >
-            გასუფთავება
-          </button>
-        </div>
 
-        <ul className="divide-y divide-neutral-100 rounded-2xl border border-neutral-200 bg-white">
-          {localCart.items.map((item) => (
-            <li key={item.id} className="flex gap-3 px-4 py-4 sm:gap-4">
-              <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#F5F5F5] sm:size-20">
+          <ul className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+            {localCart.items.map((item) => (
+              <li
+                key={item.id}
+                className="flex gap-3 px-3 py-4 sm:gap-4 sm:px-4"
+              >
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#F5F5F5] sm:size-20">
                 {item.product.image ? (
                   <Image
                     src={item.product.image}
@@ -363,9 +367,9 @@ export default function CartView({
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-[family-name:var(--font-inter)] text-[16px] font-semibold text-neutral-900 md:text-[18px]">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-[family-name:var(--font-inter)] text-[16px] font-semibold leading-snug text-neutral-900 md:text-[18px]">
                       {getItemTitle(item)}
                     </h3>
                     {item.product.name !== ADDON_CARRIER_PRODUCT_NAME &&
@@ -433,12 +437,12 @@ export default function CartView({
                       </p>
                     )}
                   </div>
-                  <p className="shrink-0 font-semibold text-neutral-900">
+                  <p className="shrink-0 text-[16px] font-semibold tabular-nums text-neutral-900 sm:text-right md:text-[18px]">
                     {formatGel(itemLineTotal(item))}
                   </p>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="inline-flex items-center rounded-lg border border-neutral-200">
                     <button
                       type="button"
@@ -498,9 +502,9 @@ export default function CartView({
         {localCart.addOns && localCart.addOns.length > 0 && (
           <CartQuickExtras addOns={localCart.addOns} />
         )}
-      </div>
+        </div>
 
-      <aside className="h-fit rounded-2xl border border-neutral-200 bg-[#F5F5F5] p-5 lg:sticky lg:top-4">
+        <aside className="h-fit rounded-2xl border border-neutral-200 bg-[#F5F5F5] p-4 sm:p-5 lg:sticky lg:top-4">
         <h2 className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 md:text-[20px]">
           შეჯამება
         </h2>
@@ -527,7 +531,7 @@ export default function CartView({
               </button>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={couponCode}
@@ -539,7 +543,7 @@ export default function CartView({
                 type="button"
                 disabled={couponBusy || !couponCode.trim()}
                 onClick={applyCoupon}
-                className="rounded-lg bg-neutral-900 px-3 py-2.5 text-[16px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50 md:text-[18px]"
+                className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2.5 text-[16px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50 sm:px-3 md:text-[18px]"
               >
                 გამოყენება
               </button>
@@ -550,28 +554,28 @@ export default function CartView({
           )}
         </div>
 
-        <dl className="mt-4 space-y-2 text-[16px] md:text-[18px]">
-          <div className="flex justify-between gap-3 text-neutral-600">
-            <dt>ქვეჯამი ({localTotals.itemCount})</dt>
-            <dd>{formatGel(localTotals.subtotal)}</dd>
+        <dl className="mt-4 space-y-2.5 text-[15px] sm:text-[16px] md:text-[18px]">
+          <div className="flex items-start justify-between gap-3 text-neutral-600">
+            <dt className="min-w-0">ქვეჯამი ({localTotals.itemCount})</dt>
+            <dd className="shrink-0 tabular-nums">{formatGel(localTotals.subtotal)}</dd>
           </div>
-          <div className="flex justify-between gap-3 text-neutral-600">
+          <div className="flex items-start justify-between gap-3 text-neutral-600">
             <dt>მიწოდება</dt>
-            <dd>
+            <dd className="shrink-0 tabular-nums">
               {localTotals.deliveryFee === 0
                 ? "უფასო"
                 : formatGel(localTotals.deliveryFee)}
             </dd>
           </div>
           {localTotals.discount > 0 && (
-            <div className="flex justify-between gap-3 text-[#15803D]">
-              <dt>კუპონის ფასდაკლება</dt>
-              <dd>−{formatGel(localTotals.discount)}</dd>
+            <div className="flex items-start justify-between gap-3 text-[#15803D]">
+              <dt className="min-w-0">კუპონის ფასდაკლება</dt>
+              <dd className="shrink-0 tabular-nums">−{formatGel(localTotals.discount)}</dd>
             </div>
           )}
-          <div className="flex justify-between gap-3 border-t border-neutral-200 pt-3 font-bold text-neutral-900">
+          <div className="flex items-start justify-between gap-3 border-t border-neutral-200 pt-3 text-[16px] font-bold text-neutral-900 sm:text-[18px]">
             <dt>სულ</dt>
-            <dd>{formatGel(localTotals.total)}</dd>
+            <dd className="shrink-0 tabular-nums">{formatGel(localTotals.total)}</dd>
           </div>
         </dl>
 
@@ -584,7 +588,7 @@ export default function CartView({
 
         <Link
           href="/checkout"
-          className={`mt-5 flex w-full items-center justify-center rounded-lg bg-[#FF0050] px-4 py-3 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px] ${
+          className={`mt-5 hidden w-full items-center justify-center rounded-lg bg-[#FF0050] px-4 py-3 text-[16px] font-medium text-white transition hover:bg-[#e00048] lg:flex md:text-[18px] ${
             belowMinimum
               ? "pointer-events-none cursor-not-allowed opacity-50"
               : ""
@@ -592,10 +596,37 @@ export default function CartView({
         >
           შეკვეთის გაფორმება
         </Link>
-        <p className="mt-2 text-center text-xs text-neutral-400">
+        <p className="mt-2 hidden text-center text-xs text-neutral-400 lg:block">
           სავარაუდო მიწოდება: 35-55 წთ
         </p>
       </aside>
-    </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[var(--mobile-sticky-bottom)] z-40 border-t border-neutral-200 bg-white px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-neutral-500">სულ</p>
+            <p className="text-lg font-bold tabular-nums text-neutral-900">
+              {formatGel(localTotals.total)}
+            </p>
+            {belowMinimum && (
+              <p className="mt-0.5 text-xs text-[#FF0050]">
+                მინ. {formatGel(localCart.restaurant.minimumOrder ?? 0)}
+              </p>
+            )}
+          </div>
+          <Link
+            href="/checkout"
+            className={`inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#FF0050] px-4 text-[15px] font-semibold text-white transition hover:bg-[#e00048] ${
+              belowMinimum
+                ? "pointer-events-none cursor-not-allowed opacity-50"
+                : ""
+            }`}
+          >
+            შეკვეთის გაფორმება
+          </Link>
+        </div>
+      </div>
+    </>
   );
 }

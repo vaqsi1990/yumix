@@ -84,21 +84,21 @@ export default async function CartPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-5 lg:px-8">
-      <div className="mb-6 flex items-end justify-between gap-3">
+    <section className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-5 sm:py-8 lg:px-8">
+      <div className="mb-5 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
         <div>
           <h1 className="font-[family-name:var(--font-inter)] text-[22px] font-bold text-neutral-900 md:text-[28px]">
             კალათა
           </h1>
           {totals && (
-            <p className="mt-1 text-[16px] text-neutral-500 md:text-[18px]">
+            <p className="mt-1 text-[15px] text-neutral-500 sm:text-[16px] md:text-[18px]">
               {totals.itemCount} პროდუქტი
             </p>
           )}
         </div>
         <Link
           href="/"
-          className="text-[16px] font-medium text-[#FF0050] hover:underline md:text-[18px]"
+          className="self-start text-[15px] font-medium text-[#FF0050] hover:underline sm:self-auto sm:text-[16px] md:text-[18px]"
         >
           ← მთავარი
         </Link>

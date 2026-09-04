@@ -8,7 +8,7 @@ export default function CartNotice() {
   if (!notice) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobile-nav-height)+var(--safe-area-bottom)+var(--view-order-bar-height)+1rem)] z-[100] flex justify-center px-4 md:bottom-24">
       <div
         role="status"
         className="pointer-events-auto max-w-md rounded-xl bg-neutral-900 px-4 py-3 text-center text-sm text-white shadow-lg"

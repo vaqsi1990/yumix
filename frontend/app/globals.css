@@ -23,8 +23,15 @@
   --ring: #ff0050;
   --radius: 0.5rem;
   --mobile-nav-height: 3.75rem;
+  --view-order-bar-height: 3.75rem;
+  --view-order-bar-gap: 0.75rem;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
+  --mobile-sticky-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom));
+  --view-order-bar-bottom: calc(
+    var(--mobile-sticky-bottom) + var(--view-order-bar-gap)
+  );
+  --cart-checkout-bar-height: 4.5rem;
 }
 
 @theme inline {

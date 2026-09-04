@@ -37,7 +37,7 @@ function ExtraChip({
       type="button"
       disabled={busy}
       onClick={onAdd}
-      className="flex min-w-[140px] shrink-0 flex-col rounded-xl border border-neutral-200 bg-white px-3 py-3 text-left transition hover:border-[#FF0050]/40 hover:shadow-sm disabled:opacity-50"
+      className="flex min-w-[128px] max-w-[45vw] shrink-0 flex-col rounded-xl border border-neutral-200 bg-white px-3 py-3 text-left transition hover:border-[#FF0050]/40 hover:shadow-sm disabled:opacity-50 sm:min-w-[140px] sm:max-w-none"
     >
       <span className="line-clamp-2 text-sm font-medium text-neutral-900">
         {addon.name}
@@ -76,7 +76,7 @@ export default function CartQuickExtras({ addOns }: CartQuickExtrasProps) {
   }
 
   return (
-    <section className="mt-6 space-y-4">
+    <section className="mt-6 space-y-4 sm:mt-6">
       <div>
         <h2 className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-neutral-900 md:text-[20px]">
           დაამატე კალათაში

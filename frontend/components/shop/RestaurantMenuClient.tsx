@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import RestaurantMenuView from "@/components/RestaurantMenuView";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
+import ViewOrderBar, {
+  useViewOrderBarVisible,
+} from "@/components/shop/ViewOrderBar";
 import { useAuth } from "@/components/auth-context";
 import { useCart } from "@/components/cart-context";
 import { ensureCartRestaurant, CART_REPLACED_NOTICE } from "@/lib/shop-api";
+import { cn } from "@/lib/utils";
 import type {
   PublicMenuProduct,
   PublicMenuCategory,
@@ -57,9 +61,16 @@ export default function RestaurantMenuClient({
 
   const orderingEnabled =
     restaurant.isOpen && restaurant.deliverable !== false;
+  const showViewOrderBar =
+    useViewOrderBarVisible(restaurant.id) && !sheetOpen;
 
   return (
-    <>
+    <div
+      className={cn(
+        showViewOrderBar &&
+          "pb-[calc(var(--mobile-nav-height)+var(--safe-area-bottom)+var(--view-order-bar-height)+var(--view-order-bar-gap)+0.5rem)] md:pb-24",
+      )}
+    >
       <RestaurantMenuView
         restaurant={restaurant}
         menu={menu}
@@ -78,6 +89,7 @@ export default function RestaurantMenuClient({
         initialVariantId={initialVariantId}
         initialQuantity={initialQuantity}
       />
-    </>
+      <ViewOrderBar restaurantId={restaurant.id} hidden={sheetOpen} />
+    </div>
   );
 }

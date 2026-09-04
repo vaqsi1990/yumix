@@ -82,23 +82,19 @@ export async function clearCart() {
   return res.json();
 }
 
-export async function fetchCartSummary() {
+export async function fetchCartSummary(): Promise<CartSummary> {
   const res = await fetch("/api/backend/cart", { cache: "no-store" });
   if (!res.ok) {
-    return { itemCount: 0, restaurantId: null, restaurantSlug: null };
+    return {
+      itemCount: 0,
+      totalQuantity: 0,
+      subtotal: 0,
+      restaurantId: null,
+      restaurantSlug: null,
+    };
   }
-  const data = (await res.json()) as {
-    totals?: { itemCount?: number } | null;
-    cart?: {
-      items?: { quantity: number }[];
-      restaurant?: { id?: string; slug?: string } | null;
-    } | null;
-  };
-  return {
-    itemCount: countCartLineItems(data),
-    restaurantId: data.cart?.restaurant?.id ?? null,
-    restaurantSlug: data.cart?.restaurant?.slug ?? null,
-  };
+  const data = (await res.json()) as Parameters<typeof parseCartSummary>[0];
+  return parseCartSummary(data);
 }
 
 export async function ensureCartRestaurant(restaurantId: string) {
@@ -184,6 +180,38 @@ export function countCartLineItems(data: {
   const items = data.cart?.items ?? [];
   if (items.length > 0) return items.length;
   return data.totals?.itemCount ?? 0;
+}
+
+export type CartSummary = {
+  itemCount: number;
+  totalQuantity: number;
+  subtotal: number;
+  restaurantId: string | null;
+  restaurantSlug: string | null;
+};
+
+export function parseCartSummary(data: {
+  totals?: { itemCount?: number; subtotal?: number } | null;
+  cart?: {
+    items?: { quantity?: number }[] | null;
+    restaurant?: { id?: string; slug?: string } | null;
+    restaurantId?: string | null;
+  } | null;
+}): CartSummary {
+  const items = data.cart?.items ?? [];
+  const totalQuantity = items.reduce(
+    (sum, item) => sum + Math.max(0, item.quantity ?? 0),
+    0,
+  );
+
+  return {
+    itemCount: countCartLineItems(data),
+    totalQuantity: totalQuantity || countCartLineItems(data),
+    subtotal: data.totals?.subtotal ?? 0,
+    restaurantId:
+      data.cart?.restaurant?.id ?? data.cart?.restaurantId ?? null,
+    restaurantSlug: data.cart?.restaurant?.slug ?? null,
+  };
 }
 
 export async function fetchAddresses() {

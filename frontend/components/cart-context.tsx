@@ -13,12 +13,20 @@ import { useAuth } from "@/components/auth-context";
 import {
   CART_REPLACED_NOTICE,
   cartWasReplaced,
-  countCartLineItems,
   fetchCartSummary,
+  parseCartSummary,
+  type CartSummary,
 } from "@/lib/shop-api";
 
-type CartContextValue = {
-  itemCount: number;
+const EMPTY_CART_SUMMARY: CartSummary = {
+  itemCount: 0,
+  totalQuantity: 0,
+  subtotal: 0,
+  restaurantId: null,
+  restaurantSlug: null,
+};
+
+type CartContextValue = CartSummary & {
   ready: boolean;
   notice: string | null;
   refresh: () => Promise<void>;
@@ -32,22 +40,22 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user, status } = useAuth();
-  const [itemCount, setItemCount] = useState(0);
+  const [summary, setSummary] = useState<CartSummary>(EMPTY_CART_SUMMARY);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setItemCount(0);
+      setSummary(EMPTY_CART_SUMMARY);
       setReady(true);
       return;
     }
 
     try {
       const data = await fetchCartSummary();
-      setItemCount(data.itemCount);
+      setSummary(data);
     } catch {
-      setItemCount(0);
+      setSummary(EMPTY_CART_SUMMARY);
     } finally {
       setReady(true);
     }
@@ -55,7 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const applyCartResponse = useCallback(
     (data: unknown) => {
-      setItemCount(syncCartFromResponse(data));
+      setSummary(parseCartSummary(data as Parameters<typeof parseCartSummary>[0]));
       void refresh();
 
       if (cartWasReplaced(data)) {
@@ -76,6 +84,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setNotice(message);
   }, []);
 
+  const setItemCount = useCallback((count: number) => {
+    setSummary((prev) =>
+      prev.itemCount === count ? prev : { ...prev, itemCount: count },
+    );
+  }, []);
+
   useEffect(() => {
     if (status === "loading") return;
     setReady(false);
@@ -90,7 +104,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      itemCount,
+      ...summary,
       ready,
       notice,
       refresh,
@@ -99,7 +113,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       showNotice,
       clearNotice,
     }),
-    [itemCount, ready, notice, refresh, applyCartResponse, showNotice, clearNotice],
+    [summary, ready, notice, refresh, setItemCount, applyCartResponse, showNotice, clearNotice],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -114,10 +128,7 @@ export function useCart() {
 }
 
 export function syncCartFromResponse(data: unknown) {
-  return countCartLineItems(
-    data as {
-      totals?: { itemCount?: number } | null;
-      cart?: { items?: unknown[] | null };
-    },
-  );
+  return parseCartSummary(
+    data as Parameters<typeof parseCartSummary>[0],
+  ).itemCount;
 }
