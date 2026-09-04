@@ -1134,7 +1134,7 @@ export class RestaurantPanelService {
       coverImage: restaurant.coverImage,
       phone: restaurant.phone,
       email: restaurant.email ?? '',
-      iban: restaurant.iban,
+      iban: restaurant.iban ?? '',
       city: restaurant.city,
       address: restaurant.address,
       latitude: restaurant.latitude,

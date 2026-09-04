@@ -19,6 +19,7 @@ import type { DayOfWeek, RestaurantSettings, WorkingHour } from "@/lib/restauran
 import LocationMapPicker from "@/components/maps/LocationMapPicker";
 import ImageUploadField from "@/components/admin/restaurants/form/ImageUploadField";
 import TimePickerInput from "@/components/admin/restaurants/form/TimePickerInput";
+import { useRestaurantShell } from "@/components/restaurant/RestaurantShellContext";
 
 const WEEK_DAYS: DayOfWeek[] = [
   "MONDAY",
@@ -49,8 +50,16 @@ function withFullWeek(hours: WorkingHour[]): WorkingHour[] {
   });
 }
 
+function normalizeSettings(settings: RestaurantSettings): RestaurantSettings {
+  return {
+    ...settings,
+    iban: settings.iban ?? "",
+  };
+}
+
 export default function RestaurantSettingsForm() {
   const router = useRouter();
+  const { setHasIban, refreshHasIban } = useRestaurantShell();
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -61,10 +70,12 @@ export default function RestaurantSettingsForm() {
     setError(null);
     try {
       const res = await restaurantApi.settings();
-      setSettings({
-        ...res.settings,
-        workingHours: withFullWeek(res.settings.workingHours),
-      });
+      setSettings(
+        normalizeSettings({
+          ...res.settings,
+          workingHours: withFullWeek(res.settings.workingHours),
+        }),
+      );
     } catch (e) {
       setError(
         translateApiError(e instanceof Error ? e.message : KA.failedLoad),
@@ -138,10 +149,14 @@ export default function RestaurantSettingsForm() {
         iban: trimmedIban,
         workingHours: withFullWeek(settings.workingHours),
       });
-      setSettings({
-        ...res.settings,
-        workingHours: withFullWeek(res.settings.workingHours),
-      });
+      setSettings(
+        normalizeSettings({
+          ...res.settings,
+          workingHours: withFullWeek(res.settings.workingHours),
+        }),
+      );
+      setHasIban(isValidIban(res.settings.iban ?? trimmedIban));
+      await refreshHasIban();
       setSaved(true);
       router.refresh();
       setTimeout(() => setSaved(false), 3000);
@@ -252,7 +267,7 @@ export default function RestaurantSettingsForm() {
                     <Label htmlFor="iban">{KA.settings.iban} *</Label>
                     <Input
                       id="iban"
-                      value={settings.iban}
+                      value={settings.iban ?? ""}
                       onChange={(e) =>
                         updateField("iban", e.target.value.toUpperCase())
                       }
