@@ -203,17 +203,6 @@ export function cartTargetsDifferentRestaurant(
   );
 }
 
-export function confirmCartRestaurantSwitch(
-  summary: CartSummary,
-  nextRestaurantName?: string,
-) {
-  const from = summary.restaurantName ?? "სხვა რესტორანი";
-  const to = nextRestaurantName ?? "ახალი რესტორანი";
-  return window.confirm(
-    `კალათაში გაქვს პროდუქტები „${from}“-დან. თუ გააგრძელებ, ისინი წაიშლება და დაამატებ „${to}“-დან.`,
-  );
-}
-
 export function parseCartSummary(data: {
   totals?: { itemCount?: number; subtotal?: number } | null;
   cart?: {

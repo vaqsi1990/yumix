@@ -21,11 +21,7 @@ import CustomizationGroupPicker, {
   validateCustomizationSelection,
 } from "@/components/shop/CustomizationGroupPicker";
 import { formatGel } from "@/lib/admin/format";
-import {
-  addToCart,
-  cartTargetsDifferentRestaurant,
-  confirmCartRestaurantSwitch,
-} from "@/lib/shop-api";
+import { addToCart } from "@/lib/shop-api";
 import { useCart } from "@/components/cart-context";
 import { sortVariantsBySize } from "@/lib/product-sizes";
 import type { PublicMenuProduct } from "@/lib/restaurants";
@@ -145,9 +141,6 @@ export default function ProductDetailSheet({
     if (!restaurantOpen) {
       setError("რესტორანი დახურულია");
       return;
-    }
-    if (cartTargetsDifferentRestaurant(cart, restaurantId)) {
-      if (!confirmCartRestaurantSwitch(cart, restaurantName)) return;
     }
     if (product.outOfStock) {
       setError("პროდუქტი ამოწურულია");

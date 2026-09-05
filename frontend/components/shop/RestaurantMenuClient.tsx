@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RestaurantMenuView from "@/components/RestaurantMenuView";
 import ProductDetailSheet from "@/components/shop/ProductDetailSheet";
-import CartRestaurantConflictBanner from "@/components/shop/CartRestaurantConflictBanner";
 import ViewOrderBar, {
   useViewOrderBarVisible,
 } from "@/components/shop/ViewOrderBar";
+import { useCart } from "@/components/cart-context";
+import {
+  CART_REPLACED_NOTICE,
+  cartTargetsDifferentRestaurant,
+} from "@/lib/shop-api";
 import type {
   PublicMenuProduct,
   PublicMenuCategory,
@@ -33,6 +37,25 @@ export default function RestaurantMenuClient({
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [initialQuantity, setInitialQuantity] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const cart = useCart();
+  const { clearCart, showNotice } = cart;
+
+  useEffect(() => {
+    if (!cart.ready) return;
+    if (!cartTargetsDifferentRestaurant(cart, restaurant.id)) return;
+
+    void (async () => {
+      await clearCart();
+      showNotice(CART_REPLACED_NOTICE);
+    })();
+  }, [
+    cart.ready,
+    cart.itemCount,
+    cart.restaurantId,
+    restaurant.id,
+    clearCart,
+    showNotice,
+  ]);
 
   function openProduct(
     product: PublicMenuProduct,
@@ -57,10 +80,6 @@ export default function RestaurantMenuClient({
           "pb-[calc(var(--mobile-nav-height)+var(--safe-area-bottom)+var(--view-order-bar-height)+var(--view-order-bar-gap)+0.5rem)] md:pb-24",
       )}
     >
-      <CartRestaurantConflictBanner
-        restaurantId={restaurant.id}
-        restaurantName={restaurant.name}
-      />
       <RestaurantMenuView
         restaurant={restaurant}
         menu={menu}
