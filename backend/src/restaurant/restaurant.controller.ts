@@ -20,6 +20,11 @@ import type { ProductWriteInput } from '../admin/admin.service';
 import type { OrderStatus } from '../generated/prisma/client';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { restaurantProductWriteSchema } from '../admin/dto/product.schemas';
+import {
+  restaurantCouponCreateSchema,
+  restaurantCouponStatusSchema,
+  restaurantCouponUpdateSchema,
+} from './dto/coupon.schemas';
 
 @Controller('restaurant')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -233,5 +238,57 @@ export class RestaurantController {
   @Delete('reviews/:id')
   deleteReview(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.restaurant.deleteReview(user.id, user.role, id);
+  }
+
+  @Get('coupons')
+  coupons(@CurrentUser() user: AuthUser) {
+    return this.restaurant.getCoupons(user.id, user.role);
+  }
+
+  @Post('coupons')
+  createCoupon(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(restaurantCouponCreateSchema)) body: unknown,
+  ) {
+    return this.restaurant.createCoupon(
+      user.id,
+      user.role,
+      body as Parameters<RestaurantPanelService['createCoupon']>[2],
+    );
+  }
+
+  @Patch('coupons/:id')
+  updateCoupon(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(restaurantCouponUpdateSchema)) body: unknown,
+  ) {
+    return this.restaurant.updateCoupon(
+      user.id,
+      user.role,
+      id,
+      body as Parameters<RestaurantPanelService['updateCoupon']>[3],
+    );
+  }
+
+  @Patch('coupons/:id/status')
+  updateCouponStatus(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(restaurantCouponStatusSchema)) body: {
+      isActive: boolean;
+    },
+  ) {
+    return this.restaurant.updateCouponStatus(
+      user.id,
+      user.role,
+      id,
+      body.isActive,
+    );
+  }
+
+  @Delete('coupons/:id')
+  deleteCoupon(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.restaurant.deleteCoupon(user.id, user.role, id);
   }
 }

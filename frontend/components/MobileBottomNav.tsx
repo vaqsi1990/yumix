@@ -6,6 +6,7 @@ import {
   Home,
   LayoutGrid,
   LogOut,
+  Search,
   ShoppingCart,
   User,
   type LucideIcon,
@@ -34,6 +35,12 @@ const staticNavItems: NavItem[] = [
     label: "მთავარი",
     icon: Home,
     isActive: (pathname) => pathname === "/",
+  },
+  {
+    href: "/search",
+    label: "ძებნა",
+    icon: Search,
+    isActive: (pathname) => pathname.startsWith("/search"),
   },
   {
     href: "/categories",

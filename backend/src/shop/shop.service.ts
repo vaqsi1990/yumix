@@ -423,15 +423,7 @@ export class ShopService {
       this.prisma.restaurant.findMany({
         where: {
           isApproved: true,
-          ...(q
-            ? {
-                OR: [
-                  { name: { contains: q, mode: 'insensitive' as const } },
-                  { city: { contains: q, mode: 'insensitive' as const } },
-                  { address: { contains: q, mode: 'insensitive' as const } },
-                ],
-              }
-            : {}),
+          ...(q ? { OR: this.restaurantSearchFilters(q) } : {}),
         },
         include: {
           categories: {
@@ -470,6 +462,108 @@ export class ShopService {
       : DEMO_RESTAURANTS;
 
     return { restaurants: filtered, fromDatabase: false, pendingCount: 0 };
+  }
+
+  private restaurantSearchFilters(q: string) {
+    return [
+      { name: { contains: q, mode: 'insensitive' as const } },
+      { city: { contains: q, mode: 'insensitive' as const } },
+      { address: { contains: q, mode: 'insensitive' as const } },
+      {
+        categories: {
+          some: {
+            category: { name: { contains: q, mode: 'insensitive' as const } },
+          },
+        },
+      },
+    ];
+  }
+
+  async searchPublic(query?: string) {
+    const q = query?.trim();
+    if (!q) {
+      return { query: '', restaurants: [], products: [] };
+    }
+
+    const [restaurantRows, productRows, totalInDb] = await Promise.all([
+      this.prisma.restaurant.findMany({
+        where: {
+          isApproved: true,
+          OR: this.restaurantSearchFilters(q),
+        },
+        include: {
+          categories: {
+            include: { category: { select: { name: true } } },
+          },
+          reviews: { select: { rating: true } },
+          workingHours: { orderBy: { day: 'asc' } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+      }),
+      this.prisma.product.findMany({
+        where: {
+          ...PUBLIC_LISTED_PRODUCT_WHERE,
+          outOfStock: false,
+          restaurant: { isApproved: true },
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: {
+          restaurant: {
+            select: {
+              slug: true,
+              name: true,
+              logo: true,
+              coverImage: true,
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+        take: 12,
+      }),
+      this.prisma.restaurant.count(),
+    ]);
+
+    if (restaurantRows.length > 0 || productRows.length > 0 || totalInDb > 0) {
+      return {
+        query: q,
+        restaurants: restaurantRows.map((restaurant, index) =>
+          this.mapRestaurantRow(restaurant, index),
+        ),
+        products: productRows.map((product) => ({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          image: product.image,
+          price: product.price,
+          discountPrice: product.discountPrice,
+          restaurant: {
+            slug: product.restaurant.slug,
+            name: product.restaurant.name,
+            logo:
+              product.restaurant.logo ||
+              product.restaurant.coverImage ||
+              DEMO_IMAGES[0],
+          },
+        })),
+      };
+    }
+
+    const demoRestaurants = DEMO_RESTAURANTS.filter(
+      (restaurant) =>
+        restaurant.name.toLowerCase().includes(q.toLowerCase()) ||
+        restaurant.categories.toLowerCase().includes(q.toLowerCase()) ||
+        restaurant.city.toLowerCase().includes(q.toLowerCase()),
+    );
+
+    return {
+      query: q,
+      restaurants: demoRestaurants.slice(0, 8),
+      products: [],
+    };
   }
 
   async getNearbyRestaurants(userId: string) {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +71,12 @@ export default function CheckoutView({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const submittingRef = useRef(false);
+  const idempotencyKeyRef = useRef(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `order-${Date.now()}`,
+  );
   const [totals, setTotals] = useState(initialTotals);
   const [outOfRange, setOutOfRange] = useState(false);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -148,6 +154,7 @@ export default function CheckoutView({
   }
 
   async function handleSubmit() {
+    if (submittingRef.current || busy) return;
     if (belowMinimum || outOfRange) return;
     if (scheduleEnabled && !scheduledFor) {
       setError("აირჩიე დაგეგმილი მიწოდების დრო");
@@ -158,6 +165,7 @@ export default function CheckoutView({
       return;
     }
 
+    submittingRef.current = true;
     setBusy(true);
     setError("");
     try {
@@ -175,12 +183,13 @@ export default function CheckoutView({
           scheduleEnabled && scheduledFor
             ? new Date(scheduledFor).toISOString()
             : null,
+        idempotencyKey: idempotencyKeyRef.current,
       });
       router.push(`/account/orders/${order.id}?success=1`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "შეკვეთის გაფორმება ვერ მოხერხდა");
-    } finally {
+      submittingRef.current = false;
       setBusy(false);
     }
   }

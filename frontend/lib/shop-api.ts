@@ -1,5 +1,6 @@
 import type { AddonCategory } from "@/lib/addon-categories";
 import type { DeliveryEta } from "@/lib/delivery";
+import type { ShopSearchResult } from "@/lib/restaurants";
 
 export type PublicAddOn = {
   id: string;
@@ -49,6 +50,7 @@ export type CreateOrderPayload = {
   paymentMethod: "CASH" | "CARD" | "APPLE_PAY" | "GOOGLE_PAY";
   customerNote?: string | null;
   scheduledFor?: string | null;
+  idempotencyKey?: string;
 };
 
 async function parseError(res: Response) {
@@ -278,6 +280,18 @@ export async function createOrder(payload: CreateOrderPayload) {
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
+}
+
+export async function fetchShopSearch(q: string): Promise<ShopSearchResult> {
+  const trimmed = q.trim();
+  if (!trimmed) {
+    return { query: "", restaurants: [], products: [] };
+  }
+  const res = await fetch(
+    `/api/backend/shop/search?q=${encodeURIComponent(trimmed)}`,
+  );
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<ShopSearchResult>;
 }
 
 export async function acceptCourierOrder(orderId: string) {

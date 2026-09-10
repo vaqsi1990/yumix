@@ -1312,6 +1312,7 @@ export class AdminService {
       this.prisma.coupon.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
+          restaurant: { select: { id: true, name: true } },
           assignedTo: {
             select: {
               id: true,

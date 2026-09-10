@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -23,6 +24,12 @@ import type { PaymentMethod, PaymentStatus } from '../generated/prisma/client';
 import { AddressesService } from './addresses.service';
 import { OrderEventsService } from './order-events.service';
 import { OrderNotificationsService } from './order-notifications.service';
+import { DuplicateOrderException } from './duplicate-order.exception';
+import type { Prisma } from '../generated/prisma/client';
+import {
+  computeCouponDiscount,
+  validateCouponApplicability,
+} from '../common/coupon.utils';
 
 @Injectable()
 export class OrdersService {
@@ -198,7 +205,41 @@ export class OrdersService {
     return { order: this.mapOrder(order) };
   }
 
+  private async findRecentPlacedOrder(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    idempotencyKey?: string | null,
+  ) {
+    if (idempotencyKey) {
+      const byKey = await tx.order.findFirst({
+        where: { userId, idempotencyKey },
+        include: orderInclude,
+      });
+      if (byKey) return byKey;
+    }
+
+    return tx.order.findFirst({
+      where: {
+        userId,
+        createdAt: { gte: new Date(Date.now() - 3 * 60 * 1000) },
+        status: { in: ['PENDING', 'ACCEPTED', 'PREPARING', 'READY'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: orderInclude,
+    });
+  }
+
   async createFromCart(userId: string, input: CreateOrderDto) {
+    if (input.idempotencyKey) {
+      const existing = await this.prisma.order.findFirst({
+        where: { userId, idempotencyKey: input.idempotencyKey },
+        include: orderInclude,
+      });
+      if (existing) {
+        return { order: this.mapOrder(existing) };
+      }
+    }
+
     const cartPayload = await this.cartService.getCart(userId);
     const cart = cartPayload.cart;
     const totals = cartPayload.totals;
@@ -303,20 +344,17 @@ export class OrdersService {
     let couponId: string | null = cart.couponId;
 
     if (cart.coupon) {
-      const valid =
-        cart.coupon.isActive &&
-        !this.cartService.isCouponExpired(cart.coupon.expiresAt) &&
-        cart.coupon.remainingBalance > 0 &&
-        (!cart.coupon.assignedToId || cart.coupon.assignedToId === userId) &&
-        (cart.coupon.minimumOrder == null ||
-          totals.subtotal + deliveryFee >= cart.coupon.minimumOrder);
-      if (!valid) {
-        throw new BadRequestException('კუპონი აღარ არის ვალიდური');
+      const orderTotal = totals.subtotal + deliveryFee;
+      const error = validateCouponApplicability(cart.coupon, {
+        userId,
+        restaurantId: cart.restaurantId,
+        orderTotal,
+        usageCount: cart.coupon._count.usages,
+      });
+      if (error) {
+        throw new BadRequestException(error);
       }
-      discount = this.cartService.calcCouponDiscount(
-        cart.coupon.remainingBalance,
-        totals.subtotal + deliveryFee,
-      );
+      discount = computeCouponDiscount(cart.coupon, orderTotal);
     }
 
     const subtotal = totals.subtotal;
@@ -330,16 +368,67 @@ export class OrdersService {
 
     const paymentStatus = this.resolveInitialPaymentStatus(input.paymentMethod);
 
-    const order = await this.prisma.$transaction(async (tx) => {
+    let order;
+    try {
+      order = await this.prisma.$transaction(async (tx) => {
+      const lockedCart = await this.cartService.findCheckoutCartInTx(userId, tx);
+      if (!lockedCart || lockedCart.items.length === 0) {
+        const recent = await this.findRecentPlacedOrder(
+          tx,
+          userId,
+          input.idempotencyKey,
+        );
+        if (recent) {
+          throw new DuplicateOrderException(recent.id);
+        }
+        throw new BadRequestException('კალათა ცარიელია');
+      }
+
+      const claimed = await this.cartService.claimCheckoutCartInTx(
+        userId,
+        lockedCart.id,
+        tx,
+      );
+      if (claimed.count === 0) {
+        const recent = await this.findRecentPlacedOrder(
+          tx,
+          userId,
+          input.idempotencyKey,
+        );
+        if (recent) {
+          throw new DuplicateOrderException(recent.id);
+        }
+        throw new ConflictException('შეკვეთა უკვე გაფორმდება');
+      }
+
+      const cart = lockedCart;
+
       if (couponId && discount > 0) {
         const coupon = await tx.coupon.findUnique({ where: { id: couponId } });
-        if (!coupon || coupon.remainingBalance < discount) {
-          throw new BadRequestException('კუპონის ბალანსი არასაკმარისია');
+        if (!coupon) {
+          throw new BadRequestException('კუპონი აღარ არის ვალიდური');
         }
-        await tx.coupon.update({
-          where: { id: couponId },
-          data: { remainingBalance: coupon.remainingBalance - discount },
-        });
+        if (coupon.type === 'BALANCE') {
+          if (coupon.remainingBalance < discount) {
+            throw new BadRequestException('კუპონის ბალანსი არასაკმარისია');
+          }
+          await tx.coupon.update({
+            where: { id: couponId },
+            data: { remainingBalance: coupon.remainingBalance - discount },
+          });
+        } else {
+          const usageCount = await tx.couponUsage.count({
+            where: { couponId },
+          });
+          if (
+            coupon.usageLimit != null &&
+            usageCount >= coupon.usageLimit
+          ) {
+            throw new BadRequestException(
+              'კუპონის გამოყენების ლიმიტი ამოწურულია',
+            );
+          }
+        }
       }
 
       const created = await tx.order.create({
@@ -365,6 +454,7 @@ export class OrdersService {
           customerNote: input.customerNote?.trim() || null,
           scheduledFor,
           couponId,
+          idempotencyKey: input.idempotencyKey ?? null,
           items: {
             create: cart.items.map((item) => {
               const addOnTotal = item.addOns.reduce(
@@ -434,8 +524,6 @@ export class OrdersService {
         });
       }
 
-      await tx.cart.delete({ where: { id: cart.id } });
-
       const owner = await tx.restaurant.findUnique({
         where: { id: cart.restaurantId },
         select: { ownerId: true, name: true },
@@ -461,6 +549,13 @@ export class OrdersService {
 
       return created;
     });
+    } catch (error) {
+      if (error instanceof DuplicateOrderException) {
+        const existing = await this.fetchOrder(error.orderId, userId);
+        return { order: this.mapOrder(existing) };
+      }
+      throw error;
+    }
 
     this.orderEvents.emit({
       orderId: order.id,

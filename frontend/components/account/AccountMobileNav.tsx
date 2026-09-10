@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, Heart, ShoppingCart, User } from "lucide-react";
+import { Home, Package, Heart, Search, ShoppingCart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MOBILE_NAV = [
   { href: "/account", label: "მთავარი", icon: Home, match: (p: string) => p === "/account" },
+  { href: "/search", label: "ძებნა", icon: Search, match: (p: string) => p.startsWith("/search") },
   { href: "/account/orders", label: "შეკვეთები", icon: Package, match: (p: string) => p.startsWith("/account/orders") },
   { href: "/account/favorites", label: "რჩეულები", icon: Heart, match: (p: string) => p.startsWith("/account/favorites") },
   { href: "/cart", label: "კალათა", icon: ShoppingCart, match: (p: string) => p.startsWith("/cart") },

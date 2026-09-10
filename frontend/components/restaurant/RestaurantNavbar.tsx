@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, Menu, Moon, Sun } from "lucide-react";
+import NavbarSearch from "@/components/shop/NavbarSearch";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -46,8 +46,7 @@ export default function RestaurantNavbar({
       </Button>
 
       <div className="relative hidden max-w-md flex-1 md:block">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder={KA.searchPlaceholder} className="h-9 pl-9" />
+        <NavbarSearch variant="inline" className="w-full" />
       </div>
 
       <div className="ml-auto flex items-center gap-2">

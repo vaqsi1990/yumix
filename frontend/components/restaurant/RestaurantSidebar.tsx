@@ -12,6 +12,7 @@ import {
   Settings,
   ShoppingBag,
   Star,
+  TicketPercent,
   UtensilsCrossed,
   User,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const ICON_MAP = {
   Package,
   Layers,
   Star,
+  TicketPercent,
   BarChart3,
   Settings,
   User,

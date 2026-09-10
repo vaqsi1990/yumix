@@ -4,13 +4,16 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 export default function SearchBox({
-  basePath,
+  basePath = "/search",
   initialQuery = "",
   placeholder,
+  globalSearch = false,
 }: {
-  basePath: string;
+  basePath?: string;
   initialQuery?: string;
   placeholder: string;
+  /** When true, always navigates to /search?q= */
+  globalSearch?: boolean;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(initialQuery);
@@ -21,11 +24,12 @@ export default function SearchBox({
 
   function go(query: string) {
     const next = query.trim();
+    const target = globalSearch ? "/search" : basePath;
     if (!next) {
-      router.push(basePath);
+      router.push(target);
       return;
     }
-    router.push(`${basePath}?q=${encodeURIComponent(next)}`);
+    router.push(`${target}?q=${encodeURIComponent(next)}`);
   }
 
   function onSubmit(e: FormEvent) {
@@ -37,7 +41,7 @@ export default function SearchBox({
     setValue(next);
     // Clearing the field (including native search clear) resets the page
     if (next.trim() === "" && initialQuery) {
-      router.push(basePath);
+      router.push(globalSearch ? "/search" : basePath);
     }
   }
 

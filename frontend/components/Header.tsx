@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import AuthNav from "@/components/AuthNav";
 import Logo from "@/components/Logo";
 import CartBadge from "@/components/shop/CartBadge";
+import NavbarSearch from "@/components/shop/NavbarSearch";
 
 const navLinks = [
   { href: "/", label: "მთავარი" },
@@ -45,24 +46,6 @@ function ChevronDownIcon({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
     </svg>
   );
 }
@@ -144,7 +127,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="relative w-full overflow-x-clip bg-[#FF0050] text-white">
+    <header className="relative z-40 w-full bg-[#FF0050] text-white">
       <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-5 sm:py-4 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4 lg:gap-6">
           <Logo
@@ -194,22 +177,7 @@ export default function Header() {
           </div>
         </div>
 
-        <form className="mt-3 flex w-full min-w-0 items-center gap-1 rounded-xl bg-white p-1 shadow-sm sm:mt-4 sm:gap-2 sm:p-1.5 md:w-[50%]">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 sm:gap-2 sm:px-3">
-            <MapPinIcon className="size-4 shrink-0 text-[#FF0050] sm:size-5" />
-            <input
-              type="text"
-              placeholder="ძებნა"
-              className="w-full min-w-0 bg-transparent py-2 text-sm text-neutral-800 outline-none placeholder:text-neutral-400 sm:py-2.5 sm:text-[0.95rem]"
-            />
-          </div>
-          <button
-            type="submit"
-            className="shrink-0 rounded-lg bg-[#FF0050] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#e60048] sm:px-6 sm:py-2.5 sm:text-sm"
-          >
-            ძებნა
-          </button>
-        </form>
+        <NavbarSearch className="mt-3 sm:mt-4" />
       </div>
 
       <div

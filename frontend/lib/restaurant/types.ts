@@ -269,3 +269,42 @@ export type ProductWritePayload = {
     }[];
   }[];
 };
+
+export type RestaurantCouponType = "PERCENT" | "FIXED";
+
+export type RestaurantCouponStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "EXPIRED"
+  | "NOT_STARTED"
+  | "USAGE_LIMIT_REACHED"
+  | "DEPLETED";
+
+export type RestaurantCoupon = {
+  id: string;
+  code: string;
+  type: RestaurantCouponType;
+  value: number;
+  minimumOrder: number | null;
+  usageLimit: number | null;
+  usageCount: number;
+  startsAt: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+  status: RestaurantCouponStatus;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RestaurantCouponWritePayload = {
+  code: string;
+  type: RestaurantCouponType;
+  value: number;
+  minimumOrder?: number | null;
+  usageLimit?: number | null;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  isActive?: boolean;
+  note?: string | null;
+};

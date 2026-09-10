@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Bell, ChevronDown, LogOut, MapPin, Search, User } from "lucide-react";
 import Logo from "@/components/Logo";
 import CartBadge from "@/components/shop/CartBadge";
+import NavbarSearch from "@/components/shop/NavbarSearch";
 import { useAuth } from "@/components/auth-context";
 import {
   DropdownMenu,
@@ -58,12 +59,15 @@ export default function AccountHeader({ defaultAddress }: AccountHeaderProps) {
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
         <Logo className="shrink-0" />
 
+        <div className="hidden min-w-0 flex-1 max-w-md md:block">
+          <NavbarSearch variant="page" className="w-full" />
+        </div>
         <Link
           href="/search"
-          className="hidden min-w-0 flex-1 items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-500 transition hover:border-neutral-300 md:flex max-w-md"
+          className="rounded-lg p-2 text-neutral-600 transition hover:bg-neutral-100 md:hidden"
+          aria-label="ძებნა"
         >
-          <Search className="size-4 shrink-0" />
-          <span>რესტორნის ან კერძის ძებნა...</span>
+          <Search className="size-5" />
         </Link>
 
         {defaultAddress && (

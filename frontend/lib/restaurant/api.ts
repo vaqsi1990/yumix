@@ -9,6 +9,8 @@ import type {
   ProductWritePayload,
   RestaurantOrder,
   RestaurantProduct,
+  RestaurantCoupon,
+  RestaurantCouponWritePayload,
   RestaurantReview,
   RestaurantSettings,
   RestaurantSummary,
@@ -165,6 +167,32 @@ export const restaurantApi = {
     apiFetch<{ user: OwnerProfile }>("/restaurant/account", {
       method: "PATCH",
       body: JSON.stringify(data),
+    }),
+
+  coupons: () =>
+    apiFetch<{ coupons: RestaurantCoupon[] }>("/restaurant/coupons"),
+
+  createCoupon: (data: RestaurantCouponWritePayload) =>
+    apiFetch<{ coupon: RestaurantCoupon }>("/restaurant/coupons", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateCoupon: (id: string, data: Partial<RestaurantCouponWritePayload>) =>
+    apiFetch<{ coupon: RestaurantCoupon }>(`/restaurant/coupons/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  updateCouponStatus: (id: string, data: { isActive: boolean }) =>
+    apiFetch<{ coupon: RestaurantCoupon }>(`/restaurant/coupons/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteCoupon: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/restaurant/coupons/${id}`, {
+      method: "DELETE",
     }),
 
   createRestaurant: (data: {

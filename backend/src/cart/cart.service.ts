@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AddCartExtraDto, AddCartItemDto } from './dto/cart.schemas';
 import {
@@ -19,6 +20,13 @@ import {
   validateProductCustomizations,
 } from '../common/customization.utils';
 import { ensureAddonCarrierProduct } from '../common/addon-carrier';
+import {
+  computeCouponDiscount,
+  isCouponExpired as checkCouponExpired,
+  normalizeCouponCode,
+  validateCouponApplicability,
+  type CouponForValidation,
+} from '../common/coupon.utils';
 
 @Injectable()
 export class CartService {
@@ -46,63 +54,88 @@ export class CartService {
     },
   } as const;
 
-  async getUserCart(userId: string) {
-    return this.prisma.cart.findUnique({
-      where: { userId },
+  readonly checkoutCartInclude = {
+    restaurant: {
+      select: this.restaurantSelect,
+    },
+    coupon: {
+      select: {
+        id: true,
+        code: true,
+        type: true,
+        value: true,
+        remainingBalance: true,
+        startsAt: true,
+        expiresAt: true,
+        isActive: true,
+        assignedToId: true,
+        minimumOrder: true,
+        restaurantId: true,
+        usageLimit: true,
+        _count: { select: { usages: true } },
+      },
+    },
+    items: {
+      orderBy: { id: 'asc' as const },
       include: {
-        restaurant: {
-          select: this.restaurantSelect,
-        },
-        coupon: {
+        product: {
           select: {
             id: true,
-            code: true,
-            remainingBalance: true,
-            expiresAt: true,
-            isActive: true,
-            assignedToId: true,
-            minimumOrder: true,
+            name: true,
+            image: true,
+            price: true,
+            discountPrice: true,
+            isAvailable: true,
+            preparationTime: true,
+            variants: {
+              select: { id: true, name: true, price: true },
+            },
           },
         },
-        items: {
-          orderBy: { id: 'asc' },
+        variant: {
+          select: { id: true, name: true, price: true },
+        },
+        addOns: {
           include: {
-            product: {
+            addon: { select: { id: true, name: true } },
+          },
+        },
+        customizations: {
+          include: {
+            option: {
               select: {
                 id: true,
                 name: true,
-                image: true,
-                price: true,
-                discountPrice: true,
-                isAvailable: true,
-                preparationTime: true,
-                variants: {
-                  select: { id: true, name: true, price: true },
-                },
-              },
-            },
-            variant: {
-              select: { id: true, name: true, price: true },
-            },
-            addOns: {
-              include: {
-                addon: { select: { id: true, name: true } },
-              },
-            },
-            customizations: {
-              include: {
-                option: {
-                  select: {
-                    id: true,
-                    name: true,
-                    group: { select: { id: true, name: true } },
-                  },
-                },
+                group: { select: { id: true, name: true } },
               },
             },
           },
         },
       },
+    },
+  };
+
+  async getUserCart(userId: string) {
+    return this.prisma.cart.findUnique({
+      where: { userId },
+      include: this.checkoutCartInclude,
+    });
+  }
+
+  findCheckoutCartInTx(userId: string, tx: Prisma.TransactionClient) {
+    return tx.cart.findUnique({
+      where: { userId },
+      include: this.checkoutCartInclude,
+    });
+  }
+
+  claimCheckoutCartInTx(
+    userId: string,
+    cartId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.cart.deleteMany({
+      where: { id: cartId, userId },
     });
   }
 
@@ -169,16 +202,14 @@ export class CartService {
   }
 
   isCouponExpired(expiresAt: Date | null | undefined) {
-    if (!expiresAt) return false;
-    return expiresAt.getTime() < Date.now();
+    return checkCouponExpired(expiresAt);
   }
 
   calcCouponDiscount(
-    remainingBalance: number,
+    coupon: CouponForValidation,
     orderAmountWithDelivery: number,
   ) {
-    if (remainingBalance <= 0 || orderAmountWithDelivery <= 0) return 0;
-    return Math.min(remainingBalance, orderAmountWithDelivery);
+    return computeCouponDiscount(coupon, orderAmountWithDelivery);
   }
 
   async getCart(userId: string, addressId?: string | null) {
@@ -206,14 +237,14 @@ export class CartService {
     if (cart.coupon) {
       const base = this.calcCartTotals(cart.items, delivery.fee);
       const c = cart.coupon;
-      const valid =
-        c.isActive &&
-        !this.isCouponExpired(c.expiresAt) &&
-        c.remainingBalance > 0 &&
-        (!c.assignedToId || c.assignedToId === userId) &&
-        (c.minimumOrder == null || base.total >= c.minimumOrder);
-      if (valid) {
-        discount = this.calcCouponDiscount(c.remainingBalance, base.total);
+      const applicable = validateCouponApplicability(c, {
+        userId,
+        restaurantId: cart.restaurantId,
+        orderTotal: base.total,
+        usageCount: c._count.usages,
+      });
+      if (!applicable) {
+        discount = this.calcCouponDiscount(c, base.total);
       }
     }
 
@@ -358,7 +389,7 @@ export class CartService {
   }
 
   async applyCoupon(userId: string, codeRaw: string) {
-    const code = codeRaw?.trim();
+    const code = normalizeCouponCode(codeRaw ?? '');
     if (!code) throw new BadRequestException('შეიყვანე კუპონის კოდი');
 
     const cart = await this.getUserCart(userId);
@@ -369,34 +400,23 @@ export class CartService {
     const delivery = await this.quoteDelivery(userId, cart.restaurant);
     const totals = this.calcCartTotals(cart.items, delivery.fee);
     const coupon = await this.prisma.coupon.findUnique({
-      where: { code: code.toUpperCase() },
+      where: { code },
+      include: { _count: { select: { usages: true } } },
     });
 
-    if (!coupon || !coupon.isActive) {
+    if (!coupon) {
       throw new BadRequestException('კუპონი არ მოიძებნა ან გათიშულია');
     }
-    if (coupon.assignedToId && coupon.assignedToId !== userId) {
-      throw new BadRequestException('ეს კუპონი შენზე არ არის მინიჭებული');
-    }
-    if (this.isCouponExpired(coupon.expiresAt)) {
-      throw new BadRequestException('კუპონის ვადა ამოწურულია');
-    }
-    if (coupon.remainingBalance <= 0) {
-      throw new BadRequestException('კუპონის ბალანსი ამოწურულია');
-    }
-    if (
-      coupon.minimumOrder != null &&
-      totals.total < coupon.minimumOrder
-    ) {
-      throw new BadRequestException(
-        `მინიმალური თანხა: ₾${coupon.minimumOrder.toFixed(2)}`,
-      );
-    }
 
-    const discount = this.calcCouponDiscount(
-      coupon.remainingBalance,
-      totals.total,
-    );
+    const error = validateCouponApplicability(coupon, {
+      userId,
+      restaurantId: cart.restaurantId,
+      orderTotal: totals.total,
+      usageCount: coupon._count.usages,
+    });
+    if (error) throw new BadRequestException(error);
+
+    const discount = this.calcCouponDiscount(coupon, totals.total);
 
     await this.prisma.cart.update({
       where: { id: cart.id },
@@ -407,6 +427,8 @@ export class CartService {
       coupon: {
         id: coupon.id,
         code: coupon.code,
+        type: coupon.type,
+        value: coupon.value,
         remainingBalance: coupon.remainingBalance,
         expiresAt: coupon.expiresAt,
       },
@@ -522,7 +544,7 @@ export class CartService {
           restaurant: {
             select: this.restaurantSelect,
           },
-          coupon: true,
+          coupon: this.checkoutCartInclude.coupon,
           items: {
             include: {
               product: {

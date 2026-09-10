@@ -40,9 +40,9 @@ export default async function RestaurantsPage({ searchParams }: Props) {
         </div>
 
         <SearchBox
-          basePath="/restaurants"
           initialQuery={q ?? ""}
-          placeholder="ძებნა სახელით ან ქალაქით"
+          placeholder="ძებნა სახელით, კერძით ან ქალაქით"
+          globalSearch
         />
       </div>
 

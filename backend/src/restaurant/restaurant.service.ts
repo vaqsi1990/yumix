@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -23,6 +24,20 @@ import {
   OWNER_ORDER_TRANSITIONS,
 } from '../common/order-status.utils';
 import type { OrderStatus, Prisma } from '../generated/prisma/client';
+import {
+  assertValidCouponDateRange,
+  normalizeCouponCode,
+  parseOptionalDate,
+  resolveCouponStatus,
+  validateMinimumOrder,
+  validateRestaurantCouponValue,
+  validateUsageLimit,
+  type CouponType,
+} from '../common/coupon.utils';
+import type {
+  RestaurantCouponCreateInput,
+  RestaurantCouponUpdateInput,
+} from './dto/coupon.schemas';
 
 const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   'PENDING',
@@ -1231,5 +1246,303 @@ export class RestaurantPanelService {
     const match = String(value ?? '').match(/^(\d{1,2}):(\d{2})/);
     if (!match) return fallback;
     return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+
+  private readonly restaurantCouponInclude = {
+    _count: { select: { usages: true, orders: true } },
+  } as const;
+
+  private mapRestaurantCoupon(coupon: {
+    id: string;
+    code: string;
+    type: string;
+    value: number;
+    remainingBalance: number;
+    minimumOrder: number | null;
+    usageLimit: number | null;
+    startsAt: Date | null;
+    expiresAt: Date | null;
+    isActive: boolean;
+    assignedToId: string | null;
+    restaurantId: string | null;
+    note: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    _count: { usages: number; orders: number };
+  }) {
+    const usageCount = coupon._count.usages;
+    const status = resolveCouponStatus({
+      type: coupon.type,
+      value: coupon.value,
+      remainingBalance: coupon.remainingBalance,
+      minimumOrder: coupon.minimumOrder,
+      expiresAt: coupon.expiresAt,
+      startsAt: coupon.startsAt,
+      isActive: coupon.isActive,
+      assignedToId: coupon.assignedToId,
+      restaurantId: coupon.restaurantId,
+      usageLimit: coupon.usageLimit,
+      usageCount,
+    });
+
+    return {
+      id: coupon.id,
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      minimumOrder: coupon.minimumOrder,
+      usageLimit: coupon.usageLimit,
+      usageCount,
+      startsAt: coupon.startsAt?.toISOString() ?? null,
+      expiresAt: coupon.expiresAt?.toISOString() ?? null,
+      isActive: coupon.isActive,
+      status,
+      note: coupon.note,
+      createdAt: coupon.createdAt.toISOString(),
+      updatedAt: coupon.updatedAt.toISOString(),
+    };
+  }
+
+  private async getOwnedRestaurantCoupon(
+    userId: string,
+    role: string,
+    couponId: string,
+  ) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    const coupon = await this.prisma.coupon.findFirst({
+      where: { id: couponId, restaurantId: restaurant.id },
+      include: this.restaurantCouponInclude,
+    });
+    if (!coupon) {
+      throw new NotFoundException('კუპონი ვერ მოიძებნა');
+    }
+    return { restaurant, coupon };
+  }
+
+  async getCoupons(userId: string, role: string) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    const coupons = await this.prisma.coupon.findMany({
+      where: { restaurantId: restaurant.id },
+      orderBy: { createdAt: 'desc' },
+      include: this.restaurantCouponInclude,
+    });
+    return {
+      restaurant,
+      coupons: coupons.map((coupon) => this.mapRestaurantCoupon(coupon)),
+    };
+  }
+
+  async createCoupon(
+    userId: string,
+    role: string,
+    body: RestaurantCouponCreateInput,
+  ) {
+    const restaurant = await this.getOwnedRestaurant(userId, role);
+    const code = normalizeCouponCode(body.code);
+    const type = body.type as CouponType;
+
+    const valueError = validateRestaurantCouponValue(type, body.value);
+    if (valueError) throw new BadRequestException(valueError);
+
+    const minOrderError = validateMinimumOrder(body.minimumOrder);
+    if (minOrderError) throw new BadRequestException(minOrderError);
+
+    const usageLimitError = validateUsageLimit(body.usageLimit);
+    if (usageLimitError) throw new BadRequestException(usageLimitError);
+
+    let startsAt: Date | null = null;
+    let expiresAt: Date | null = null;
+    try {
+      startsAt = parseOptionalDate(body.startsAt);
+      expiresAt = parseOptionalDate(body.expiresAt);
+    } catch {
+      throw new BadRequestException('თარიღის ფორმატი არასწორია');
+    }
+
+    try {
+      assertValidCouponDateRange(startsAt, expiresAt);
+    } catch {
+      throw new BadRequestException(
+        'ვადის დასრულება ვერ იქნება დაწყების თარიღზე ადრე',
+      );
+    }
+
+    const existing = await this.prisma.coupon.findUnique({ where: { code } });
+    if (existing) throw new ConflictException('ეს კოდი უკვე არსებობს');
+
+    const coupon = await this.prisma.coupon.create({
+      data: {
+        code,
+        type,
+        value: body.value,
+        remainingBalance: 0,
+        minimumOrder:
+          body.minimumOrder != null && body.minimumOrder > 0
+            ? body.minimumOrder
+            : null,
+        usageLimit: body.usageLimit ?? null,
+        startsAt,
+        expiresAt,
+        isActive: body.isActive ?? true,
+        note: body.note?.trim() || null,
+        restaurantId: restaurant.id,
+        createdById: userId,
+      },
+      include: this.restaurantCouponInclude,
+    });
+
+    return { coupon: this.mapRestaurantCoupon(coupon) };
+  }
+
+  async updateCoupon(
+    userId: string,
+    role: string,
+    couponId: string,
+    body: RestaurantCouponUpdateInput,
+  ) {
+    const { coupon: existing } = await this.getOwnedRestaurantCoupon(
+      userId,
+      role,
+      couponId,
+    );
+    const usageCount = existing._count.usages;
+    const hasUsage = usageCount > 0;
+
+    if (hasUsage) {
+      if (body.code !== undefined && normalizeCouponCode(body.code) !== existing.code) {
+        throw new BadRequestException(
+          'გამოყენებული კუპონის კოდი ვერ შეიცვლება',
+        );
+      }
+      if (body.type !== undefined && body.type !== existing.type) {
+        throw new BadRequestException(
+          'გამოყენებული კუპონის ტიპი ვერ შეიცვლება',
+        );
+      }
+      if (body.value !== undefined && body.value !== existing.value) {
+        throw new BadRequestException(
+          'გამოყენებული კუპონის ღირებულება ვერ შეიცვლება',
+        );
+      }
+    }
+
+    const nextType = (body.type ?? existing.type) as CouponType;
+    const nextValue = body.value ?? existing.value;
+    const valueError = validateRestaurantCouponValue(nextType, nextValue);
+    if (valueError) throw new BadRequestException(valueError);
+
+    const minOrderError = validateMinimumOrder(body.minimumOrder);
+    if (minOrderError) throw new BadRequestException(minOrderError);
+
+    const usageLimitError = validateUsageLimit(body.usageLimit);
+    if (usageLimitError) throw new BadRequestException(usageLimitError);
+
+    if (
+      body.usageLimit != null &&
+      body.usageLimit < usageCount
+    ) {
+      throw new BadRequestException(
+        'გამოყენების ლიმიტი ვერ იქნება უკვე გამოყენებულზე ნაკლები',
+      );
+    }
+
+    let startsAt = existing.startsAt;
+    let expiresAt = existing.expiresAt;
+    if (body.startsAt !== undefined) {
+      try {
+        startsAt = parseOptionalDate(body.startsAt);
+      } catch {
+        throw new BadRequestException('თარიღის ფორმატი არასწორია');
+      }
+    }
+    if (body.expiresAt !== undefined) {
+      try {
+        expiresAt = parseOptionalDate(body.expiresAt);
+      } catch {
+        throw new BadRequestException('თარიღის ფორმატი არასწორია');
+      }
+    }
+
+    try {
+      assertValidCouponDateRange(startsAt, expiresAt);
+    } catch {
+      throw new BadRequestException(
+        'ვადის დასრულება ვერ იქნება დაწყების თარიღზე ადრე',
+      );
+    }
+
+    let code = existing.code;
+    if (body.code !== undefined) {
+      code = normalizeCouponCode(body.code);
+      if (code !== existing.code) {
+        const duplicate = await this.prisma.coupon.findUnique({
+          where: { code },
+        });
+        if (duplicate) throw new ConflictException('ეს კოდი უკვე არსებობს');
+      }
+    }
+
+    const coupon = await this.prisma.coupon.update({
+      where: { id: couponId },
+      data: {
+        ...(body.code !== undefined ? { code } : {}),
+        ...(body.type !== undefined ? { type: body.type } : {}),
+        ...(body.value !== undefined ? { value: body.value } : {}),
+        ...(body.minimumOrder !== undefined
+          ? {
+              minimumOrder:
+                body.minimumOrder != null && body.minimumOrder > 0
+                  ? body.minimumOrder
+                  : null,
+            }
+          : {}),
+        ...(body.usageLimit !== undefined
+          ? { usageLimit: body.usageLimit }
+          : {}),
+        ...(body.startsAt !== undefined ? { startsAt } : {}),
+        ...(body.expiresAt !== undefined ? { expiresAt } : {}),
+        ...(typeof body.isActive === 'boolean'
+          ? { isActive: body.isActive }
+          : {}),
+        ...(body.note !== undefined
+          ? { note: body.note?.trim() || null }
+          : {}),
+      },
+      include: this.restaurantCouponInclude,
+    });
+
+    return { coupon: this.mapRestaurantCoupon(coupon) };
+  }
+
+  async updateCouponStatus(
+    userId: string,
+    role: string,
+    couponId: string,
+    isActive: boolean,
+  ) {
+    await this.getOwnedRestaurantCoupon(userId, role, couponId);
+    const coupon = await this.prisma.coupon.update({
+      where: { id: couponId },
+      data: { isActive },
+      include: this.restaurantCouponInclude,
+    });
+    return { coupon: this.mapRestaurantCoupon(coupon) };
+  }
+
+  async deleteCoupon(userId: string, role: string, couponId: string) {
+    const { coupon } = await this.getOwnedRestaurantCoupon(
+      userId,
+      role,
+      couponId,
+    );
+
+    if (coupon._count.usages > 0 || coupon._count.orders > 0) {
+      throw new BadRequestException(
+        'კუპონის წაშლა შეუძლებელია — გამოიყენა შეკვეთებში. გამოიყენეთ გათიშვა.',
+      );
+    }
+
+    await this.prisma.coupon.delete({ where: { id: couponId } });
+    return { deleted: true };
   }
 }

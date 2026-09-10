@@ -41,6 +41,11 @@ export class ShopController {
     return this.shop.getRestaurantDeliveryQuote(slug, user.id, addressId);
   }
 
+  @Get('search')
+  search(@Query('q') q?: string) {
+    return this.shop.searchPublic(q);
+  }
+
   @Get('restaurants')
   getRestaurants(@Query('q') q?: string, @Query('menu') menu?: string) {
     if (menu?.trim()) {

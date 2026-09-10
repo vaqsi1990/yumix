@@ -154,6 +154,42 @@ export async function getPublicRestaurants(query?: string): Promise<{
   return { ...data, restaurants };
 }
 
+export type ShopSearchProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  image: string | null;
+  price: number;
+  discountPrice: number | null;
+  restaurant: {
+    slug: string;
+    name: string;
+    logo: string;
+  };
+};
+
+export type ShopSearchResult = {
+  query: string;
+  restaurants: PublicRestaurant[];
+  products: ShopSearchProduct[];
+};
+
+export async function getShopSearch(query: string): Promise<ShopSearchResult> {
+  const q = query.trim();
+  if (!q) {
+    return { query: "", restaurants: [], products: [] };
+  }
+
+  try {
+    return await serverApiFetch<ShopSearchResult>(
+      `/shop/search?q=${encodeURIComponent(q)}`,
+    );
+  } catch {
+    const restaurants = filterDemo(q);
+    return { query: q, restaurants, products: [] };
+  }
+}
+
 async function getPublicRestaurantsRaw(query?: string): Promise<{
   restaurants: PublicRestaurant[];
   fromDatabase: boolean;

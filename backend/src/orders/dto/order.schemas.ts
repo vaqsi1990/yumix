@@ -44,6 +44,7 @@ export const createOrderSchema = z.object({
   paymentMethod: paymentMethodSchema,
   customerNote: z.string().trim().max(500).nullable().optional(),
   scheduledFor: z.string().datetime().nullable().optional(),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export const cancelOrderSchema = z.object({
