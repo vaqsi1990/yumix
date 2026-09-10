@@ -108,7 +108,7 @@ export default function ReviewsManager() {
                         </div>
                         {review.deliveryRating != null ? (
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>მიწოდება</span>
+                            <span>კურიერი</span>
                             <StarRating rating={review.deliveryRating} size="md" />
                           </div>
                         ) : null}

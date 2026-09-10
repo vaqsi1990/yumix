@@ -4,9 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Headphones, Phone, RotateCcw, Star, XCircle } from "lucide-react";
+import { Headphones, Phone, RotateCcw, XCircle } from "lucide-react";
 import OrderTimeline from "@/components/orders/OrderTimeline";
 import OrderLiveTracking from "@/components/orders/OrderLiveTracking";
+import StarRating from "@/components/restaurant/StarRating";
+import InteractiveStarRating from "@/components/ui/interactive-star-rating";
 import type { DeliveryEta } from "@/lib/delivery";
 import { ORDER_STATUS_ACTIVE_HINTS } from "@/lib/delivery";
 import { Button } from "@/components/ui/button";
@@ -128,7 +130,7 @@ export default function AccountOrderDetailClient({
     try {
       const { review } = await submitOrderReview(order.id, {
         rating: restaurantRating,
-        deliveryRating,
+        deliveryRating: order.courier ? deliveryRating : restaurantRating,
         comment: reviewComment.trim() || null,
       });
       setOrder((prev) => ({
@@ -239,53 +241,38 @@ export default function AccountOrderDetailClient({
             <section className="rounded-2xl border border-neutral-200 bg-white p-5">
               <h2 className="font-bold">შეფასე შეკვეთა</h2>
               <p className="mt-1 text-sm text-neutral-500">
-                როგორი იყო საჭმელი და მიწოდება?
+                {order.courier
+                  ? "შეაფასე რესტორანი და კურიერი ვარსკვლავებით."
+                  : "შეაფასე რესტორანი ვარსკვლავებით."}
               </p>
-              <div className="mt-4 space-y-4">
+              <div className="mt-4 space-y-5">
                 <div>
                   <p className="text-sm font-medium">რესტორანი / საჭმელი</p>
-                  <div className="mt-2 flex gap-1">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <button
-                        key={`restaurant-${value}`}
-                        type="button"
-                        onClick={() => setRestaurantRating(value)}
-                        className="rounded p-1"
-                        aria-label={`რესტორანი ${value} ვარსკვლავი`}
-                      >
-                        <Star
-                          className={`size-6 ${
-                            value <= restaurantRating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-neutral-300"
-                          }`}
-                        />
-                      </button>
-                    ))}
+                  <div className="mt-2">
+                    <InteractiveStarRating
+                      value={restaurantRating}
+                      onChange={setRestaurantRating}
+                      ariaLabel="რესტორანის შეფასება"
+                      disabled={reviewBusy}
+                    />
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">მიწოდება</p>
-                  <div className="mt-2 flex gap-1">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <button
-                        key={`delivery-${value}`}
-                        type="button"
-                        onClick={() => setDeliveryRating(value)}
-                        className="rounded p-1"
-                        aria-label={`მიწოდება ${value} ვარსკვლავი`}
-                      >
-                        <Star
-                          className={`size-6 ${
-                            value <= deliveryRating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-neutral-300"
-                          }`}
-                        />
-                      </button>
-                    ))}
+                {order.courier ? (
+                  <div>
+                    <p className="text-sm font-medium">კურიერი</p>
+                    <p className="text-xs text-neutral-500">
+                      {order.courier.firstName} {order.courier.lastName}
+                    </p>
+                    <div className="mt-2">
+                      <InteractiveStarRating
+                        value={deliveryRating}
+                        onChange={setDeliveryRating}
+                        ariaLabel="კურიერის შეფასება"
+                        disabled={reviewBusy}
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
               <textarea
                 className="mt-4 w-full rounded-xl border border-neutral-200 p-3 text-sm"
@@ -307,18 +294,23 @@ export default function AccountOrderDetailClient({
           {order.status === "DELIVERED" && order.hasReview && order.review ? (
             <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
               <h2 className="font-bold">თქვენი შეფასება</h2>
-              <div className="mt-3 space-y-2 text-sm">
-                <p>
-                  რესტორანი:{" "}
+              <div className="mt-3 space-y-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-neutral-600">რესტორანი</span>
+                  <StarRating rating={order.review.rating} size="md" />
                   <span className="font-medium">{order.review.rating}/5</span>
-                </p>
-                {order.review.deliveryRating != null ? (
-                  <p>
-                    მიწოდება:{" "}
+                </div>
+                {order.courier && order.review.deliveryRating != null ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-neutral-600">კურიერი</span>
+                    <StarRating
+                      rating={order.review.deliveryRating}
+                      size="md"
+                    />
                     <span className="font-medium">
                       {order.review.deliveryRating}/5
                     </span>
-                  </p>
+                  </div>
                 ) : null}
                 {order.review.comment ? (
                   <p className="text-neutral-600">{order.review.comment}</p>
