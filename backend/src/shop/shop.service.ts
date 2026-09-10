@@ -226,6 +226,12 @@ export class ShopService {
       deliveryRadius?: number | null;
       latitude?: number | null;
       longitude?: number | null;
+      deliveryZones?: {
+        maxDistanceKm: number;
+        deliveryFee: number;
+        minimumOrder: number | null;
+        estimatedMinutes: number | null;
+      }[];
     },
     dest?: { latitude: number | null; longitude: number | null } | null,
   ) {
@@ -236,6 +242,12 @@ export class ShopService {
         deliveryRadius: restaurant.deliveryRadius ?? null,
         latitude: restaurant.latitude ?? null,
         longitude: restaurant.longitude ?? null,
+        deliveryZones: (restaurant.deliveryZones ?? []).map((zone) => ({
+          maxDistanceKm: zone.maxDistanceKm,
+          deliveryFee: zone.deliveryFee,
+          minimumOrder: zone.minimumOrder,
+          estimatedMinutes: zone.estimatedMinutes ?? 0,
+        })),
       },
       dest ?? null,
     );
@@ -274,6 +286,7 @@ export class ShopService {
         },
         reviews: { select: { rating: true } },
         workingHours: { orderBy: { day: 'asc' } },
+        deliveryZones: { orderBy: { sortOrder: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -306,6 +319,9 @@ export class ShopService {
   ) {
     const restaurant = await this.prisma.restaurant.findFirst({
       where: { slug, isApproved: true },
+      include: {
+        deliveryZones: { orderBy: { sortOrder: 'asc' } },
+      },
     });
     if (!restaurant) throw new NotFoundException('რესტორანი ვერ მოიძებნა');
 

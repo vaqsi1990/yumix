@@ -3,6 +3,7 @@ import {
   isCouponUsableNow,
   normalizeCouponCode,
   resolveCouponStatus,
+  restoreCouponInTransaction,
   validateCouponApplicability,
   validateMinimumOrder,
   validateRestaurantCouponValue,
@@ -138,6 +139,35 @@ describe('coupon.utils', () => {
         now: new Date('2026-09-01'),
       }),
     ).toBe(true);
+  });
+
+  it('restores balance coupon on cancel', async () => {
+    const tx = {
+      coupon: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'c1',
+          type: 'BALANCE',
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      couponUsage: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+
+    await restoreCouponInTransaction(tx as never, {
+      id: 'o1',
+      couponId: 'c1',
+      discount: 10,
+    });
+
+    expect(tx.coupon.update).toHaveBeenCalledWith({
+      where: { id: 'c1' },
+      data: { remainingBalance: { increment: 10 } },
+    });
+    expect(tx.couponUsage.deleteMany).toHaveBeenCalledWith({
+      where: { orderId: 'o1' },
+    });
   });
 
   it('resolves coupon statuses', () => {

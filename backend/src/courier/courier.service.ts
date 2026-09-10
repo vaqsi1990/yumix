@@ -385,16 +385,6 @@ export class CourierService {
       throw new BadRequestException('გახდი ონლაინში შეკვეთის მისაღებად');
     }
 
-    const activeCount = await this.prisma.order.count({
-      where: {
-        courierId: courierUserId,
-        status: { in: ACTIVE_STATUSES },
-      },
-    });
-    if (activeCount > 0) {
-      throw new BadRequestException('ჯერ დაასრულე აქტიური მიწოდება');
-    }
-
     const existing = await this.prisma.order.findUnique({
       where: { id: orderId },
       select: { id: true, status: true, courierId: true, orderNumber: true },
@@ -412,6 +402,18 @@ export class CourierService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT id FROM "User" WHERE id = ${courierUserId} FOR UPDATE`;
+
+      const activeCount = await tx.order.count({
+        where: {
+          courierId: courierUserId,
+          status: { in: ACTIVE_STATUSES },
+        },
+      });
+      if (activeCount > 0) {
+        throw new BadRequestException('ჯერ დაასრულე აქტიური მიწოდება');
+      }
+
       const result = await tx.order.updateMany({
         where: {
           id: orderId,

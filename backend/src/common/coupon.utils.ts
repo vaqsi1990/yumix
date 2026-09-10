@@ -1,3 +1,6 @@
+import { BadRequestException } from '@nestjs/common';
+import type { Prisma } from '../generated/prisma/client';
+
 export type CouponType = 'BALANCE' | 'PERCENT' | 'FIXED';
 
 export type CouponStatus =
@@ -202,4 +205,56 @@ export function validateUsageLimit(value: number | null | undefined): string | n
     return 'გამოყენების ლიმიტი უნდა იყოს დადებითი მთელი რიცხვი';
   }
   return null;
+}
+
+/** Locks coupon row and atomically redeems balance or checks usage limit. */
+export async function redeemCouponInTransaction(
+  tx: Prisma.TransactionClient,
+  couponId: string,
+  discount: number,
+) {
+  if (discount <= 0) return;
+
+  await tx.$executeRaw`SELECT id FROM "Coupon" WHERE id = ${couponId} FOR UPDATE`;
+
+  const coupon = await tx.coupon.findUnique({ where: { id: couponId } });
+  if (!coupon) {
+    throw new BadRequestException('კუპონი აღარ არის ვალიდური');
+  }
+
+  if (coupon.type === 'BALANCE') {
+    const result = await tx.coupon.updateMany({
+      where: { id: couponId, remainingBalance: { gte: discount } },
+      data: { remainingBalance: { decrement: discount } },
+    });
+    if (result.count === 0) {
+      throw new BadRequestException('კუპონის ბალანსი არასაკმარისია');
+    }
+    return;
+  }
+
+  const usageCount = await tx.couponUsage.count({ where: { couponId } });
+  if (coupon.usageLimit != null && usageCount >= coupon.usageLimit) {
+    throw new BadRequestException('კუპონის გამოყენების ლიმიტი ამოწურულია');
+  }
+}
+
+/** Restores coupon value when a pre-fulfillment order is cancelled. */
+export async function restoreCouponInTransaction(
+  tx: Prisma.TransactionClient,
+  order: { id: string; couponId: string | null; discount: number },
+) {
+  if (!order.couponId || order.discount <= 0) return;
+
+  const coupon = await tx.coupon.findUnique({ where: { id: order.couponId } });
+  if (!coupon) return;
+
+  if (coupon.type === 'BALANCE') {
+    await tx.coupon.update({
+      where: { id: order.couponId },
+      data: { remainingBalance: { increment: order.discount } },
+    });
+  }
+
+  await tx.couponUsage.deleteMany({ where: { orderId: order.id } });
 }

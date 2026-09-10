@@ -24,6 +24,7 @@ import {
   OWNER_ORDER_TRANSITIONS,
 } from '../common/order-status.utils';
 import type { OrderStatus, Prisma } from '../generated/prisma/client';
+import { restoreCouponInTransaction } from '../common/coupon.utils';
 import {
   assertValidCouponDateRange,
   normalizeCouponCode,
@@ -806,6 +807,14 @@ export class RestaurantPanelService {
           _count: { select: { items: true } },
         },
       });
+
+      if (status === 'CANCELLED') {
+        await restoreCouponInTransaction(tx, {
+          id: order.id,
+          couponId: order.couponId,
+          discount: order.discount,
+        });
+      }
 
       await notifyCustomerOrderStatus(tx, {
         userId: next.userId,

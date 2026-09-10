@@ -14,6 +14,7 @@ type ProductForPricing = {
   outOfStock: boolean;
   preparationTime: number | null;
   approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  deletedAt?: Date | null;
 };
 
 type RestaurantForOrder = {
@@ -42,10 +43,40 @@ export function resolveProductUnitPrice(
   return product.price;
 }
 
+type CartLineForTotals = {
+  quantity: number;
+  price: number;
+  addOns: { quantity: number; price: number }[];
+  customizations?: { quantity: number; price: number }[];
+};
+
+export function calcCartLineExtrasTotal(item: CartLineForTotals) {
+  const addOnsTotal = item.addOns.reduce(
+    (sum, addon) => sum + addon.price * addon.quantity,
+    0,
+  );
+  const customizationTotal = (item.customizations ?? []).reduce(
+    (sum, row) => sum + row.price * row.quantity,
+    0,
+  );
+  return (addOnsTotal + customizationTotal) * item.quantity;
+}
+
+export function calcCartLineTotal(item: CartLineForTotals) {
+  return item.price * item.quantity + calcCartLineExtrasTotal(item);
+}
+
+export function calcCartSubtotal(items: CartLineForTotals[]) {
+  return items.reduce((sum, item) => sum + calcCartLineTotal(item), 0);
+}
+
 export function assertProductOrderable(
   product: ProductForPricing,
   label = 'პროდუქტი',
 ) {
+  if (product.deletedAt != null) {
+    throw new BadRequestException(`${label} აღარ არის ხელმისაწვდომი`);
+  }
   if (
     product.approvalStatus != null &&
     product.approvalStatus !== 'APPROVED'
@@ -57,17 +88,41 @@ export function assertProductOrderable(
   }
 }
 
-export function assertRestaurantOrderable(restaurant: RestaurantForOrder) {
+export function assertRestaurantOrderable(
+  restaurant: RestaurantForOrder,
+  options?: { scheduledFor?: Date | null; asOf?: Date },
+) {
   if (!restaurant.isApproved) {
     throw new BadRequestException('რესტორანი ჯერ არ არის დამტკიცებული');
   }
+
+  const scheduledFor = options?.scheduledFor ?? null;
+  const hours = restaurant.workingHours ?? [];
+
+  if (!scheduledFor) {
+    if (!restaurant.isOpen) {
+      throw new BadRequestException('რესტორანი დახურულია');
+    }
+    if (
+      !isRestaurantAcceptingOrdersNow({
+        isOpen: restaurant.isOpen,
+        workingHours: hours,
+        now: options?.asOf,
+      })
+    ) {
+      throw new BadRequestException('რესტორანი დახურულია');
+    }
+    return;
+  }
+
   if (
     !isRestaurantAcceptingOrdersNow({
-      isOpen: restaurant.isOpen,
-      workingHours: restaurant.workingHours ?? [],
+      isOpen: true,
+      workingHours: hours,
+      now: scheduledFor,
     })
   ) {
-    throw new BadRequestException('რესტორანი დახურულია');
+    throw new BadRequestException('რესტორანი არჩეულ დროს დახურულია');
   }
 }
 

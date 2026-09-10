@@ -11,6 +11,8 @@ import {
   assertProductOrderable,
   assertRestaurantOrderable,
   buildOrderEtaSnapshot,
+  calcCartLineTotal,
+  calcCartSubtotal,
   generateOrderNumber,
   orderInclude,
 } from '../common/order.utils';
@@ -28,6 +30,8 @@ import { DuplicateOrderException } from './duplicate-order.exception';
 import type { Prisma } from '../generated/prisma/client';
 import {
   computeCouponDiscount,
+  redeemCouponInTransaction,
+  restoreCouponInTransaction,
   validateCouponApplicability,
 } from '../common/coupon.utils';
 
@@ -240,38 +244,6 @@ export class OrdersService {
       }
     }
 
-    const cartPayload = await this.cartService.getCart(userId);
-    const cart = cartPayload.cart;
-    const totals = cartPayload.totals;
-
-    if (!cart || !totals || cart.items.length === 0) {
-      throw new BadRequestException('კალათა ცარიელია');
-    }
-
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { id: cart.restaurantId },
-      include: {
-        workingHours: { orderBy: { day: 'asc' } },
-        deliveryZones: { orderBy: { sortOrder: 'asc' } },
-      },
-    });
-    if (!restaurant) throw new NotFoundException('რესტორანი ვერ მოიძებნა');
-
-    assertRestaurantOrderable(restaurant);
-
-    for (const item of cart.items) {
-      const product = await this.prisma.product.findUnique({
-        where: { id: item.productId },
-      });
-      if (!product) {
-        throw new BadRequestException('პროდუქტი აღარ არსებობს');
-      }
-      if (product.name === ADDON_CARRIER_PRODUCT_NAME) {
-        continue;
-      }
-      assertProductOrderable(product, item.product.name);
-    }
-
     const address = await this.addresses.getOwned(userId, input.addressId);
     if (
       address.latitude == null ||
@@ -283,49 +255,6 @@ export class OrdersService {
         'მიწოდების მისამართს სჭირდება სწორი მდებარეობა რუკაზე',
       );
     }
-
-    let distanceKm =
-      restaurant.latitude != null &&
-      restaurant.longitude != null &&
-      address.latitude != null &&
-      address.longitude != null
-        ? await estimateDrivingDistanceKm(
-            {
-              latitude: restaurant.latitude,
-              longitude: restaurant.longitude,
-            },
-            { latitude: address.latitude, longitude: address.longitude },
-          )
-        : null;
-
-    const delivery = quoteDeliveryFee(
-      {
-        ...restaurant,
-        deliveryZones: restaurant.deliveryZones.map((zone) => ({
-          maxDistanceKm: zone.maxDistanceKm,
-          deliveryFee: zone.deliveryFee,
-          minimumOrder: zone.minimumOrder,
-          estimatedMinutes: zone.estimatedMinutes,
-        })),
-      },
-      address,
-    );
-    if (distanceKm != null) {
-      delivery.distanceKm = distanceKm;
-    }
-    if (delivery.outOfRange) {
-      const maxKm = restaurant.deliveryRadius;
-      throw new BadRequestException(
-        maxKm != null
-          ? `ამ მისამართზე მიწოდება მიუწვდომელია (მაქს. ${maxKm} კმ)`
-          : 'ამ მისამართზე მიწოდება მიუწვდომელია',
-      );
-    }
-
-    const deliveryFee = delivery.fee;
-    const effectiveMinimum =
-      delivery.zoneMinimumOrder ?? restaurant.minimumOrder;
-    assertMinimumOrder(totals.subtotal, effectiveMinimum);
 
     let scheduledFor: Date | null = null;
     if (input.scheduledFor) {
@@ -339,32 +268,6 @@ export class OrdersService {
       }
       scheduledFor = when;
     }
-
-    let discount = totals.discount;
-    let couponId: string | null = cart.couponId;
-
-    if (cart.coupon) {
-      const orderTotal = totals.subtotal + deliveryFee;
-      const error = validateCouponApplicability(cart.coupon, {
-        userId,
-        restaurantId: cart.restaurantId,
-        orderTotal,
-        usageCount: cart.coupon._count.usages,
-      });
-      if (error) {
-        throw new BadRequestException(error);
-      }
-      discount = computeCouponDiscount(cart.coupon, orderTotal);
-    }
-
-    const subtotal = totals.subtotal;
-    const total = Math.max(0, subtotal + deliveryFee - discount);
-    const etaSnapshot = buildOrderEtaSnapshot(
-      cart.items.map((item) => ({
-        product: { preparationTime: item.product.preparationTime ?? null },
-      })),
-      delivery.distanceKm,
-    );
 
     const paymentStatus = this.resolveInitialPaymentStatus(input.paymentMethod);
 
@@ -403,32 +306,109 @@ export class OrdersService {
 
       const cart = lockedCart;
 
-      if (couponId && discount > 0) {
-        const coupon = await tx.coupon.findUnique({ where: { id: couponId } });
-        if (!coupon) {
+      const restaurant = await tx.restaurant.findUnique({
+        where: { id: cart.restaurantId },
+        include: {
+          workingHours: { orderBy: { day: 'asc' } },
+          deliveryZones: { orderBy: { sortOrder: 'asc' } },
+        },
+      });
+      if (!restaurant) throw new NotFoundException('რესტორანი ვერ მოიძებნა');
+
+      assertRestaurantOrderable(restaurant, { scheduledFor });
+
+      for (const item of cart.items) {
+        const product = await tx.product.findFirst({
+          where: { id: item.productId, deletedAt: null },
+        });
+        if (!product) {
+          throw new BadRequestException('პროდუქტი აღარ არსებობს');
+        }
+        if (product.name === ADDON_CARRIER_PRODUCT_NAME) {
+          continue;
+        }
+        assertProductOrderable(product, item.product.name);
+      }
+
+      let distanceKm =
+        restaurant.latitude != null &&
+        restaurant.longitude != null &&
+        address.latitude != null &&
+        address.longitude != null
+          ? await estimateDrivingDistanceKm(
+              {
+                latitude: restaurant.latitude,
+                longitude: restaurant.longitude,
+              },
+              { latitude: address.latitude, longitude: address.longitude },
+            )
+          : null;
+
+      const delivery = quoteDeliveryFee(
+        {
+          ...restaurant,
+          deliveryZones: restaurant.deliveryZones.map((zone) => ({
+            maxDistanceKm: zone.maxDistanceKm,
+            deliveryFee: zone.deliveryFee,
+            minimumOrder: zone.minimumOrder,
+            estimatedMinutes: zone.estimatedMinutes,
+          })),
+        },
+        address,
+      );
+      if (distanceKm != null) {
+        delivery.distanceKm = distanceKm;
+      }
+      if (delivery.outOfRange) {
+        const maxKm = restaurant.deliveryRadius;
+        throw new BadRequestException(
+          maxKm != null
+            ? `ამ მისამართზე მიწოდება მიუწვდომელია (მაქს. ${maxKm} კმ)`
+            : 'ამ მისამართზე მიწოდება მიუწვდომელია',
+        );
+      }
+
+      const deliveryFee = delivery.fee;
+      const subtotal = calcCartSubtotal(cart.items);
+      const effectiveMinimum =
+        delivery.zoneMinimumOrder ?? restaurant.minimumOrder;
+      assertMinimumOrder(subtotal, effectiveMinimum);
+
+      let discount = 0;
+      let couponId: string | null = cart.couponId;
+
+      if (cart.coupon) {
+        const orderTotal = subtotal + deliveryFee;
+        const couponWithCount = await tx.coupon.findUnique({
+          where: { id: cart.coupon.id },
+          include: { _count: { select: { usages: true } } },
+        });
+        if (!couponWithCount) {
           throw new BadRequestException('კუპონი აღარ არის ვალიდური');
         }
-        if (coupon.type === 'BALANCE') {
-          if (coupon.remainingBalance < discount) {
-            throw new BadRequestException('კუპონის ბალანსი არასაკმარისია');
-          }
-          await tx.coupon.update({
-            where: { id: couponId },
-            data: { remainingBalance: coupon.remainingBalance - discount },
-          });
-        } else {
-          const usageCount = await tx.couponUsage.count({
-            where: { couponId },
-          });
-          if (
-            coupon.usageLimit != null &&
-            usageCount >= coupon.usageLimit
-          ) {
-            throw new BadRequestException(
-              'კუპონის გამოყენების ლიმიტი ამოწურულია',
-            );
-          }
+        const error = validateCouponApplicability(couponWithCount, {
+          userId,
+          restaurantId: cart.restaurantId,
+          orderTotal,
+          usageCount: couponWithCount._count.usages,
+        });
+        if (error) {
+          throw new BadRequestException(error);
         }
+        discount = computeCouponDiscount(couponWithCount, orderTotal);
+        couponId = couponWithCount.id;
+      }
+
+      const total = Math.max(0, subtotal + deliveryFee - discount);
+      const etaSnapshot = buildOrderEtaSnapshot(
+        cart.items.map((item) => ({
+          product: { preparationTime: item.product.preparationTime ?? null },
+        })),
+        delivery.distanceKm,
+      );
+
+      if (couponId && discount > 0) {
+        await redeemCouponInTransaction(tx, couponId, discount);
       }
 
       const created = await tx.order.create({
@@ -456,42 +436,29 @@ export class OrdersService {
           couponId,
           idempotencyKey: input.idempotencyKey ?? null,
           items: {
-            create: cart.items.map((item) => {
-              const addOnTotal = item.addOns.reduce(
-                (sum, a) => sum + a.price * a.quantity,
-                0,
-              );
-              const customizationTotal = item.customizations.reduce(
-                (sum, c) => sum + c.price * c.quantity,
-                0,
-              );
-              const extrasTotal = addOnTotal + customizationTotal;
-              const lineTotal =
-                item.price * item.quantity + extrasTotal * item.quantity;
-              return {
-                productId: item.productId,
-                variantId: item.variantId,
-                quantity: item.quantity,
-                price: item.price,
-                total: lineTotal,
-                addOns: {
-                  create: item.addOns.map((a) => ({
-                    addonId: a.addonId,
-                    quantity: a.quantity,
-                    price: a.price,
-                  })),
-                },
-                customizations: {
-                  create: item.customizations.map((c) => ({
-                    optionId: c.optionId,
-                    groupName: c.option.group.name,
-                    optionName: c.option.name,
-                    quantity: c.quantity,
-                    price: c.price,
-                  })),
-                },
-              };
-            }),
+            create: cart.items.map((item) => ({
+              productId: item.productId,
+              variantId: item.variantId,
+              quantity: item.quantity,
+              price: item.price,
+              total: calcCartLineTotal(item),
+              addOns: {
+                create: item.addOns.map((a) => ({
+                  addonId: a.addonId,
+                  quantity: a.quantity,
+                  price: a.price,
+                })),
+              },
+              customizations: {
+                create: item.customizations.map((c) => ({
+                  optionId: c.optionId,
+                  groupName: c.option.group.name,
+                  optionName: c.option.name,
+                  quantity: c.quantity,
+                  price: c.price,
+                })),
+              },
+            })),
           },
           payment: {
             create: {
@@ -576,19 +543,33 @@ export class OrdersService {
       where: { id: orderId, userId },
     });
     if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
-    if (!CUSTOMER_CANCEL_STATUSES.includes(order.status)) {
-      throw new BadRequestException('ამ ეტაპზე შეკვეთის გაუქმება შეუძლებელია');
-    }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const next = await tx.order.update({
-        where: { id: orderId },
+      const cancelled = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          userId,
+          status: { in: CUSTOMER_CANCEL_STATUSES },
+        },
         data: {
           status: 'CANCELLED',
           cancelledAt: new Date(),
           cancellationReason: reason?.trim() || null,
           cancelledByRole: 'CUSTOMER',
         },
+      });
+      if (cancelled.count === 0) {
+        throw new BadRequestException('ამ ეტაპზე შეკვეთის გაუქმება შეუძლებელია');
+      }
+
+      await restoreCouponInTransaction(tx, {
+        id: order.id,
+        couponId: order.couponId,
+        discount: order.discount,
+      });
+
+      const next = await tx.order.findUniqueOrThrow({
+        where: { id: orderId },
         include: orderInclude,
       });
 

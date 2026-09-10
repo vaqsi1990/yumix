@@ -9,6 +9,7 @@ import type { AddCartExtraDto, AddCartItemDto } from './dto/cart.schemas';
 import {
   assertProductOrderable,
   assertRestaurantOrderable,
+  calcCartSubtotal,
   cartItemSignature,
   normalizeAddonInputs,
   resolveProductUnitPrice,
@@ -149,17 +150,7 @@ export class CartService {
     deliveryFee: number | null | undefined,
     discount = 0,
   ) {
-    const subtotal = items.reduce((sum, item) => {
-      const addOnsTotal = item.addOns.reduce(
-        (a, addon) => a + addon.price * addon.quantity,
-        0,
-      );
-      const customizationTotal = (item.customizations ?? []).reduce(
-        (c, row) => c + row.price * row.quantity,
-        0,
-      );
-      return sum + item.price * item.quantity + addOnsTotal + customizationTotal;
-    }, 0);
+    const subtotal = calcCartSubtotal(items);
 
     const fee = deliveryFee ?? 0;
     const beforeDiscount = subtotal + fee;

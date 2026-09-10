@@ -12,6 +12,7 @@ import {
   sortVariantsBySize,
 } from '../common/product-sizes';
 import { sanitizeCustomizationGroups } from '../common/customization.utils';
+import { restoreCouponInTransaction } from '../common/coupon.utils';
 import { orderInclude } from '../common/order.utils';
 import { notifyCustomerOrderStatus } from '../common/order-status.utils';
 import { parseAddonCategory } from '../common/addon-categories';
@@ -206,7 +207,10 @@ export class AdminService {
 
     const updated = await this.prisma.order.update({
       where: { id: orderId },
-      data: { courierId: courierUserId },
+      data: {
+        courierId: courierUserId,
+        ...(order.status === 'READY' ? { status: 'PICKED_UP' as const } : {}),
+      },
       include: orderInclude,
     });
     return { order: updated };
@@ -326,6 +330,14 @@ export class AdminService {
         },
         include: orderInclude,
       });
+
+      if (status === 'CANCELLED') {
+        await restoreCouponInTransaction(tx, {
+          id: order.id,
+          couponId: order.couponId,
+          discount: order.discount,
+        });
+      }
 
       if (status === 'DELIVERED' && order.paymentMethod === 'CASH') {
         await tx.payment.updateMany({
