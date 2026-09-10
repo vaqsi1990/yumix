@@ -63,6 +63,12 @@ enum AddonCategory {
   DRINK
 }
 
+enum ProductApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid())
   firstName     String
@@ -217,6 +223,7 @@ model Product {
   isHidden        Boolean         @default(false)
   outOfStock      Boolean         @default(false)
   isAvailable     Boolean         @default(true)
+  approvalStatus  ProductApprovalStatus @default(PENDING)
   deletedAt       DateTime?
 
   variants            ProductVariant[]

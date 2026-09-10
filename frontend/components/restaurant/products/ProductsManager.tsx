@@ -72,6 +72,9 @@ export default function ProductsManager() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pendingApprovalCount = products.filter(
+    (product) => product.approvalStatus === "PENDING",
+  ).length;
 
   async function handleSave(data: ProductWritePayload) {
     try {
@@ -167,6 +170,16 @@ export default function ProductsManager() {
           </div>
         }
       />
+
+      {pendingApprovalCount > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">მოდერაციაშია {pendingApprovalCount} პროდუქტი</p>
+          <p className="mt-1 text-amber-800/90">
+            ახალი ან ჩასწორებული პროდუქტები მაღაზიაში გამოჩნდება ადმინის
+            დამტკიცების შემდეგ.
+          </p>
+        </div>
+      )}
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
+  productApprovalPatchSchema,
   productAvailabilityPatchSchema,
   productWriteSchema,
 } from './dto/product.schemas';
@@ -261,7 +262,7 @@ export class AdminController {
     @Body(new ZodValidationPipe(productWriteSchema))
     body: ProductWriteInput,
   ) {
-    return this.admin.createProduct(body);
+    return this.admin.createProduct(body, { autoApprove: true });
   }
 
   @Get('products/:id')
@@ -273,7 +274,10 @@ export class AdminController {
   updateProduct(
     @Param('id') id: string,
     @Body()
-    body: ProductWriteInput | { availability: ProductWriteInput['availability'] },
+    body:
+      | ProductWriteInput
+      | { availability: ProductWriteInput['availability'] }
+      | { approvalStatus: 'APPROVED' | 'REJECTED' },
   ) {
     if (
       'availability' in body &&
@@ -282,6 +286,14 @@ export class AdminController {
     ) {
       const parsed = productAvailabilityPatchSchema.parse(body);
       return this.admin.patchAvailability(id, parsed.availability);
+    }
+    if (
+      'approvalStatus' in body &&
+      Object.keys(body).length === 1 &&
+      body.approvalStatus
+    ) {
+      const parsed = productApprovalPatchSchema.parse(body);
+      return this.admin.patchProductApproval(id, parsed.approvalStatus);
     }
     const parsed = productWriteSchema.parse(body);
     return this.admin.updateProduct(id, parsed);

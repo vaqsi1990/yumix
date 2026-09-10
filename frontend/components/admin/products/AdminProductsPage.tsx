@@ -145,6 +145,25 @@ export default function AdminProductsPage() {
     );
   }
 
+  async function handleApproval(
+    product: AdminProduct,
+    approvalStatus: "APPROVED" | "REJECTED",
+  ) {
+    const res = await fetch(`/api/backend/admin/products/${product.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approvalStatus }),
+    });
+    if (!res.ok) {
+      window.alert("მოდერაცია ვერ მოხერხდა");
+      return;
+    }
+    const data = (await res.json()) as { product: AdminProduct };
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? data.product : p)),
+    );
+  }
+
   function handleExport() {
     const blob = new Blob([JSON.stringify(products, null, 2)], {
       type: "application/json",
@@ -201,6 +220,8 @@ export default function AdminProductsPage() {
             onDuplicate={handleDuplicate}
             onDelete={handleDelete}
             onToggleAvailability={handleToggle}
+            onApprove={(product) => void handleApproval(product, "APPROVED")}
+            onReject={(product) => void handleApproval(product, "REJECTED")}
           />
         </CardContent>
       </Card>

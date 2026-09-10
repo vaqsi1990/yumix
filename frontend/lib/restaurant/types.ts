@@ -20,6 +20,8 @@ export type ProductAvailability =
   | "HIDDEN"
   | "OUT_OF_STOCK";
 
+export type ProductApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export type DayOfWeek =
   | "MONDAY"
   | "TUESDAY"
@@ -113,6 +115,7 @@ export type RestaurantProduct = {
   preparationTime: number | null;
   foodType?: string | null;
   availability: ProductAvailability;
+  approvalStatus: ProductApprovalStatus;
   isAvailable: boolean;
   isHidden: boolean;
   outOfStock: boolean;

@@ -25,7 +25,10 @@ import {
   isStandardMenuCategory,
   onlyStandardMenuCategories,
 } from '../common/menu-category-order';
-import type { OrderStatus } from '../generated/prisma/client';
+import type {
+  OrderStatus,
+  ProductApprovalStatus,
+} from '../generated/prisma/client';
 
 const ROLES = ['USER', 'COURIER', 'RESTAURANT_OWNER', 'ADMIN'] as const;
 type Role = (typeof ROLES)[number];
@@ -1591,6 +1594,7 @@ export class AdminService {
         row.outOfStock,
       ),
       isAvailable: row.isAvailable,
+      approvalStatus: row.approvalStatus,
       allergens: this.parseAllergens(row.allergens),
       variants: sortVariantsBySize(
         row.variants.map((v) => ({
@@ -1731,7 +1735,10 @@ export class AdminService {
     return { product: this.mapProduct(product) };
   }
 
-  async createProduct(input: ProductWriteInput) {
+  async createProduct(
+    input: ProductWriteInput,
+    options?: { autoApprove?: boolean },
+  ) {
     await ensureStandardMenuCategories(this.prisma, input.restaurantId);
     await this.assertCategoryBelongsToRestaurant(
       input.categoryId,
@@ -1742,6 +1749,7 @@ export class AdminService {
     const product = await this.prisma.product.create({
       data: {
         ...this.buildProductData(input),
+        approvalStatus: options?.autoApprove ? 'APPROVED' : 'PENDING',
         variants: {
           create: sanitizeProductVariants(input.variants).map((v) => ({
             name: v.name,
@@ -1757,7 +1765,11 @@ export class AdminService {
     return { product: this.mapProduct(product) };
   }
 
-  async updateProduct(id: string, input: ProductWriteInput) {
+  async updateProduct(
+    id: string,
+    input: ProductWriteInput,
+    options?: { requireApproval?: boolean },
+  ) {
     await ensureStandardMenuCategories(this.prisma, input.restaurantId);
     await this.assertCategoryBelongsToRestaurant(
       input.categoryId,
@@ -1775,6 +1787,7 @@ export class AdminService {
         where: { id },
         data: {
           ...this.buildProductData(input),
+          ...(options?.requireApproval ? { approvalStatus: 'PENDING' } : {}),
           variants: {
             create: sanitizeProductVariants(input.variants).map((v) => ({
               name: v.name,
@@ -1797,6 +1810,21 @@ export class AdminService {
     const product = await this.prisma.product.update({
       where: { id },
       data: this.availabilityToDbFields(availability),
+      include: productInclude,
+    });
+    return { product: this.mapProduct(product) };
+  }
+
+  async patchProductApproval(
+    id: string,
+    approvalStatus: Extract<ProductApprovalStatus, 'APPROVED' | 'REJECTED'>,
+  ) {
+    const existing = await this.prisma.product.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('პროდუქტი არ მოიძებნა');
+
+    const product = await this.prisma.product.update({
+      where: { id },
+      data: { approvalStatus },
       include: productInclude,
     });
     return { product: this.mapProduct(product) };
@@ -1895,6 +1923,7 @@ export class AdminService {
         isAvailable: source.isAvailable,
         isHidden: source.isHidden,
         outOfStock: source.outOfStock,
+        approvalStatus: 'PENDING',
         variants: {
           create: source.variants.map((v) => ({
             name: v.name,

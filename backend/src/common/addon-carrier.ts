@@ -39,6 +39,7 @@ export async function ensureAddonCarrierProduct(
       isAvailable: true,
       isHidden: true,
       outOfStock: false,
+      approvalStatus: 'APPROVED',
     },
   });
 }

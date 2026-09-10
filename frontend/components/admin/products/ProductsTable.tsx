@@ -29,6 +29,8 @@ import {
 import { formatDateTime, formatGel } from "@/lib/admin/format";
 import type { AdminCategory, AdminProduct, AdminRestaurant } from "./types";
 import {
+  APPROVAL_BADGE,
+  APPROVAL_LABELS,
   AVAILABILITY_BADGE,
   AVAILABILITY_LABELS,
 } from "./types";
@@ -46,6 +48,8 @@ type ProductsTableProps = {
   onDuplicate: (product: AdminProduct) => void;
   onDelete: (product: AdminProduct) => void;
   onToggleAvailability: (product: AdminProduct) => void;
+  onApprove: (product: AdminProduct) => void;
+  onReject: (product: AdminProduct) => void;
 };
 
 export default function ProductsTable({
@@ -57,6 +61,8 @@ export default function ProductsTable({
   onDuplicate,
   onDelete,
   onToggleAvailability,
+  onApprove,
+  onReject,
 }: ProductsTableProps) {
   if (products.length === 0) {
     return (
@@ -78,6 +84,7 @@ export default function ProductsTable({
             <TableHead>ფასი</TableHead>
             <TableHead className="hidden sm:table-cell">ფასდ.</TableHead>
             <TableHead>სტატუსი</TableHead>
+            <TableHead className="hidden lg:table-cell">მოდერაცია</TableHead>
             <TableHead className="hidden xl:table-cell">მომზ.</TableHead>
             <TableHead className="hidden xl:table-cell">შექმნა</TableHead>
             <TableHead className="w-12 text-right">მოქ.</TableHead>
@@ -130,6 +137,11 @@ export default function ProductsTable({
                   {AVAILABILITY_LABELS[product.availability]}
                 </Badge>
               </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                <Badge variant={APPROVAL_BADGE[product.approvalStatus]}>
+                  {APPROVAL_LABELS[product.approvalStatus]}
+                </Badge>
+              </TableCell>
               <TableCell className="hidden xl:table-cell">
                 {product.preparationTime != null
                   ? `${product.preparationTime} წთ`
@@ -167,6 +179,16 @@ export default function ProductsTable({
                         ? "გათიშვა"
                         : "ჩართვა"}
                     </DropdownMenuItem>
+                    {product.approvalStatus !== "APPROVED" && (
+                      <DropdownMenuItem onClick={() => onApprove(product)}>
+                        დამტკიცება
+                      </DropdownMenuItem>
+                    )}
+                    {product.approvalStatus !== "REJECTED" && (
+                      <DropdownMenuItem onClick={() => onReject(product)}>
+                        უარყოფა
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"

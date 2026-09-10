@@ -13,6 +13,7 @@ type ProductForPricing = {
   isHidden: boolean;
   outOfStock: boolean;
   preparationTime: number | null;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 };
 
 type RestaurantForOrder = {
@@ -45,6 +46,12 @@ export function assertProductOrderable(
   product: ProductForPricing,
   label = 'პროდუქტი',
 ) {
+  if (
+    product.approvalStatus != null &&
+    product.approvalStatus !== 'APPROVED'
+  ) {
+    throw new BadRequestException(`${label} ჯერ არ არის დამტკიცებული`);
+  }
   if (product.isHidden || !product.isAvailable || product.outOfStock) {
     throw new BadRequestException(`${label} ამ moment-ში მიუწვდომელია`);
   }

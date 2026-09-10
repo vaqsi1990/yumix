@@ -32,6 +32,12 @@ export const PRODUCT_AVAILABILITY_LABELS: Record<string, string> = {
   OUT_OF_STOCK: "ამოწურული",
 };
 
+export const PRODUCT_APPROVAL_LABELS: Record<string, string> = {
+  PENDING: "მოდერაციაში",
+  APPROVED: "დამტკიცებული",
+  REJECTED: "უარყოფილი",
+};
+
 export const DAY_LABELS: Record<string, string> = {
   MONDAY: "ორშაბათი",
   TUESDAY: "სამშაბათი",

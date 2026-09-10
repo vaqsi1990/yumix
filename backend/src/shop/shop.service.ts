@@ -24,6 +24,14 @@ import {
 } from '../common/delivery.utils';
 import { calculateDeliveryEta } from '../common/eta.utils';
 import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
+import { PUBLIC_PRODUCT_APPROVAL_FILTER } from '../common/product-approval.utils';
+
+const PUBLIC_LISTED_PRODUCT_WHERE = {
+  isHidden: false,
+  isAvailable: true,
+  deletedAt: null,
+  ...PUBLIC_PRODUCT_APPROVAL_FILTER,
+};
 
 export type PublicRestaurant = {
   id: string;
@@ -365,9 +373,7 @@ export class ShopService {
           isApproved: true,
           products: {
             some: {
-              isHidden: false,
-              isAvailable: true,
-              deletedAt: null,
+              ...PUBLIC_LISTED_PRODUCT_WHERE,
               OR: this.menuKeywordFilters(normalized),
             },
           },
@@ -552,7 +558,11 @@ export class ShopService {
           orderBy: { sortOrder: 'asc' },
           include: {
             products: {
-              where: { isHidden: false, deletedAt: null },
+              where: {
+                isHidden: false,
+                deletedAt: null,
+                ...(options?.includeUnapproved ? {} : PUBLIC_PRODUCT_APPROVAL_FILTER),
+              },
               orderBy: { name: 'asc' },
               include: {
                 variants: { orderBy: { name: 'asc' } },
@@ -624,7 +634,12 @@ export class ShopService {
         name: category.name,
         sortOrder: category.sortOrder,
         products: category.products
-          .filter((product) => product.isAvailable)
+          .filter(
+            (product) =>
+              product.isAvailable &&
+              (options?.includeUnapproved ||
+                product.approvalStatus === 'APPROVED'),
+          )
           .map((product) => ({
             id: product.id,
             name: product.name,
@@ -695,10 +710,8 @@ export class ShopService {
   async getPublicOffers() {
     const products = await this.prisma.product.findMany({
       where: {
-        isHidden: false,
-        isAvailable: true,
+        ...PUBLIC_LISTED_PRODUCT_WHERE,
         outOfStock: false,
-        deletedAt: null,
         discountPrice: { not: null, gt: 0 },
         restaurant: { isApproved: true },
       },
@@ -837,6 +850,7 @@ export class ShopService {
           product.deletedAt == null &&
           !product.isHidden &&
           product.isAvailable &&
+          product.approvalStatus === 'APPROVED' &&
           !product.outOfStock &&
           product.name !== ADDON_CARRIER_PRODUCT_NAME &&
           product.restaurant.isApproved &&
@@ -1087,9 +1101,7 @@ export class ShopService {
                   {
                     products: {
                       some: {
-                        isHidden: false,
-                        isAvailable: true,
-                        deletedAt: null,
+                        ...PUBLIC_LISTED_PRODUCT_WHERE,
                         OR: keywordFilters,
                       },
                     },
@@ -1108,10 +1120,8 @@ export class ShopService {
       }),
       this.prisma.product.findMany({
         where: {
-          isHidden: false,
-          isAvailable: true,
+          ...PUBLIC_LISTED_PRODUCT_WHERE,
           outOfStock: false,
-          deletedAt: null,
           restaurant: { isApproved: true },
           OR: [
             ...(orderedProductIds.length

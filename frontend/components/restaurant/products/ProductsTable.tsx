@@ -24,7 +24,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency, formatMinutes } from "@/lib/restaurant/format";
-import { KA, PRODUCT_AVAILABILITY_LABELS } from "@/lib/restaurant/labels";
+import {
+  KA,
+  PRODUCT_APPROVAL_LABELS,
+  PRODUCT_AVAILABILITY_LABELS,
+} from "@/lib/restaurant/labels";
 import type { RestaurantProduct } from "@/lib/restaurant/types";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +37,12 @@ const STATUS_COLORS: Record<string, string> = {
   UNAVAILABLE: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
   HIDDEN: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
   OUT_OF_STOCK: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+
+const APPROVAL_COLORS: Record<string, string> = {
+  PENDING: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  APPROVED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  REJECTED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
 type ProductsTableProps = {
@@ -60,6 +70,7 @@ export default function ProductsTable({
             <TableHead>{KA.products.discountPrice}</TableHead>
             <TableHead>{KA.products.prepTime}</TableHead>
             <TableHead>{KA.status}</TableHead>
+            <TableHead>მოდერაცია</TableHead>
             <TableHead className="text-right">{KA.actions}</TableHead>
           </TableRow>
         </TableHeader>
@@ -113,6 +124,17 @@ export default function ProductsTable({
                   )}
                 >
                   {PRODUCT_AVAILABILITY_LABELS[product.availability]}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "font-medium",
+                    APPROVAL_COLORS[product.approvalStatus],
+                  )}
+                >
+                  {PRODUCT_APPROVAL_LABELS[product.approvalStatus]}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">

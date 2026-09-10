@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Check,
   Pencil,
   Plus,
   Trash2,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,8 @@ import { formatGel } from "@/lib/admin/format";
 import { onlyStandardMenuCategories } from "@/lib/menu-category-order";
 import type { AdminProduct } from "@/components/admin/products/types";
 import {
+  APPROVAL_BADGE,
+  APPROVAL_LABELS,
   AVAILABILITY_BADGE,
   AVAILABILITY_LABELS,
 } from "@/components/admin/products/types";
@@ -42,6 +46,9 @@ export default function RestaurantMenuPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingProductId, setDeletingProductId] = useState<string | null>(
+    null,
+  );
+  const [approvalProductId, setApprovalProductId] = useState<string | null>(
     null,
   );
 
@@ -115,6 +122,38 @@ export default function RestaurantMenuPanel({
     (sum, category) => sum + category.products.length,
     0,
   );
+
+  async function handleApproval(
+    product: AdminProduct,
+    approvalStatus: "APPROVED" | "REJECTED",
+  ) {
+    setApprovalProductId(product.id);
+    setError("");
+    try {
+      const res = await fetch(`/api/backend/admin/products/${product.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvalStatus }),
+      });
+      if (!res.ok) {
+        setError(await parseApiError(res, "სტატუსის შეცვლა ვერ მოხერხდა"));
+        return;
+      }
+      const data = (await res.json()) as { product: AdminProduct };
+      setMenu((prev) =>
+        prev.map((category) => ({
+          ...category,
+          products: category.products.map((row) =>
+            row.id === product.id ? data.product : row,
+          ),
+        })),
+      );
+    } catch {
+      setError("სტატუსის შეცვლა ვერ მოხერხდა");
+    } finally {
+      setApprovalProductId(null);
+    }
+  }
 
   async function handleDeleteProduct(product: AdminProduct) {
     if (!window.confirm(`"${product.name}" წავშალოთ?`)) return;
@@ -285,10 +324,36 @@ export default function RestaurantMenuPanel({
                             <Badge variant={AVAILABILITY_BADGE[product.availability]}>
                               {AVAILABILITY_LABELS[product.availability]}
                             </Badge>
+                            <Badge variant={APPROVAL_BADGE[product.approvalStatus]}>
+                              {APPROVAL_LABELS[product.approvalStatus]}
+                            </Badge>
                           </div>
                         </div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1 self-end sm:self-center">
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 self-end sm:self-center">
+                        {product.approvalStatus !== "APPROVED" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={approvalProductId === product.id}
+                            onClick={() => void handleApproval(product, "APPROVED")}
+                          >
+                            <Check className="size-4" />
+                            დამტკიცება
+                          </Button>
+                        )}
+                        {product.approvalStatus !== "REJECTED" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={approvalProductId === product.id}
+                            onClick={() => void handleApproval(product, "REJECTED")}
+                          >
+                            <X className="size-4" />
+                            უარყოფა
+                          </Button>
+                        )}
                         <Button type="button" variant="ghost" size="sm" asChild>
                           <Link
                             href={`/admin/products/${product.id}/edit?returnTo=${encodeURIComponent(returnTo)}`}

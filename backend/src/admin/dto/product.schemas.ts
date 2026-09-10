@@ -115,6 +115,10 @@ export const productAvailabilityPatchSchema = z.object({
   availability: productAvailabilitySchema,
 });
 
+export const productApprovalPatchSchema = z.object({
+  approvalStatus: z.enum(['APPROVED', 'REJECTED']),
+});
+
 export type ProductWriteDto = z.infer<typeof productWriteSchema>;
 export type RestaurantProductWriteDto = z.infer<
   typeof restaurantProductWriteSchema

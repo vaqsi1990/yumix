@@ -600,12 +600,16 @@ export class RestaurantPanelService {
       where: { id, restaurantId: restaurant.id },
     });
     if (!existing) throw new NotFoundException('პროდუქტი ვერ მოიძებნა');
-    return this.admin.updateProduct(id, {
-      ...input,
-      restaurantId: restaurant.id,
-      variants: input.variants ?? [],
-      customizationGroups: input.customizationGroups ?? [],
-    });
+    return this.admin.updateProduct(
+      id,
+      {
+        ...input,
+        restaurantId: restaurant.id,
+        variants: input.variants ?? [],
+        customizationGroups: input.customizationGroups ?? [],
+      },
+      { requireApproval: true },
+    );
   }
 
   async deleteProduct(userId: string, role: string, id: string) {
@@ -960,6 +964,7 @@ export class RestaurantPanelService {
       preparationTime: row.preparationTime,
       foodType: row.foodType,
       availability,
+      approvalStatus: row.approvalStatus,
       isAvailable: row.isAvailable,
       isHidden: row.isHidden,
       outOfStock: row.outOfStock,

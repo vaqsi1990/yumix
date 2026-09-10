@@ -6,6 +6,8 @@ export type ProductAvailability =
   | "HIDDEN"
   | "OUT_OF_STOCK";
 
+export type ProductApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export type ProductSortOption =
   | "newest"
   | "oldest"
@@ -90,6 +92,7 @@ export type AdminProduct = {
   foodType?: string | null;
   spicinessLevel?: string | null;
   availability: ProductAvailability;
+  approvalStatus: ProductApprovalStatus;
   /** Maps to Prisma isAvailable for AVAILABLE/UNAVAILABLE */
   isAvailable: boolean;
   allergens: ProductAllergens;
@@ -124,6 +127,21 @@ export const DEFAULT_ALLERGENS: ProductAllergens = {
   soy: false,
   vegan: false,
   vegetarian: false,
+};
+
+export const APPROVAL_LABELS: Record<ProductApprovalStatus, string> = {
+  PENDING: "მოლოდინში",
+  APPROVED: "დამტკიცებული",
+  REJECTED: "უარყოფილი",
+};
+
+export const APPROVAL_BADGE: Record<
+  ProductApprovalStatus,
+  "success" | "destructive" | "warning"
+> = {
+  PENDING: "warning",
+  APPROVED: "success",
+  REJECTED: "destructive",
 };
 
 export const AVAILABILITY_LABELS: Record<ProductAvailability, string> = {
@@ -187,6 +205,7 @@ export function createEmptyProductForm(
     foodType: null,
     spicinessLevel: null,
     availability: "AVAILABLE",
+    approvalStatus: "PENDING",
     allergens: { ...DEFAULT_ALLERGENS },
     variants: [],
     addOns: [],
@@ -215,6 +234,7 @@ export function formDataToProduct(
     ...data,
     id: id ?? `prod_${Date.now()}`,
     isAvailable: availabilityToIsAvailable(data.availability),
+    approvalStatus: data.approvalStatus ?? "PENDING",
     createdAt: timestamps?.createdAt ?? now,
     updatedAt: timestamps?.updatedAt ?? now,
   };

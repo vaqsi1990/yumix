@@ -340,7 +340,12 @@ export class AccountService {
 
     return {
       products: rows
-        .filter((row) => !row.product.isHidden && row.product.isAvailable)
+        .filter(
+          (row) =>
+            !row.product.isHidden &&
+            row.product.isAvailable &&
+            row.product.approvalStatus === 'APPROVED',
+        )
         .map((row) => ({
           favoriteId: row.id,
           id: row.product.id,
@@ -374,7 +379,12 @@ export class AccountService {
 
   async addFavoriteProduct(userId: string, productId: string) {
     const product = await this.prisma.product.findFirst({
-      where: { id: productId, isHidden: false, isAvailable: true },
+      where: {
+        id: productId,
+        isHidden: false,
+        isAvailable: true,
+        approvalStatus: 'APPROVED',
+      },
     });
     if (!product) throw new NotFoundException('პროდუქტი ვერ მოიძებნა');
 
