@@ -3,11 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  MessageEvent,
   Param,
   Patch,
   Post,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import {
   CurrentUser,
@@ -17,10 +20,13 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { OrdersService } from './orders.service';
 import { AddressesService } from './addresses.service';
 import {
+  cancelOrderSchema,
   createAddressSchema,
+  createOrderReviewSchema,
   createOrderSchema,
   updateAddressSchema,
 } from './dto/order.schemas';
+import { OrderEventsService } from './order-events.service';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -28,6 +34,7 @@ export class OrdersController {
   constructor(
     private orders: OrdersService,
     private addresses: AddressesService,
+    private orderEvents: OrderEventsService,
   ) {}
 
   @Get()
@@ -35,9 +42,47 @@ export class OrdersController {
     return this.orders.listForUser(user.id);
   }
 
+  @Sse(':id/events')
+  stream(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ): Observable<MessageEvent> {
+    return new Observable<MessageEvent>((subscriber) => {
+      void this.orders
+        .getForUser(user.id, id)
+        .then(() => {
+          const unsubscribe = this.orderEvents.subscribe(id, (event) => {
+            subscriber.next({ data: event });
+          });
+          subscriber.add(() => unsubscribe());
+        })
+        .catch((error) => subscriber.error(error));
+    });
+  }
+
   @Get(':id')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.orders.getForUser(user.id, id);
+  }
+
+  @Post(':id/cancel')
+  cancel(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(cancelOrderSchema)) body: unknown,
+  ) {
+    const parsed = cancelOrderSchema.parse(body);
+    return this.orders.cancelForUser(user.id, id, parsed.reason);
+  }
+
+  @Post(':id/review')
+  review(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(createOrderReviewSchema)) body: unknown,
+  ) {
+    const parsed = createOrderReviewSchema.parse(body);
+    return this.orders.createReview(user.id, id, parsed);
   }
 
   @Post()

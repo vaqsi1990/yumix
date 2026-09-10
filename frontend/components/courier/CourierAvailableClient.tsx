@@ -37,6 +37,11 @@ function OrderPreview({
         {order.address.building ? `, ${order.address.building}` : ""}
         {order.address.apartment ? `, ბ. ${order.address.apartment}` : ""}
       </p>
+      {order.distanceToRestaurantKm != null ? (
+        <p className="mt-1 text-xs text-neutral-500">
+          რესტორანთან: ~{order.distanceToRestaurantKm} კმ
+        </p>
+      ) : null}
       <p className="mt-2 font-semibold text-[#FF0050]">{formatGel(order.total)}</p>
       {action ? <div className="mt-3">{action}</div> : null}
     </article>

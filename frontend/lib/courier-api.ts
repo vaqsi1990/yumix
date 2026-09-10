@@ -63,6 +63,7 @@ export type CourierAvailableOrder = {
   orderNumber: string;
   total: number;
   status: string;
+  distanceToRestaurantKm?: number | null;
   restaurant: { name: string; address: string; city: string; phone?: string };
   address: {
     city: string;

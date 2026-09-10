@@ -35,6 +35,15 @@ export class CartService {
     longitude: true,
     minimumOrder: true,
     logo: true,
+    deliveryZones: {
+      orderBy: { sortOrder: 'asc' as const },
+      select: {
+        maxDistanceKm: true,
+        deliveryFee: true,
+        minimumOrder: true,
+        estimatedMinutes: true,
+      },
+    },
   } as const;
 
   async getUserCart(userId: string) {

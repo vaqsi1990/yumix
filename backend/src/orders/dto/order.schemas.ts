@@ -43,6 +43,17 @@ export const createOrderSchema = z.object({
   addressId: z.string().min(1, 'აირჩიე მისამართი'),
   paymentMethod: paymentMethodSchema,
   customerNote: z.string().trim().max(500).nullable().optional(),
+  scheduledFor: z.string().datetime().nullable().optional(),
+});
+
+export const cancelOrderSchema = z.object({
+  reason: z.string().trim().max(500).nullable().optional(),
+});
+
+export const createOrderReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  deliveryRating: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(1000).nullable().optional(),
 });
 
 export const adminAssignCourierSchema = z.object({

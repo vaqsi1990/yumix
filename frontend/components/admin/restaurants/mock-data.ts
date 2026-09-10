@@ -56,6 +56,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 842,
     revenue: 28450,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: true,
       featured: true,
@@ -113,6 +114,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 1204,
     revenue: 52100,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: true,
       featured: true,
@@ -162,6 +164,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 456,
     revenue: 15200,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: false,
       featured: false,
@@ -211,6 +214,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 2100,
     revenue: 67800,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: true,
       featured: true,
@@ -260,6 +264,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 0,
     revenue: 0,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: true,
       featured: false,
@@ -309,6 +314,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 0,
     revenue: 0,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: false,
       featured: false,
@@ -358,6 +364,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 189,
     revenue: 4200,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: false,
       featured: false,
@@ -407,6 +414,7 @@ export const MOCK_RESTAURANTS: AdminRestaurant[] = [
     totalOrders: 0,
     revenue: 0,
     workingHours: defaultHours(),
+    deliveryZones: [],
     settings: {
       acceptingOrders: false,
       featured: false,

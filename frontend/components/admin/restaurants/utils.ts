@@ -222,6 +222,14 @@ export type ApiRestaurantRow = {
     user: { firstName: string; lastName: string };
   }[];
   _count: { products: number; orders: number };
+  deliveryZones?: {
+    id: string;
+    name: string;
+    maxDistanceKm: number;
+    deliveryFee: number;
+    minimumOrder: number | null;
+    estimatedMinutes: number;
+  }[];
 };
 
 const DAY_BY_INDEX = [
@@ -293,6 +301,15 @@ export function mapApiRestaurant(row: ApiRestaurantRow): AdminRestaurant {
         openTime: wh.openTime,
         closeTime: wh.closeTime,
         isClosed: wh.isClosed,
+      })) ?? [],
+    deliveryZones:
+      row.deliveryZones?.map((zone) => ({
+        id: zone.id,
+        name: zone.name,
+        maxDistanceKm: zone.maxDistanceKm,
+        deliveryFee: zone.deliveryFee,
+        minimumOrder: zone.minimumOrder,
+        estimatedMinutes: zone.estimatedMinutes,
       })) ?? [],
     settings: {
       acceptingOrders: row.isOpen,
@@ -374,7 +391,14 @@ export function restaurantToFormValues(
     paymentCard: true,
     paymentApplePay: false,
     paymentGooglePay: false,
-    deliveryZones: [],
+    deliveryZones: (restaurant.deliveryZones ?? []).map((zone) => ({
+      id: zone.id,
+      name: zone.name,
+      maxDistanceKm: zone.maxDistanceKm,
+      deliveryFee: zone.deliveryFee,
+      minimumOrder: zone.minimumOrder ?? 0,
+      estimatedMinutes: zone.estimatedMinutes,
+    })),
   };
 }
 

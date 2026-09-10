@@ -73,7 +73,9 @@ export default function AccountSettingsClient({
         <div className="space-y-4">
           {(
             [
-              ["orderUpdates", "შეკვეთის განახლებები"],
+              ["orderUpdates", "შეკვეთის განახლებები (აპი)"],
+              ["orderEmail", "შეკვეთის ელფოსტა"],
+              ["orderSms", "შეკვეთის SMS"],
               ["promotions", "აქციები"],
               ["newRestaurants", "ახალი რესტორნები"],
               ["discounts", "ფასდაკლებები"],

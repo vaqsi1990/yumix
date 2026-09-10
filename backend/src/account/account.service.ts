@@ -36,6 +36,10 @@ export class AccountService {
         typeof obj.orderUpdates === 'boolean'
           ? obj.orderUpdates
           : base.orderUpdates,
+      orderEmail:
+        typeof obj.orderEmail === 'boolean' ? obj.orderEmail : base.orderEmail,
+      orderSms:
+        typeof obj.orderSms === 'boolean' ? obj.orderSms : base.orderSms,
       promotions:
         typeof obj.promotions === 'boolean' ? obj.promotions : base.promotions,
       newRestaurants:

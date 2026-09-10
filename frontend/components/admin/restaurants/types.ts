@@ -46,6 +46,15 @@ export type RestaurantSettings = {
   approved: boolean;
 };
 
+export type DeliveryZone = {
+  id: string;
+  name: string;
+  maxDistanceKm: number;
+  deliveryFee: number;
+  minimumOrder: number | null;
+  estimatedMinutes: number;
+};
+
 /** Full admin restaurant row + detail payload (mock / Prisma-ready) */
 export type AdminRestaurant = {
   id: string;
@@ -79,6 +88,7 @@ export type AdminRestaurant = {
   totalOrders: number;
   revenue: number;
   workingHours: WorkingHourEntry[];
+  deliveryZones: DeliveryZone[];
   settings: RestaurantSettings;
   reviews: RestaurantReview[];
   createdAt: string;

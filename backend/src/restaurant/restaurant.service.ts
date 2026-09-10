@@ -692,6 +692,21 @@ export class RestaurantPanelService {
           },
         },
         address: true,
+        courier: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            courier: {
+              select: {
+                currentLatitude: true,
+                currentLongitude: true,
+                locationUpdatedAt: true,
+              },
+            },
+          },
+        },
         items: {
           include: restaurantOrderItemInclude,
         },
@@ -718,6 +733,21 @@ export class RestaurantPanelService {
           },
         },
         address: true,
+        courier: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            courier: {
+              select: {
+                currentLatitude: true,
+                currentLongitude: true,
+                locationUpdatedAt: true,
+              },
+            },
+          },
+        },
         items: {
           include: restaurantOrderItemInclude,
         },
@@ -1060,7 +1090,19 @@ export class RestaurantPanelService {
       paymentStatus: string;
       paymentMethod: string;
       customerNote: string | null;
+      scheduledFor?: Date | null;
       createdAt: Date;
+      courier?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        courier?: {
+          currentLatitude: number | null;
+          currentLongitude: number | null;
+          locationUpdatedAt: Date | null;
+        } | null;
+      } | null;
       _count?: { items: number };
     },
   ) {
@@ -1085,6 +1127,23 @@ export class RestaurantPanelService {
       createdAt: order.createdAt.toISOString(),
       deliveryAddress: addressParts.join(', '),
       notes: order.customerNote,
+      scheduledFor: order.scheduledFor?.toISOString() ?? null,
+      courier: order.courier
+        ? {
+            id: order.courier.id,
+            name: `${order.courier.firstName} ${order.courier.lastName}`.trim(),
+            phone: order.courier.phone,
+            location: order.courier.courier
+              ? {
+                  latitude: order.courier.courier.currentLatitude,
+                  longitude: order.courier.courier.currentLongitude,
+                  updatedAt:
+                    order.courier.courier.locationUpdatedAt?.toISOString() ??
+                    null,
+                }
+              : null,
+          }
+        : null,
       items: order.items.map((item) => ({
         id: item.id,
         name: item.product.name,
@@ -1119,6 +1178,7 @@ export class RestaurantPanelService {
       customerName: `${review.user.firstName} ${review.user.lastName}`.trim(),
       customerAvatar: review.user.avatar,
       rating: review.rating,
+      deliveryRating: review.deliveryRating,
       comment: review.comment ?? '',
       orderNumber: review.order.orderNumber,
       createdAt: review.createdAt.toISOString(),

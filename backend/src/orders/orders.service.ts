@@ -16,10 +16,13 @@ import {
 import { ADDON_CARRIER_PRODUCT_NAME } from '../common/addon-categories';
 import { quoteDeliveryFee } from '../common/delivery.utils';
 import { etaFromOrderSnapshot } from '../common/eta.utils';
-import { notifyCustomerOrderStatus } from '../common/order-status.utils';
+import { CUSTOMER_CANCEL_STATUSES } from '../common/order-status.utils';
+import { estimateDrivingDistanceKm } from '../common/routing.utils';
 import type { CreateOrderDto } from './dto/order.schemas';
 import type { PaymentMethod, PaymentStatus } from '../generated/prisma/client';
 import { AddressesService } from './addresses.service';
+import { OrderEventsService } from './order-events.service';
+import { OrderNotificationsService } from './order-notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -27,6 +30,8 @@ export class OrdersService {
     private prisma: PrismaService,
     private cartService: CartService,
     private addresses: AddressesService,
+    private orderEvents: OrderEventsService,
+    private orderNotifications: OrderNotificationsService,
   ) {}
 
   private mapOrder(order: Awaited<ReturnType<typeof this.fetchOrder>>) {
@@ -59,6 +64,17 @@ export class OrdersService {
       etaTotalMax: order.etaTotalMax,
       eta,
       customerNote: order.customerNote,
+      scheduledFor: order.scheduledFor?.toISOString() ?? null,
+      cancelledAt: order.cancelledAt?.toISOString() ?? null,
+      cancellationReason: order.cancellationReason,
+      hasReview: Boolean(order.review),
+      review: order.review
+        ? {
+            rating: order.review.rating,
+            deliveryRating: order.review.deliveryRating,
+            comment: order.review.comment,
+          }
+        : null,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
       restaurant: order.restaurant,
@@ -195,12 +211,12 @@ export class OrdersService {
       where: { id: cart.restaurantId },
       include: {
         workingHours: { orderBy: { day: 'asc' } },
+        deliveryZones: { orderBy: { sortOrder: 'asc' } },
       },
     });
     if (!restaurant) throw new NotFoundException('რესტორანი ვერ მოიძებნა');
 
     assertRestaurantOrderable(restaurant);
-    assertMinimumOrder(totals.subtotal, restaurant.minimumOrder);
 
     for (const item of cart.items) {
       const product = await this.prisma.product.findUnique({
@@ -227,7 +243,35 @@ export class OrdersService {
       );
     }
 
-    const delivery = quoteDeliveryFee(restaurant, address);
+    let distanceKm =
+      restaurant.latitude != null &&
+      restaurant.longitude != null &&
+      address.latitude != null &&
+      address.longitude != null
+        ? await estimateDrivingDistanceKm(
+            {
+              latitude: restaurant.latitude,
+              longitude: restaurant.longitude,
+            },
+            { latitude: address.latitude, longitude: address.longitude },
+          )
+        : null;
+
+    const delivery = quoteDeliveryFee(
+      {
+        ...restaurant,
+        deliveryZones: restaurant.deliveryZones.map((zone) => ({
+          maxDistanceKm: zone.maxDistanceKm,
+          deliveryFee: zone.deliveryFee,
+          minimumOrder: zone.minimumOrder,
+          estimatedMinutes: zone.estimatedMinutes,
+        })),
+      },
+      address,
+    );
+    if (distanceKm != null) {
+      delivery.distanceKm = distanceKm;
+    }
     if (delivery.outOfRange) {
       const maxKm = restaurant.deliveryRadius;
       throw new BadRequestException(
@@ -238,6 +282,22 @@ export class OrdersService {
     }
 
     const deliveryFee = delivery.fee;
+    const effectiveMinimum =
+      delivery.zoneMinimumOrder ?? restaurant.minimumOrder;
+    assertMinimumOrder(totals.subtotal, effectiveMinimum);
+
+    let scheduledFor: Date | null = null;
+    if (input.scheduledFor) {
+      const when = new Date(input.scheduledFor);
+      const minLead = Date.now() + 30 * 60 * 1000;
+      const maxLead = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      if (when.getTime() < minLead || when.getTime() > maxLead) {
+        throw new BadRequestException(
+          'დაგეგმილი შეკვეთა უნდა იყოს 30 წუთიდან 7 დღემდე',
+        );
+      }
+      scheduledFor = when;
+    }
 
     let discount = totals.discount;
     let couponId: string | null = cart.couponId;
@@ -303,6 +363,7 @@ export class OrdersService {
           etaTotalMin: etaSnapshot.etaTotalMin,
           etaTotalMax: etaSnapshot.etaTotalMax,
           customerNote: input.customerNote?.trim() || null,
+          scheduledFor,
           couponId,
           items: {
             create: cart.items.map((item) => {
@@ -391,7 +452,7 @@ export class OrdersService {
         });
       }
 
-      await notifyCustomerOrderStatus(tx, {
+      await this.orderNotifications.notifyCustomerStatus(tx, {
         userId: created.userId,
         orderId: created.id,
         orderNumber: created.orderNumber,
@@ -401,7 +462,122 @@ export class OrdersService {
       return created;
     });
 
+    this.orderEvents.emit({
+      orderId: order.id,
+      type: 'STATUS',
+      status: order.status,
+      at: new Date().toISOString(),
+    });
+
     return { order: this.mapOrder(order) };
+  }
+
+  async cancelForUser(
+    userId: string,
+    orderId: string,
+    reason?: string | null,
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+    });
+    if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+    if (!CUSTOMER_CANCEL_STATUSES.includes(order.status)) {
+      throw new BadRequestException('ამ ეტაპზე შეკვეთის გაუქმება შეუძლებელია');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancellationReason: reason?.trim() || null,
+          cancelledByRole: 'CUSTOMER',
+        },
+        include: orderInclude,
+      });
+
+      await this.orderNotifications.notifyCustomerStatus(tx, {
+        userId: next.userId,
+        orderId: next.id,
+        orderNumber: next.orderNumber,
+        status: 'CANCELLED',
+        previousStatus: order.status,
+      });
+
+      return next;
+    });
+
+    this.orderEvents.emit({
+      orderId: updated.id,
+      type: 'STATUS',
+      status: updated.status,
+      at: new Date().toISOString(),
+    });
+
+    return { order: this.mapOrder(updated) };
+  }
+
+  async createReview(
+    userId: string,
+    orderId: string,
+    input: {
+      rating: number;
+      deliveryRating: number;
+      comment?: string | null;
+    },
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { review: true },
+    });
+    if (!order) throw new NotFoundException('შეკვეთა ვერ მოიძებნა');
+    if (order.status !== 'DELIVERED') {
+      throw new BadRequestException('მიმოხილვა მხოლოდ მიწოდების შემდეგ');
+    }
+    if (order.review) {
+      throw new BadRequestException('ამ შეკვეთაზე მიმოხილვა უკვე არსებობს');
+    }
+
+    const review = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.review.create({
+        data: {
+          userId,
+          restaurantId: order.restaurantId,
+          orderId: order.id,
+          rating: input.rating,
+          deliveryRating: input.deliveryRating,
+          comment: input.comment?.trim() || null,
+        },
+      });
+
+      if (order.courierId) {
+        const stats = await tx.review.aggregate({
+          where: {
+            deliveryRating: { not: null },
+            order: { courierId: order.courierId },
+          },
+          _avg: { deliveryRating: true },
+        });
+        const avg = stats._avg.deliveryRating;
+        if (avg != null) {
+          await tx.courier.updateMany({
+            where: { userId: order.courierId },
+            data: { rating: Number(avg.toFixed(2)) },
+          });
+        }
+      }
+
+      return created;
+    });
+
+    return {
+      review: {
+        rating: review.rating,
+        deliveryRating: review.deliveryRating,
+        comment: review.comment,
+      },
+    };
   }
 
   private resolveInitialPaymentStatus(method: PaymentMethod): PaymentStatus {

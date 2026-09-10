@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Headphones, Phone, RotateCcw } from "lucide-react";
+import { Headphones, Phone, RotateCcw, Star, XCircle } from "lucide-react";
 import OrderTimeline from "@/components/orders/OrderTimeline";
 import OrderLiveTracking from "@/components/orders/OrderLiveTracking";
 import type { DeliveryEta } from "@/lib/delivery";
@@ -17,7 +17,11 @@ import {
   PAYMENT_METHOD_LABELS,
 } from "@/lib/account/constants";
 import ClientDateTime from "@/components/account/ClientDateTime";
-import { reorderOrder } from "@/lib/account-api";
+import {
+  cancelOrder,
+  reorderOrder,
+  submitOrderReview,
+} from "@/lib/account-api";
 import type { OrderStatus } from "@/lib/types";
 
 type OrderDetail = {
@@ -33,6 +37,15 @@ type OrderDetail = {
   estimatedTime: number | null;
   eta?: DeliveryEta | null;
   customerNote: string | null;
+  scheduledFor?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  hasReview?: boolean;
+  review?: {
+    rating: number;
+    deliveryRating: number | null;
+    comment: string | null;
+  } | null;
   createdAt: string;
   restaurant: {
     name: string;
@@ -88,22 +101,47 @@ export default function AccountOrderDetailClient({
   const router = useRouter();
   const [order, setOrder] = useState(initialOrder);
   const [reorderBusy, setReorderBusy] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [restaurantRating, setRestaurantRating] = useState(5);
+  const [deliveryRating, setDeliveryRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
   const isActive = ACTIVE_STATUSES.includes(order.status as OrderStatus);
+  const canCancel =
+    order.status === "PENDING" || order.status === "ACCEPTED";
 
-  useEffect(() => {
-    if (!isActive) return;
-    const timer = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/backend/orders/${order.id}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as { order: OrderDetail };
-        setOrder(data.order);
-      } catch {
-        // ignore
-      }
-    }, 8000);
-    return () => clearInterval(timer);
-  }, [order.id, isActive]);
+  async function handleCancel() {
+    if (!confirm("დარწმუნებული ხარ, რომ გინდა შეკვეთის გაუქმება?")) return;
+    setCancelBusy(true);
+    try {
+      const { order: next } = await cancelOrder(order.id);
+      setOrder(next as OrderDetail);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "გაუქმება ვერ მოხერხდა");
+    } finally {
+      setCancelBusy(false);
+    }
+  }
+
+  async function handleReview() {
+    setReviewBusy(true);
+    try {
+      const { review } = await submitOrderReview(order.id, {
+        rating: restaurantRating,
+        deliveryRating,
+        comment: reviewComment.trim() || null,
+      });
+      setOrder((prev) => ({
+        ...prev,
+        hasReview: true,
+        review,
+      }));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "მიმოხილვის გაგზავნა ვერ მოხერხდა");
+    } finally {
+      setReviewBusy(false);
+    }
+  }
 
   async function handleReorder() {
     setReorderBusy(true);
@@ -137,6 +175,12 @@ export default function AccountOrderDetailClient({
           <h1 className="text-2xl font-bold">#{order.orderNumber}</h1>
           <p className="text-sm text-neutral-500">
             <ClientDateTime value={order.createdAt} />
+            {order.scheduledFor ? (
+              <>
+                {" · "}
+                დაგეგმილი: <ClientDateTime value={order.scheduledFor} />
+              </>
+            ) : null}
           </p>
         </div>
         <span className="rounded-full bg-[#FF0050]/10 px-3 py-1 text-sm font-medium text-[#FF0050]">
@@ -151,6 +195,20 @@ export default function AccountOrderDetailClient({
             initialOrder={order}
             poll={isActive}
             showWaitingHint={isActive}
+            onOrderUpdate={(next) =>
+              setOrder((prev) => ({
+                ...prev,
+                status: next.status,
+                courier: next.courier
+                  ? {
+                      firstName: next.courier.firstName ?? "",
+                      lastName: next.courier.lastName ?? "",
+                      phone: next.courier.phone ?? "",
+                      location: next.courier.location ?? null,
+                    }
+                  : prev.courier,
+              }))
+            }
           />
 
           <section className="rounded-2xl border border-neutral-200 bg-white p-5">
@@ -169,6 +227,105 @@ export default function AccountOrderDetailClient({
               <OrderTimeline status={order.status} />
             </div>
           </section>
+
+          {order.status === "CANCELLED" && order.cancellationReason ? (
+            <section className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+              <p className="font-semibold">გაუქმების მიზეზი</p>
+              <p className="mt-1">{order.cancellationReason}</p>
+            </section>
+          ) : null}
+
+          {order.status === "DELIVERED" && !order.hasReview ? (
+            <section className="rounded-2xl border border-neutral-200 bg-white p-5">
+              <h2 className="font-bold">შეფასე შეკვეთა</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                როგორი იყო საჭმელი და მიწოდება?
+              </p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-sm font-medium">რესტორანი / საჭმელი</p>
+                  <div className="mt-2 flex gap-1">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={`restaurant-${value}`}
+                        type="button"
+                        onClick={() => setRestaurantRating(value)}
+                        className="rounded p-1"
+                        aria-label={`რესტორანი ${value} ვარსკვლავი`}
+                      >
+                        <Star
+                          className={`size-6 ${
+                            value <= restaurantRating
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-neutral-300"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">მიწოდება</p>
+                  <div className="mt-2 flex gap-1">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={`delivery-${value}`}
+                        type="button"
+                        onClick={() => setDeliveryRating(value)}
+                        className="rounded p-1"
+                        aria-label={`მიწოდება ${value} ვარსკვლავი`}
+                      >
+                        <Star
+                          className={`size-6 ${
+                            value <= deliveryRating
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-neutral-300"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <textarea
+                className="mt-4 w-full rounded-xl border border-neutral-200 p-3 text-sm"
+                rows={3}
+                placeholder="კომენტარი (არასავალდებულო)"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+              />
+              <Button
+                className="mt-3 bg-[#FF0050] hover:bg-[#e00048]"
+                disabled={reviewBusy}
+                onClick={() => void handleReview()}
+              >
+                მიმოხილვის გაგზავნა
+              </Button>
+            </section>
+          ) : null}
+
+          {order.status === "DELIVERED" && order.hasReview && order.review ? (
+            <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
+              <h2 className="font-bold">თქვენი შეფასება</h2>
+              <div className="mt-3 space-y-2 text-sm">
+                <p>
+                  რესტორანი:{" "}
+                  <span className="font-medium">{order.review.rating}/5</span>
+                </p>
+                {order.review.deliveryRating != null ? (
+                  <p>
+                    მიწოდება:{" "}
+                    <span className="font-medium">
+                      {order.review.deliveryRating}/5
+                    </span>
+                  </p>
+                ) : null}
+                {order.review.comment ? (
+                  <p className="text-neutral-600">{order.review.comment}</p>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
 
           <section className="rounded-2xl border border-neutral-200 bg-white p-5">
             <h2 className="font-bold">პროდუქტები</h2>
@@ -279,6 +436,16 @@ export default function AccountOrderDetailClient({
           </section>
 
           <div className="flex flex-col gap-2">
+            {canCancel ? (
+              <Button
+                variant="outline"
+                disabled={cancelBusy}
+                onClick={() => void handleCancel()}
+              >
+                <XCircle className="size-4" />
+                შეკვეთის გაუქმება
+              </Button>
+            ) : null}
             <Button variant="outline" asChild>
               <Link href={`/account/help?order=${order.orderNumber}`}>
                 <Headphones className="size-4" />

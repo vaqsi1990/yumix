@@ -62,12 +62,14 @@ export default function OrderLiveTracking({
   poll = true,
   showWaitingHint = false,
   title = "მიწოდების თვალყური",
+  onOrderUpdate,
 }: {
   orderId: string;
   initialOrder?: TrackingOrder;
   poll?: boolean;
   showWaitingHint?: boolean;
   title?: string;
+  onOrderUpdate?: (order: TrackingOrder) => void;
 }) {
   const [order, setOrder] = useState<TrackingOrder | null>(initialOrder ?? null);
   const [mounted, setMounted] = useState(false);
@@ -89,15 +91,29 @@ export default function OrderLiveTracking({
         if (!res.ok) return;
         const data = (await res.json()) as { order: TrackingOrder };
         setOrder(data.order);
+        onOrderUpdate?.(data.order);
       } catch {
         // ignore polling errors
       }
     }
 
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 12_000);
-    return () => window.clearInterval(timer);
-  }, [orderId, poll]);
+
+    const source = new EventSource(`/api/backend/orders/${orderId}/events`);
+    source.onmessage = () => {
+      void refresh();
+    };
+    source.onerror = () => {
+      source.close();
+    };
+
+    const fallback = window.setInterval(() => void refresh(), 30_000);
+
+    return () => {
+      source.close();
+      window.clearInterval(fallback);
+    };
+  }, [orderId, poll, onOrderUpdate]);
 
   if (!order) {
     return (

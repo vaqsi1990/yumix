@@ -48,6 +48,7 @@ export type CreateOrderPayload = {
   addressId: string;
   paymentMethod: "CASH" | "CARD" | "APPLE_PAY" | "GOOGLE_PAY";
   customerNote?: string | null;
+  scheduledFor?: string | null;
 };
 
 async function parseError(res: Response) {

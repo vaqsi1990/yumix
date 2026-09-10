@@ -218,4 +218,12 @@ export const orderInclude = {
     },
   },
   payment: true,
+  review: {
+    select: {
+      id: true,
+      rating: true,
+      deliveryRating: true,
+      comment: true,
+    },
+  },
 } satisfies Prisma.OrderInclude;

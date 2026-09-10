@@ -75,6 +75,8 @@ export default function CheckoutView({
   const [outOfRange, setOutOfRange] = useState(false);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [eta, setEta] = useState<DeliveryEta | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
 
   const belowMinimum =
     cart.restaurant.minimumOrder != null &&
@@ -147,6 +149,10 @@ export default function CheckoutView({
 
   async function handleSubmit() {
     if (belowMinimum || outOfRange) return;
+    if (scheduleEnabled && !scheduledFor) {
+      setError("აირჩიე დაგეგმილი მიწოდების დრო");
+      return;
+    }
     if (!addressId && !showNewAddress) {
       setError("აირჩიე მიწოდების მისამართი");
       return;
@@ -165,6 +171,10 @@ export default function CheckoutView({
         addressId: finalAddressId,
         paymentMethod,
         customerNote: customerNote.trim() || null,
+        scheduledFor:
+          scheduleEnabled && scheduledFor
+            ? new Date(scheduledFor).toISOString()
+            : null,
       });
       router.push(`/account/orders/${order.id}?success=1`);
       router.refresh();
@@ -301,6 +311,31 @@ export default function CheckoutView({
               )}
             </div>
           )}
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-bold">დრო</h2>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={scheduleEnabled}
+              onChange={(e) => setScheduleEnabled(e.target.checked)}
+            />
+            დაგეგმილი შეკვეთა (მოგვიანებით)
+          </label>
+          {scheduleEnabled ? (
+            <div className="mt-3 space-y-1">
+              <Label>მიწოდების დრო</Label>
+              <Input
+                type="datetime-local"
+                value={scheduledFor}
+                min={new Date(Date.now() + 30 * 60 * 1000)
+                  .toISOString()
+                  .slice(0, 16)}
+                onChange={(e) => setScheduledFor(e.target.value)}
+              />
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-5">

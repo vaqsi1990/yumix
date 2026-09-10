@@ -101,8 +101,17 @@ export default function ReviewsManager() {
                           {review.orderNumber}
                         </span>
                       </div>
-                      <div className="mt-1">
-                        <StarRating rating={review.rating} size="md" />
+                      <div className="mt-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>რესტორანი</span>
+                          <StarRating rating={review.rating} size="md" />
+                        </div>
+                        {review.deliveryRating != null ? (
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span>მიწოდება</span>
+                            <StarRating rating={review.deliveryRating} size="md" />
+                          </div>
+                        ) : null}
                       </div>
                       <p className="mt-2 text-sm">{review.comment}</p>
                       <p className="mt-1 text-xs text-muted-foreground">

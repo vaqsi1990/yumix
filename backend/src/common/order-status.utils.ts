@@ -79,6 +79,7 @@ const CUSTOMER_STATUS_NOTIFICATIONS: Partial<
   },
 };
 
+/** @deprecated Use OrderNotificationsService.notifyCustomerStatus */
 export async function notifyCustomerOrderStatus(
   tx: Prisma.TransactionClient,
   input: {
@@ -104,3 +105,8 @@ export async function notifyCustomerOrderStatus(
     },
   });
 }
+
+export const CUSTOMER_CANCEL_STATUSES: OrderStatus[] = [
+  'PENDING',
+  'ACCEPTED',
+];

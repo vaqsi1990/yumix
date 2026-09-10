@@ -9,9 +9,11 @@ import { orderInclude } from '../common/order.utils';
 import {
   assertOrderTransition,
   COURIER_ORDER_TRANSITIONS,
-  notifyCustomerOrderStatus,
 } from '../common/order-status.utils';
+import { haversineKm } from '../common/delivery.utils';
 import { etaFromOrderSnapshot } from '../common/eta.utils';
+import { OrderEventsService } from '../orders/order-events.service';
+import { OrderNotificationsService } from '../orders/order-notifications.service';
 
 const AVAILABLE_STATUSES: OrderStatus[] = ['READY'];
 const UPCOMING_STATUSES: OrderStatus[] = ['PENDING', 'ACCEPTED', 'PREPARING'];
@@ -19,7 +21,11 @@ const ACTIVE_STATUSES: OrderStatus[] = ['PICKED_UP', 'ON_THE_WAY'];
 
 @Injectable()
 export class CourierService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private orderEvents: OrderEventsService,
+    private orderNotifications: OrderNotificationsService,
+  ) {}
 
   private async getCourierProfile(userId: string) {
     let profile = await this.prisma.courier.findUnique({
@@ -182,6 +188,26 @@ export class CourierService {
       },
     });
 
+    const activeOrders = await this.prisma.order.findMany({
+      where: {
+        courierId: courierUserId,
+        status: { in: ACTIVE_STATUSES },
+      },
+      select: { id: true },
+    });
+    for (const row of activeOrders) {
+      this.orderEvents.emit({
+        orderId: row.id,
+        type: 'LOCATION',
+        courierLocation: {
+          latitude,
+          longitude,
+          updatedAt: updated.locationUpdatedAt?.toISOString() ?? new Date().toISOString(),
+        },
+        at: new Date().toISOString(),
+      });
+    }
+
     return {
       latitude: updated.currentLatitude,
       longitude: updated.currentLongitude,
@@ -269,8 +295,31 @@ export class CourierService {
       }),
     ]);
 
+    const rank = (order: (typeof orders)[number]) => {
+      if (
+        profile.currentLatitude == null ||
+        profile.currentLongitude == null ||
+        order.restaurant.latitude == null ||
+        order.restaurant.longitude == null
+      ) {
+        return Number.POSITIVE_INFINITY;
+      }
+      return haversineKm(
+        profile.currentLatitude,
+        profile.currentLongitude,
+        order.restaurant.latitude,
+        order.restaurant.longitude,
+      );
+    };
+
+    const sorted = [...orders].sort((a, b) => rank(a) - rank(b));
+
     return {
-      orders: orders.map((o) => this.mapOrder(o)),
+      orders: sorted.map((o) => ({
+        ...this.mapOrder(o),
+        distanceToRestaurantKm:
+          Number.isFinite(rank(o)) ? Number(rank(o).toFixed(2)) : null,
+      })),
       upcoming: upcoming.map((o) => this.mapOrder(o)),
       isOnline: true,
     };
@@ -384,7 +433,7 @@ export class CourierService {
         include: orderInclude,
       });
 
-      await notifyCustomerOrderStatus(tx, {
+      await this.orderNotifications.notifyCustomerStatus(tx, {
         userId: next.userId,
         orderId: next.id,
         orderNumber: next.orderNumber,
@@ -393,6 +442,13 @@ export class CourierService {
       });
 
       return next;
+    });
+
+    this.orderEvents.emit({
+      orderId: updated.id,
+      type: 'STATUS',
+      status: updated.status,
+      at: new Date().toISOString(),
     });
 
     return { order: this.mapOrder(updated) };
@@ -429,7 +485,7 @@ export class CourierService {
         });
       }
 
-      await notifyCustomerOrderStatus(tx, {
+      await this.orderNotifications.notifyCustomerStatus(tx, {
         userId: next.userId,
         orderId: next.id,
         orderNumber: next.orderNumber,
@@ -438,6 +494,13 @@ export class CourierService {
       });
 
       return next;
+    });
+
+    this.orderEvents.emit({
+      orderId: updated.id,
+      type: 'STATUS',
+      status: updated.status,
+      at: new Date().toISOString(),
     });
 
     return { order: this.mapOrder(updated) };

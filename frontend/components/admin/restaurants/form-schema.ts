@@ -21,6 +21,7 @@ export const workingHourSchema = z.object({
 export const deliveryZoneSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "ზონის სახელი სავალდებულოა"),
+  maxDistanceKm: z.number().min(0.1, "მაქს. მანძილი სავალდებულოა"),
   deliveryFee: z.number().min(0),
   minimumOrder: z.number().min(0),
   estimatedMinutes: z.number().min(1),
@@ -119,6 +120,7 @@ export function createEmptyDeliveryZone(): DeliveryZoneFormValues {
   return {
     id: `zone_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     name: "",
+    maxDistanceKm: 3,
     deliveryFee: 3,
     minimumOrder: 15,
     estimatedMinutes: 30,

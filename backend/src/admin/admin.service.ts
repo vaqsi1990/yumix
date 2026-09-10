@@ -21,6 +21,7 @@ import {
   ensureStandardMenuCategories,
 } from '../common/ensure-menu-categories';
 import { assertValidIban } from '../common/iban.utils';
+import { normalizeDeliveryZones } from '../common/delivery-zones.utils';
 import {
   isStandardMenuCategory,
   onlyStandardMenuCategories,
@@ -429,6 +430,7 @@ export class AdminService {
           include: { category: { select: { name: true } } },
         },
         workingHours: { orderBy: { day: 'asc' } },
+        deliveryZones: { orderBy: { sortOrder: 'asc' } },
         reviews: {
           orderBy: { createdAt: 'desc' },
           take: 50,
@@ -607,12 +609,55 @@ export class AdminService {
         },
       });
 
+      await this.syncDeliveryZones(
+        tx,
+        created.id,
+        body,
+        deliveryRadius,
+      );
+
       return created;
     });
 
     await ensureStandardMenuCategories(this.prisma, restaurant.id);
 
     return { restaurant };
+  }
+
+  private async syncDeliveryZones(
+    tx: Prisma.TransactionClient,
+    restaurantId: string,
+    body: Record<string, unknown>,
+    deliveryRadius?: number | null,
+  ) {
+    const zones = normalizeDeliveryZones(
+      Array.isArray(body.deliveryZones)
+        ? (body.deliveryZones as {
+            name: string;
+            maxDistanceKm?: number;
+            deliveryFee: number;
+            minimumOrder?: number;
+            estimatedMinutes: number;
+            sortOrder?: number;
+          }[])
+        : [],
+      deliveryRadius,
+    );
+
+    await tx.deliveryZone.deleteMany({ where: { restaurantId } });
+    if (zones.length === 0) return;
+
+    await tx.deliveryZone.createMany({
+      data: zones.map((zone, index) => ({
+        restaurantId,
+        name: zone.name,
+        maxDistanceKm: zone.maxDistanceKm,
+        deliveryFee: zone.deliveryFee,
+        minimumOrder: zone.minimumOrder,
+        estimatedMinutes: zone.estimatedMinutes,
+        sortOrder: zone.sortOrder ?? index,
+      })),
+    });
   }
 
   private parseOptionalFloat(value: unknown): number | null {
@@ -820,6 +865,8 @@ export class AdminService {
           },
         },
       });
+
+      await this.syncDeliveryZones(tx, id, body, deliveryRadius);
     });
 
     return this.getRestaurant(id);

@@ -13,6 +13,8 @@ export const updateProfileSchema = z.object({
 
 export const updatePreferencesSchema = z.object({
   orderUpdates: z.boolean().optional(),
+  orderEmail: z.boolean().optional(),
+  orderSms: z.boolean().optional(),
   promotions: z.boolean().optional(),
   newRestaurants: z.boolean().optional(),
   discounts: z.boolean().optional(),
@@ -41,6 +43,8 @@ export type UpdateAddressDto = z.infer<typeof updateAddressSchema>;
 
 export const DEFAULT_USER_PREFERENCES = {
   orderUpdates: true,
+  orderEmail: true,
+  orderSms: false,
   promotions: true,
   newRestaurants: true,
   discounts: true,

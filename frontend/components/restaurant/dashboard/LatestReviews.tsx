@@ -49,8 +49,11 @@ export default function LatestReviews({ reviews }: LatestReviewsProps) {
                   {formatRelativeTime(review.createdAt)}
                 </span>
               </div>
-              <div className="mt-1">
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <StarRating rating={review.rating} />
+                {review.deliveryRating != null ? (
+                  <span>მიწოდება {review.deliveryRating}/5</span>
+                ) : null}
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                 {review.comment}

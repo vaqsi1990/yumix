@@ -65,6 +65,23 @@ export default function DeliveryZonesEditor() {
                 />
                 <Controller
                   control={control}
+                  name={`deliveryZones.${index}.maxDistanceKm`}
+                  render={({ field: f }) => (
+                    <FormField label="მაქს. მანძილი (კმ)" required>
+                      <Input
+                        {...f}
+                        type="number"
+                        min={0.1}
+                        step="0.1"
+                        onChange={(e) =>
+                          f.onChange(e.target.valueAsNumber || 0.1)
+                        }
+                      />
+                    </FormField>
+                  )}
+                />
+                <Controller
+                  control={control}
                   name={`deliveryZones.${index}.deliveryFee`}
                   render={({ field: f }) => (
                     <FormField label="მიწოდების ფასი (₾)">

@@ -64,6 +64,35 @@ export default function OrderDetailsDialog({
                 <p className="font-medium">{formatDateTime(order.createdAt)}</p>
               </div>
             </div>
+            {order.scheduledFor ? (
+              <div>
+                <p className="text-muted-foreground">დაგეგმილი დრო</p>
+                <p className="font-medium">{formatDateTime(order.scheduledFor)}</p>
+              </div>
+            ) : null}
+            {order.courier ? (
+              <div>
+                <p className="text-muted-foreground">კურიერი</p>
+                <p className="font-medium">{order.courier.name}</p>
+                <a
+                  href={`tel:${order.courier.phone}`}
+                  className="text-sm text-[#FF0050] hover:underline"
+                >
+                  {order.courier.phone}
+                </a>
+                {order.courier.location?.latitude != null &&
+                order.courier.location?.longitude != null ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    GPS: {order.courier.location.latitude.toFixed(5)},{" "}
+                    {order.courier.location.longitude.toFixed(5)}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    კურიერის მდებარეობა ჯერ არ არის
+                  </p>
+                )}
+              </div>
+            ) : null}
             {order.notes && (
               <div>
                 <p className="text-muted-foreground">{KA.notes}</p>

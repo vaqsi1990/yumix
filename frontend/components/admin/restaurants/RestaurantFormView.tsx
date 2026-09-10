@@ -43,6 +43,7 @@ import OwnerUserPicker, {
   type RestaurantOwnerCandidate,
 } from "./form/OwnerUserPicker";
 import WorkingHoursEditor from "./form/WorkingHoursEditor";
+import DeliveryZonesEditor from "./form/DeliveryZonesEditor";
 
 type RestaurantFormViewProps = {
   users: RestaurantOwnerCandidate[];
@@ -532,6 +533,9 @@ export default function RestaurantFormView({
               })}
             />
           </FormField>
+        </div>
+        <div className="mt-6">
+          <DeliveryZonesEditor />
         </div>
       </FormSectionCard>
 

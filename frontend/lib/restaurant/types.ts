@@ -68,7 +68,18 @@ export type RestaurantOrder = {
   paymentMethod: PaymentMethod;
   deliveryAddress: string;
   notes?: string | null;
+  scheduledFor?: string | null;
   createdAt: string;
+  courier?: {
+    id: string;
+    name: string;
+    phone: string;
+    location?: {
+      latitude: number | null;
+      longitude: number | null;
+      updatedAt: string | null;
+    } | null;
+  } | null;
   items: RestaurantOrderItem[];
 };
 
@@ -146,6 +157,7 @@ export type RestaurantReview = {
   customerName: string;
   customerAvatar: string | null;
   rating: number;
+  deliveryRating: number | null;
   comment: string;
   orderNumber: string;
   createdAt: string;

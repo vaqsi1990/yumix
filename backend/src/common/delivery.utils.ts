@@ -26,18 +26,35 @@ export type DeliveryPricing = {
   longitude: number | null | undefined;
 };
 
+export type DeliveryZoneRow = {
+  maxDistanceKm: number;
+  deliveryFee: number;
+  minimumOrder: number | null;
+  estimatedMinutes: number;
+};
+
 export type DeliveryQuote = {
   fee: number;
   distanceKm: number | null;
   outOfRange: boolean;
+  estimatedMinutes?: number | null;
+  zoneMinimumOrder?: number | null;
 };
 
 function roundMoney(value: number) {
   return Math.round(Math.max(0, value) * 100) / 100;
 }
 
+function resolveZone(
+  zones: DeliveryZoneRow[],
+  distanceKm: number,
+): DeliveryZoneRow | null {
+  const sorted = [...zones].sort((a, b) => a.maxDistanceKm - b.maxDistanceKm);
+  return sorted.find((zone) => distanceKm <= zone.maxDistanceKm) ?? null;
+}
+
 export function quoteDeliveryFee(
-  restaurant: DeliveryPricing,
+  restaurant: DeliveryPricing & { deliveryZones?: DeliveryZoneRow[] },
   dest?: { latitude: number | null; longitude: number | null } | null,
 ): DeliveryQuote {
   const base = Number(restaurant.deliveryFee ?? 0);
@@ -62,6 +79,26 @@ export function quoteDeliveryFee(
   }
 
   const distanceKm = haversineKm(fromLat, fromLng, destLat, destLng);
+  const zones = restaurant.deliveryZones ?? [];
+
+  if (zones.length > 0) {
+    const zone = resolveZone(zones, distanceKm);
+    if (!zone) {
+      return {
+        fee: 0,
+        distanceKm: Number(distanceKm.toFixed(2)),
+        outOfRange: true,
+      };
+    }
+    return {
+      fee: roundMoney(zone.deliveryFee),
+      distanceKm: Number(distanceKm.toFixed(2)),
+      outOfRange: false,
+      estimatedMinutes: zone.estimatedMinutes,
+      zoneMinimumOrder: zone.minimumOrder,
+    };
+  }
+
   const outOfRange =
     radius != null && Number.isFinite(radius) && distanceKm > radius;
 

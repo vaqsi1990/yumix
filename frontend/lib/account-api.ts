@@ -14,6 +14,8 @@ async function parseError(res: Response) {
 
 export type UserPreferences = {
   orderUpdates: boolean;
+  orderEmail: boolean;
+  orderSms: boolean;
   promotions: boolean;
   newRestaurants: boolean;
   discounts: boolean;
@@ -186,6 +188,33 @@ export async function fetchCustomerOrder(id: string) {
 
 export async function reorderOrder(id: string) {
   const res = await fetch(`/api/backend/orders/${id}/reorder`, { method: "POST" });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
+export async function cancelOrder(id: string, reason?: string | null) {
+  const res = await fetch(`/api/backend/orders/${id}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason: reason ?? null }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
+export async function submitOrderReview(
+  id: string,
+  payload: {
+    rating: number;
+    deliveryRating: number;
+    comment?: string | null;
+  },
+) {
+  const res = await fetch(`/api/backend/orders/${id}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
 }

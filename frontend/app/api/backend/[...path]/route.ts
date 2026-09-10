@@ -32,14 +32,27 @@ async function proxy(request: NextRequest, path: string[]) {
     );
   }
 
-  const text = await res.text();
-  const response = new NextResponse(text, {
-    status: res.status,
-    headers: {
-      "content-type": res.headers.get("content-type") ?? "application/json",
-      "cache-control": "no-store, private",
-    },
-  });
+  const isSse =
+    path[path.length - 1] === "events" ||
+    res.headers.get("content-type")?.includes("text/event-stream");
+
+  const response = isSse && res.body
+    ? new NextResponse(res.body, {
+        status: res.status,
+        headers: {
+          "content-type":
+            res.headers.get("content-type") ?? "text/event-stream",
+          "cache-control": "no-cache, no-transform",
+          connection: "keep-alive",
+        },
+      })
+    : new NextResponse(await res.text(), {
+        status: res.status,
+        headers: {
+          "content-type": res.headers.get("content-type") ?? "application/json",
+          "cache-control": "no-store, private",
+        },
+      });
 
   if (token) {
     if (res.status === 401) {

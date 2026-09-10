@@ -169,6 +169,22 @@ model Restaurant {
   addOns            ProductAddon[]
   carts             Cart[]
   favorites         FavoriteRestaurant[]
+  deliveryZones     DeliveryZone[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryZone {
+  id               String     @id @default(cuid())
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId     String
+  name             String
+  maxDistanceKm    Float
+  deliveryFee      Float
+  minimumOrder     Float?
+  estimatedMinutes Int
+  sortOrder        Int        @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -366,6 +382,10 @@ model Order {
   etaTotalMin   Int?
   etaTotalMax   Int?
   customerNote  String?
+  scheduledFor  DateTime?
+  cancelledAt   DateTime?
+  cancellationReason String?
+  cancelledByRole    String?
   coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
   couponId      String?
 
@@ -450,9 +470,10 @@ model Review {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
   restaurantId String
   order        Order      @relation(fields: [orderId], references: [id])
-  orderId      String     @unique
-  rating       Int
-  comment      String?
+  orderId         String     @unique
+  rating          Int
+  deliveryRating  Int?
+  comment         String?
 
   createdAt DateTime @default(now())
 }
