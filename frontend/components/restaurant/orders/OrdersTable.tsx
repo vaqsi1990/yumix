@@ -34,12 +34,14 @@ type OrdersTableProps = {
   orders: RestaurantOrder[];
   onView: (order: RestaurantOrder) => void;
   onStatusChange: (orderId: string, status: OrderStatus) => void;
+  actionLoadingId?: string | null;
 };
 
 export default function OrdersTable({
   orders,
   onView,
   onStatusChange,
+  actionLoadingId = null,
 }: OrdersTableProps) {
   return (
     <div className="rounded-xl border border-border">
@@ -87,7 +89,11 @@ export default function OrdersTable({
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={actionLoadingId === order.id}
+                    >
                       <MoreHorizontal className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>

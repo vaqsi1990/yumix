@@ -214,21 +214,10 @@ export class OrdersService {
     userId: string,
     idempotencyKey?: string | null,
   ) {
-    if (idempotencyKey) {
-      const byKey = await tx.order.findFirst({
-        where: { userId, idempotencyKey },
-        include: orderInclude,
-      });
-      if (byKey) return byKey;
-    }
+    if (!idempotencyKey) return null;
 
     return tx.order.findFirst({
-      where: {
-        userId,
-        createdAt: { gte: new Date(Date.now() - 3 * 60 * 1000) },
-        status: { in: ['PENDING', 'ACCEPTED', 'PREPARING', 'READY'] },
-      },
-      orderBy: { createdAt: 'desc' },
+      where: { userId, idempotencyKey },
       include: orderInclude,
     });
   }

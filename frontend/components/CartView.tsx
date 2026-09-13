@@ -23,6 +23,8 @@ export type CartViewData = {
   coupon: {
     id: string;
     code: string;
+    type?: "BALANCE" | "PERCENT" | "FIXED";
+    value?: number;
     remainingBalance: number;
     expiresAt: string | Date | null;
   } | null;
@@ -84,7 +86,22 @@ function itemLineTotal(item: CartViewData["items"][number]) {
     (sum, row) => sum + row.price * row.quantity,
     0,
   );
-  return item.price * item.quantity + addOns + customizations;
+  const extras = (addOns + customizations) * item.quantity;
+  return item.price * item.quantity + extras;
+}
+
+function calcCouponDiscount(
+  coupon: NonNullable<CartViewData["coupon"]>,
+  orderAmount: number,
+) {
+  const capped = Math.max(0, orderAmount);
+  if (coupon.type === "PERCENT" && coupon.value != null) {
+    return Math.min(capped, capped * coupon.value / 100);
+  }
+  if (coupon.type === "FIXED" && coupon.value != null) {
+    return Math.min(capped, coupon.value);
+  }
+  return Math.min(capped, coupon.remainingBalance);
 }
 
 function getItemTitle(item: CartViewData["items"][number]) {
@@ -100,12 +117,15 @@ function getItemTitle(item: CartViewData["items"][number]) {
 function recalcTotals(cart: CartViewData, previous: Totals): Totals {
   const subtotal = cart.items.reduce((sum, item) => sum + itemLineTotal(item), 0);
   const deliveryFee = previous.deliveryFee;
-  const discount = Math.min(previous.discount, subtotal + deliveryFee);
+  const base = subtotal + deliveryFee;
+  const discount = cart.coupon
+    ? calcCouponDiscount(cart.coupon, base)
+    : Math.min(previous.discount, base);
   return {
     subtotal,
     deliveryFee,
     discount,
-    total: Math.max(0, subtotal + deliveryFee - discount),
+    total: Math.max(0, base - discount),
     itemCount: cart.items.length,
   };
 }
@@ -142,9 +162,13 @@ function withItemQuantity(
 export default function CartView({
   cart,
   totals,
+  loadError,
+  effectiveMinimumOrder,
 }: {
   cart: CartViewData | null;
   totals: Totals | null;
+  loadError?: string | null;
+  effectiveMinimumOrder?: number | null;
 }) {
   const router = useRouter();
   const { applyCartResponse, clearCart: clearCartState } = useCart();
@@ -155,6 +179,7 @@ export default function CartView({
   const [couponCode, setCouponCode] = useState("");
   const [couponBusy, setCouponBusy] = useState(false);
   const [couponError, setCouponError] = useState("");
+  const [mutationError, setMutationError] = useState("");
   const requestSeq = useRef(0);
 
   useEffect(() => {
@@ -198,8 +223,11 @@ export default function CartView({
       if (!res.ok) {
         setLocalCart(cart);
         setLocalTotals(totals);
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setMutationError(data.error || "კალათის განახლება ვერ მოხერხდა");
         return;
       }
+      setMutationError("");
       const data = (await res.json()) as {
         cart?: CartViewData | null;
         totals?: Totals | null;
@@ -217,9 +245,14 @@ export default function CartView({
       const res = await fetch(`/api/backend/cart/items/${itemId}`, {
         method: "DELETE",
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setMutationError(data.error || "პროდუქტის წაშლა ვერ მოხერხდა");
+        return;
+      }
       const data = await res.json();
-      applyCartResponse(data);
+      applyCartPayload(data);
+      setMutationError("");
       router.refresh();
     } finally {
       setBusyId(null);
@@ -270,6 +303,24 @@ export default function CartView({
     }
   }
 
+  if (loadError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-16 text-center">
+        <h2 className="font-[family-name:var(--font-inter)] text-[18px] font-bold text-red-800 md:text-[20px]">
+          კალათის ჩატვირთვა ვერ მოხერხდა
+        </h2>
+        <p className="mt-2 text-[16px] text-red-700 md:text-[18px]">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => router.refresh()}
+          className="mt-6 inline-flex rounded-lg bg-[#FF0050] px-5 py-2.5 text-[16px] font-medium text-white transition hover:bg-[#e00048] md:text-[18px]"
+        >
+          თავიდან ცდა
+        </button>
+      </div>
+    );
+  }
+
   if (!localCart || localCart.items.length === 0 || !localTotals) {
     return (
       <div className="rounded-2xl bg-[#F5F5F5] px-6 py-16 text-center">
@@ -307,9 +358,10 @@ export default function CartView({
     );
   }
 
+  const minimumOrder =
+    effectiveMinimumOrder ?? localCart.restaurant.minimumOrder;
   const belowMinimum =
-    localCart.restaurant.minimumOrder != null &&
-    localTotals.subtotal < localCart.restaurant.minimumOrder;
+    minimumOrder != null && localTotals.subtotal < minimumOrder;
 
   return (
     <>
@@ -577,10 +629,13 @@ export default function CartView({
           </div>
         </dl>
 
+        {mutationError && (
+          <p className="mt-3 text-sm text-[#FF0050]">{mutationError}</p>
+        )}
+
         {belowMinimum && (
           <p className="mt-3 text-sm text-[#FF0050]">
-            მინიმალური შეკვეთა:{" "}
-            {formatGel(localCart.restaurant.minimumOrder ?? 0)}
+            მინიმალური შეკვეთა: {formatGel(minimumOrder ?? 0)}
           </p>
         )}
 
@@ -609,7 +664,7 @@ export default function CartView({
             </p>
             {belowMinimum && (
               <p className="mt-0.5 text-xs text-[#FF0050]">
-                მინ. {formatGel(localCart.restaurant.minimumOrder ?? 0)}
+                მინ. {formatGel(minimumOrder ?? 0)}
               </p>
             )}
           </div>

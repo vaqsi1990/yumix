@@ -13,6 +13,7 @@ export type OrderLiveEvent = {
   at: string;
 };
 
+/** In-process SSE bus — works on a single API instance only. */
 @Injectable()
 export class OrderEventsService {
   private readonly channels = new Map<string, Subject<OrderLiveEvent>>();

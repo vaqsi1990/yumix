@@ -1,7 +1,8 @@
 import Link from "next/link";
 import CartView, { type CartViewData } from "@/components/CartView";
 import CartCountSync from "@/components/shop/CartCountSync";
-import { getSession, serverApiFetch } from "@/lib/session";
+import { getSession, serverApiFetch, SessionApiError } from "@/lib/session";
+import type { Address } from "@/lib/shop-api";
 
 export const dynamic = "force-dynamic";
 
@@ -50,18 +51,28 @@ export default async function CartPage() {
 
   let cart: CartViewData | null = null;
   let totals: CartTotals | null = null;
+  let loadError: string | null = null;
+  let effectiveMinimumOrder: number | null = null;
 
   try {
-    const data = await serverApiFetch<{
-      cart: (CartViewData & {
-        coupon: (CartViewData["coupon"] & {
-          isActive?: boolean;
-          assignedToId?: string | null;
-          minimumOrder?: number | null;
+    const addressesPromise = serverApiFetch<{ addresses: Address[] }>(
+      "/addresses",
+    ).catch(() => ({ addresses: [] as Address[] }));
+
+    const [data, addressData] = await Promise.all([
+      serverApiFetch<{
+        cart: (CartViewData & {
+          coupon: (CartViewData["coupon"] & {
+            isActive?: boolean;
+            assignedToId?: string | null;
+            minimumOrder?: number | null;
+          }) | null;
         }) | null;
-      }) | null;
-      totals: CartTotals | null;
-    }>("/cart");
+        totals: CartTotals | null;
+        delivery?: { zoneMinimumOrder?: number | null } | null;
+      }>("/cart"),
+      addressesPromise,
+    ]);
 
     if (data.cart) {
       cart = {
@@ -71,16 +82,33 @@ export default async function CartPage() {
           ? {
               id: data.cart.coupon.id,
               code: data.cart.coupon.code,
+              type: data.cart.coupon.type,
+              value: data.cart.coupon.value,
               remainingBalance: data.cart.coupon.remainingBalance,
               expiresAt: data.cart.coupon.expiresAt,
             }
           : null,
       };
+      effectiveMinimumOrder =
+        data.delivery?.zoneMinimumOrder ?? cart.restaurant.minimumOrder;
     }
     totals = data.totals;
-  } catch {
-    cart = null;
-    totals = null;
+
+    const defaultAddress =
+      addressData.addresses.find((row) => row.isDefault) ??
+      addressData.addresses[0];
+    if (defaultAddress?.id && cart) {
+      const quoted = await serverApiFetch<{
+        delivery?: { zoneMinimumOrder?: number | null } | null;
+      }>(`/cart?addressId=${encodeURIComponent(defaultAddress.id)}`);
+      effectiveMinimumOrder =
+        quoted.delivery?.zoneMinimumOrder ?? cart.restaurant.minimumOrder;
+    }
+  } catch (error) {
+    loadError =
+      error instanceof SessionApiError
+        ? error.message
+        : "სერვერთან კავშირი ვერ დამყარდა";
   }
 
   return (
@@ -105,7 +133,12 @@ export default async function CartPage() {
       </div>
 
       {totals ? <CartCountSync /> : null}
-      <CartView cart={cart} totals={totals} />
+      <CartView
+        cart={cart}
+        totals={totals}
+        loadError={loadError}
+        effectiveMinimumOrder={effectiveMinimumOrder}
+      />
     </section>
   );
 }

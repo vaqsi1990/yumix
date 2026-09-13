@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -43,8 +44,13 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user, status } = useAuth();
   const [summary, setSummary] = useState<CartSummary>(EMPTY_CART_SUMMARY);
+  const summaryRef = useRef(summary);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    summaryRef.current = summary;
+  }, [summary]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -54,10 +60,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const data = await fetchCartSummary();
+      const data = await fetchCartSummary(summaryRef.current);
       setSummary(data);
     } catch {
-      setSummary(EMPTY_CART_SUMMARY);
+      // Keep last known summary so a transient failure does not show an empty badge.
     } finally {
       setReady(true);
     }

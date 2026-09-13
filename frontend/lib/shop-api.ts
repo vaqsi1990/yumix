@@ -85,17 +85,13 @@ export async function clearCart() {
   return res.json();
 }
 
-export async function fetchCartSummary(): Promise<CartSummary> {
+export async function fetchCartSummary(
+  previous?: CartSummary,
+): Promise<CartSummary> {
   const res = await fetch("/api/backend/cart", { cache: "no-store" });
   if (!res.ok) {
-    return {
-      itemCount: 0,
-      totalQuantity: 0,
-      subtotal: 0,
-      restaurantId: null,
-      restaurantSlug: null,
-      restaurantName: null,
-    };
+    if (previous) return previous;
+    throw new Error("Cart summary unavailable");
   }
   const data = (await res.json()) as Parameters<typeof parseCartSummary>[0];
   return parseCartSummary(data);
@@ -171,6 +167,7 @@ export async function fetchCartQuote(addressId?: string) {
       fee: number;
       distanceKm: number | null;
       outOfRange: boolean;
+      zoneMinimumOrder?: number | null;
       eta?: DeliveryEta | null;
     } | null;
   }>;

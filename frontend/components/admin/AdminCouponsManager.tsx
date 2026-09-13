@@ -252,11 +252,16 @@ export default function AdminCouponsManager({
   }
 
   async function toggleActive(id: string, isActive: boolean) {
-    await fetch(`/api/backend/admin/coupons/${id}`, {
+    const res = await fetch(`/api/backend/admin/coupons/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !isActive }),
     });
+    if (!res.ok) {
+      const data = (await res.json()) as { error?: string };
+      alert(data.error || "სტატუსის შეცვლა ვერ მოხერხდა");
+      return;
+    }
     router.refresh();
   }
 

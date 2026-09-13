@@ -25,6 +25,7 @@ export function CourierAcceptButton({
     try {
       await acceptCourierOrder(orderId);
       onAccepted?.();
+      router.push("/courier/active");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "მიღება ვერ მოხერხდა");

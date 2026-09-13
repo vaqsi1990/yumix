@@ -68,10 +68,7 @@ export async function getSession(): Promise<Session | null> {
   try {
     const data = await serverApiFetch<{ user: ApiUser }>("/auth/me", { token });
     return { user: data.user };
-  } catch (error) {
-    if (error instanceof SessionApiError && error.status === 401) {
-      return null;
-    }
-    return localSession;
+  } catch {
+    return null;
   }
 }

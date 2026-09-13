@@ -17,6 +17,7 @@ import {
 import { formatGel } from "@/lib/admin/format";
 import type { CartViewData } from "@/components/CartView";
 import type { DeliveryEta } from "@/lib/delivery";
+import { useCart } from "@/components/cart-context";
 import {
   createAddress,
   createOrder,
@@ -48,6 +49,7 @@ export default function CheckoutView({
   addresses: Address[];
 }) {
   const router = useRouter();
+  const { clearCart } = useCart();
   const [addresses, setAddresses] = useState(initialAddresses);
   const [addressId, setAddressId] = useState(
     initialAddresses.find((a) => a.isDefault)?.id ??
@@ -83,10 +85,29 @@ export default function CheckoutView({
   const [eta, setEta] = useState<DeliveryEta | null>(null);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState("");
+  const [effectiveMinimumOrder, setEffectiveMinimumOrder] = useState<
+    number | null
+  >(cart.restaurant.minimumOrder);
 
   const belowMinimum =
-    cart.restaurant.minimumOrder != null &&
-    totals.subtotal < cart.restaurant.minimumOrder;
+    effectiveMinimumOrder != null &&
+    totals.subtotal < effectiveMinimumOrder;
+
+  useEffect(() => {
+    submittingRef.current = false;
+    setBusy(false);
+  }, []);
+
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        submittingRef.current = false;
+        setBusy(false);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   useEffect(() => {
     if (!addressId) return;
@@ -98,6 +119,9 @@ export default function CheckoutView({
         setOutOfRange(Boolean(data.delivery?.outOfRange));
         setDistanceKm(data.delivery?.distanceKm ?? null);
         setEta(data.delivery?.eta ?? null);
+        setEffectiveMinimumOrder(
+          data.delivery?.zoneMinimumOrder ?? cart.restaurant.minimumOrder,
+        );
       })
       .catch((e) => {
         if (cancelled) return;
@@ -185,6 +209,7 @@ export default function CheckoutView({
             : null,
         idempotencyKey: idempotencyKeyRef.current,
       });
+      await clearCart();
       router.push(`/account/orders/${order.id}?success=1`);
       router.refresh();
     } catch (e) {
@@ -427,7 +452,7 @@ export default function CheckoutView({
         ) : null}
         {belowMinimum && (
           <p className="mt-3 text-sm text-[#FF0050]">
-            მინიმალური შეკვეთა: {formatGel(cart.restaurant.minimumOrder ?? 0)}
+            მინიმალური შეკვეთა: {formatGel(effectiveMinimumOrder ?? 0)}
           </p>
         )}
         {outOfRange && (

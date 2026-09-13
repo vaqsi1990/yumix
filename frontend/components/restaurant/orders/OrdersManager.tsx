@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ShoppingBag } from "lucide-react";
 import PageHeader from "@/components/restaurant/PageHeader";
 import OrdersFilters, { OrdersFilterState } from "@/components/restaurant/orders/OrdersFilters";
@@ -14,8 +15,19 @@ import { KA, translateApiError } from "@/lib/restaurant/labels";
 import type { OrderStatus, RestaurantOrder } from "@/lib/restaurant/types";
 
 const PAGE_SIZE = 10;
+const URL_STATUS_FILTERS = new Set<OrderStatus>([
+  "PENDING",
+  "ACCEPTED",
+  "PREPARING",
+  "READY",
+  "PICKED_UP",
+  "ON_THE_WAY",
+  "DELIVERED",
+  "CANCELLED",
+]);
 
 export default function OrdersManager() {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +42,15 @@ export default function OrdersManager() {
     null,
   );
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const status = searchParams.get("status");
+    if (status && URL_STATUS_FILTERS.has(status as OrderStatus)) {
+      setFilters((prev) => ({ ...prev, status: status as OrderStatus }));
+      setPage(1);
+    }
+  }, [searchParams]);
 
   const loadOrders = useCallback(async (silent = false) => {
     if (!silent) {
@@ -84,6 +105,8 @@ export default function OrdersManager() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
+    if (actionLoadingId) return;
+    setActionLoadingId(orderId);
     try {
       const res = await restaurantApi.updateOrderStatus(orderId, status);
       setOrders((prev) =>
@@ -93,6 +116,8 @@ export default function OrdersManager() {
       alert(
         translateApiError(e instanceof Error ? e.message : KA.failedSave),
       );
+    } finally {
+      setActionLoadingId(null);
     }
   }
 
@@ -142,6 +167,7 @@ export default function OrdersManager() {
             orders={paginated}
             onView={handleView}
             onStatusChange={handleStatusChange}
+            actionLoadingId={actionLoadingId}
           />
           <Pagination
             page={page}

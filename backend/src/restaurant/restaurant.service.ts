@@ -39,6 +39,7 @@ import type {
   RestaurantCouponCreateInput,
   RestaurantCouponUpdateInput,
 } from './dto/coupon.schemas';
+import { OrderEventsService } from '../orders/order-events.service';
 
 const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   'PENDING',
@@ -86,11 +87,12 @@ export class RestaurantPanelService {
   constructor(
     private prisma: PrismaService,
     private admin: AdminService,
+    private orderEvents: OrderEventsService,
   ) {}
 
-  private async findOwnedRestaurant(userId: string, role: string) {
+  private async findOwnedRestaurant(userId: string, _role: string) {
     return this.prisma.restaurant.findFirst({
-      where: role === 'ADMIN' ? undefined : { ownerId: userId },
+      where: { ownerId: userId },
       include: {
         workingHours: { orderBy: { day: 'asc' } },
         _count: { select: { products: true, orders: true, reviews: true } },
@@ -825,6 +827,13 @@ export class RestaurantPanelService {
       });
 
       return next;
+    });
+
+    this.orderEvents.emit({
+      orderId: updated.id,
+      type: 'STATUS',
+      status: updated.status,
+      at: new Date().toISOString(),
     });
 
     return { order: this.mapOrderDetail(updated) };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import OrderTrackingMap from "@/components/orders/OrderTrackingMap";
 
 const TRACKABLE_STATUSES = new Set(["PICKED_UP", "ON_THE_WAY"]);
@@ -73,6 +73,13 @@ export default function OrderLiveTracking({
 }) {
   const [order, setOrder] = useState<TrackingOrder | null>(initialOrder ?? null);
   const [mounted, setMounted] = useState(false);
+  const [liveStale, setLiveStale] = useState(false);
+  const [refreshError, setRefreshError] = useState(false);
+  const onOrderUpdateRef = useRef(onOrderUpdate);
+
+  useEffect(() => {
+    onOrderUpdateRef.current = onOrderUpdate;
+  }, [onOrderUpdate]);
 
   useEffect(() => {
     setMounted(true);
@@ -85,35 +92,66 @@ export default function OrderLiveTracking({
   useEffect(() => {
     if (!poll || !orderId) return;
 
+    let cancelled = false;
+    let source: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+    let retryDelay = 1000;
+
     async function refresh() {
       try {
         const res = await fetch(`/api/backend/orders/${orderId}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          setRefreshError(true);
+          return;
+        }
         const data = (await res.json()) as { order: TrackingOrder };
+        if (cancelled) return;
         setOrder(data.order);
-        onOrderUpdate?.(data.order);
+        setRefreshError(false);
+        onOrderUpdateRef.current?.(data.order);
       } catch {
-        // ignore polling errors
+        if (!cancelled) setRefreshError(true);
       }
     }
 
+    function scheduleReconnect() {
+      if (cancelled) return;
+      setLiveStale(true);
+      reconnectTimer = setTimeout(() => {
+        retryDelay = Math.min(retryDelay * 2, 30_000);
+        connect();
+      }, retryDelay);
+    }
+
+    function connect() {
+      if (cancelled) return;
+      source?.close();
+      source = new EventSource(`/api/backend/orders/${orderId}/events`);
+      source.onmessage = () => {
+        retryDelay = 1000;
+        setLiveStale(false);
+        void refresh();
+      };
+      source.onerror = () => {
+        source?.close();
+        source = null;
+        scheduleReconnect();
+      };
+    }
+
     void refresh();
+    connect();
 
-    const source = new EventSource(`/api/backend/orders/${orderId}/events`);
-    source.onmessage = () => {
-      void refresh();
-    };
-    source.onerror = () => {
-      source.close();
-    };
-
-    const fallback = window.setInterval(() => void refresh(), 30_000);
+    fallbackTimer = setInterval(() => void refresh(), 15_000);
 
     return () => {
-      source.close();
-      window.clearInterval(fallback);
+      cancelled = true;
+      source?.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (fallbackTimer) clearInterval(fallbackTimer);
     };
-  }, [orderId, poll, onOrderUpdate]);
+  }, [orderId, poll]);
 
   if (!order) {
     return (
@@ -144,7 +182,14 @@ export default function OrderLiveTracking({
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-5">
-      <h2 className="text-lg font-bold">{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">{title}</h2>
+        {liveStale || refreshError ? (
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+            {refreshError ? "განახლება ვერ მოხერხდა" : "ცოცხალი კავშირი შეწყვეტილია"}
+          </span>
+        ) : null}
+      </div>
       {order.courier ? (
         <p className="mt-1 text-sm text-neutral-500">
           {order.courier.firstName} {order.courier.lastName}
@@ -172,6 +217,22 @@ export default function OrderLiveTracking({
         <p className="mt-3 text-sm text-neutral-500">
           კურიერის მდებარეობა ჯერ არ არის — როცა GPS გაიგზავნება, აქ გამოჩნდება.
         </p>
+      ) : null}
+
+      {refreshError ? (
+        <button
+          type="button"
+          className="mt-3 text-sm font-medium text-[#FF0050] hover:underline"
+          onClick={() => void fetch(`/api/backend/orders/${orderId}`).then((res) => {
+            if (!res.ok) return;
+            return res.json().then((data: { order: TrackingOrder }) => {
+              setOrder(data.order);
+              setRefreshError(false);
+            });
+          })}
+        >
+          თავიდან ცდა
+        </button>
       ) : null}
     </section>
   );
